@@ -6290,7 +6290,6 @@ const PRICING_FIELDS = [
   ["wallThickness", "Wanddikte (mm)", 0.1],
   ["assemblyBase", "Assembleren, basis (€)", 0.5],
   ["assemblyPerPart", "Assembleren, per extra onderdeel (€)", 0.5],
-  ["freeShipFrom", "Gratis verzending vanaf (€, 0 = nooit)", 1],
 ];
 const SLICER_FIELDS = [
   ["lineWidth", "Extrusiebreedte (mm)", 0.02],
@@ -6417,6 +6416,26 @@ function viewPricingAdmin(){
       <h2>Prijzen</h2>
       <p>Hiermee reken je elke prijs door: die van een model op maat en die van een geüpload
          bestand. De prijs per kilo staat per filamentsoort onder Filamenten.</p>
+    </div>
+
+    <div class="cart-item" style="margin-bottom:14px;">
+      <div class="between" style="margin-bottom:6px;">
+        <h3 class="font-display" style="font-size:14px;margin:0;">${ic("truck")} Verzending</h3>
+        ${p.freeShipFrom > 0
+          ? `<span class="badge badge-accent">gratis vanaf ${fmtEUR(p.freeShipFrom)}</span>`
+          : `<span class="badge">altijd betalend</span>`}
+      </div>
+      <p class="muted" style="font-size:11px;line-height:1.55;margin:0 0 10px;">
+        Vanaf welk bedrag betaalt de klant geen verzending meer? Zet nul als je dat niet wil.
+        De klant ziet in zijn winkelwagen hoeveel er nog bij moet. Een kortingscode telt mee
+        voor die grens, en bij afhalen valt verzending sowieso weg.
+      </p>
+      <label class="field-label" style="margin-top:0;">Gratis verzending vanaf (€)</label>
+      <input type="number" min="0" step="1" class="pricefield" data-key="freeShipFrom"
+             placeholder="0 = nooit gratis" value="${p.freeShipFrom || 0}" style="max-width:220px;" />
+      <p class="muted font-mono" style="font-size:11px;margin:10px 0 0;">
+        ${SHIPPING_RATES.map(r => `${esc(r.country)} ${fmtEUR(r.price)}`).join(" · ")}
+      </p>
     </div>
     <div class="cart-item" style="margin-bottom:14px;">
       <div class="form-grid">
