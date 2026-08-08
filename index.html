@@ -1101,6 +1101,8 @@ const DEFAULT_PRICING = {
   assemblyBase: 4.00,       // eerste onderdeel in elkaar zetten
   assemblyPerPart: 1.50,    // elk volgend onderdeel
   discountTiers: [{ from: 3, pct: 5 }, { from: 6, pct: 10 }, { from: 12, pct: 15 }],
+  // Vanaf dit bedrag is verzenden gratis. Nul betekent: nooit gratis.
+  freeShipFrom: 0,
 };
 
 /* De instellingen waarmee we snijden. Ze horen bij de X1C met een 0.4-nozzle;
@@ -1140,6 +1142,22 @@ const DEFAULT_SLICER = {
 function slicerSettings(){ return { ...DEFAULT_SLICER, ...(pricing().slicer || {}) }; }
 const MAX_PARTS = 12;       // zoals bij PCBWay: twaalf onderdelen per opdracht
 function pricing(){ return { ...DEFAULT_PRICING, ...(state.pricing || {}) }; }
+
+/* Wat verzenden kost, met de gratis-grens erin verwerkt. `bedrag` is wat er
+   voor verzending al te betalen is: het subtotaal min de kortingscode, want
+   je hoort de grens te halen met wat je écht neerlegt. */
+function verzendKosten(land, bedrag, ophalen){
+  if (ophalen) return 0;
+  const tarief = (SHIPPING_RATES.find(r => r.country === land) || SHIPPING_RATES[0]).price;
+  const grens = pricing().freeShipFrom || 0;
+  return (grens > 0 && bedrag >= grens) ? 0 : tarief;
+}
+/* Hoeveel er nog bij moet voor gratis verzending, of null als dat niet speelt. */
+function nogTotGratis(bedrag){
+  const grens = pricing().freeShipFrom || 0;
+  if (!(grens > 0) || bedrag >= grens) return null;
+  return Math.round((grens - bedrag) * 100) / 100;
+}
 
 /* De klant hoeft geen grammen, printminuten, volumes of driehoeken te zien —
    die krijgt gewoon de prijs, en kiest kleur en materiaal. Voor de beheerder
@@ -2719,8 +2737,9 @@ const fmtMoment = (t) => new Date(t).toLocaleString('nl-BE',
 async function placeOrder(shippingCountry, address, payment){
   if (!state.user){ notify("Log in om te bestellen"); go("login"); return; }
   const ophalen = state.__checkout?.pickupAt || null;
-  const rate = ophalen ? { price: 0 } : (SHIPPING_RATES.find(r=>r.country===shippingCountry) || SHIPPING_RATES[0]);
   const korting = state.__korting || null;
+  const teBetalen = Math.max(0, cartTotal() - (korting?.bedrag || 0));
+  const rate = { price: verzendKosten(shippingCountry, teBetalen, !!ophalen) };
   const order = {
     uid: state.user.uid,
     userEmail: state.user.email,
@@ -4731,6 +4750,23 @@ function viewCart(){
       <button class="back" onclick="go('shop')"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Verder winkelen</button>
       <h1 class="font-display" style="font-size:22px;margin-bottom:16px;">Winkelwagen</h1>
       ${items}
+      ${(() => {
+        // Hier beslist iemand of hij er nog iets bij doet, dus hier hoort het
+        // te staan: hoe dicht zit je bij gratis verzending?
+        const nog = nogTotGratis(cartTotal());
+        if (nog !== null) return `
+          <div class="cart-item" style="margin:14px 0;padding:11px 12px;">
+            <p style="font-size:13px;margin:0 0 6px;">${ic("truck")} Nog ${fmtEUR(nog)} en de verzending is gratis.</p>
+            <span class="stappen-balk" style="max-width:none;display:block;">
+              <span style="width:${Math.round(cartTotal() / (pricing().freeShipFrom || 1) * 100)}%;"></span>
+            </span>
+          </div>`;
+        if (pricing().freeShipFrom > 0) return `
+          <p style="font-size:13px;margin:14px 0;color:var(--accent);font-weight:600;">
+            ${ic("truck")} Je verzending is gratis
+          </p>`;
+        return ``;
+      })()}
       <div class="between font-mono" style="margin:16px 0;"><span class="muted">Subtotaal</span><span>${fmtEUR(cartTotal())}</span></div>
       <button class="btn btn-accent" style="width:100%;" onclick="go(${state.user ? "'checkout'" : "'login'"})">Afrekenen</button>
     </div>`;
@@ -4792,9 +4828,8 @@ function afhaalBlok(){
   const a = afhalen();
   if (!momenten.length) return `
     <div class="cart-item" style="margin-bottom:14px;">
-      <p class="muted" style="font-size:13px;margin:0;">
-        Er staan op dit moment geen afhaalmomenten open. Kies verzenden, of laat het ons weten.
-      </p>
+      <p style="font-size:13px;margin:0 0 8px;">Er staan op dit moment geen afhaalmomenten open.</p>
+      <button class="btn btn-accent btn-sm" data-lever="post">${ic("truck")} Laat het opsturen</button>
     </div>`;
   const perDag = new Map();
   for (const t of momenten){
@@ -4821,11 +4856,13 @@ function viewCheckout(){
   // wat er getypt is overleeft een hertekening; anders ben je het kwijt zodra
   // de adrescontrole iets te melden heeft
   const addr = state.__ckVeld || state.profile?.address || {};
-  const kanAfhalen = afhalen().enabled && afhaalMomenten().length > 0;
+  const kanAfhalen = afhalen().enabled;
   const ophalen = kanAfhalen && state.__leverwijze === "afhaal";
   const land = state.__ckLand || SHIPPING_RATES[0].country;
-  const verzend = ophalen ? 0 : (SHIPPING_RATES.find(r => r.country === land) || SHIPPING_RATES[0]).price;
   const kort = state.__korting;
+  const teBetalen = Math.max(0, cartTotal() - (kort?.bedrag || 0));
+  const verzend = verzendKosten(land, teBetalen, ophalen);
+  const nog = ophalen ? null : nogTotGratis(teBetalen);
   const rate = SHIPPING_RATES.find(r => r.country === land) || SHIPPING_RATES[0];
   const options = SHIPPING_RATES.map(r=>`<option value="${r.country}"${r.country===land?" selected":""}>${r.country} — ${fmtEUR(r.price)}</option>`).join("");
   const c = state.__adresCheck;
@@ -4896,10 +4933,19 @@ function viewCheckout(){
           ${state.__codeFout ? `<p style="font-size:12px;color:var(--accent);margin:8px 0 0;">${esc(state.__codeFout)}</p>` : ``}`}
       </div>
 
+      ${nog !== null ? `
+        <p class="muted" style="font-size:12px;margin:0 0 10px;">
+          ${ic("truck")} Nog ${fmtEUR(nog)} en de verzending is gratis.
+        </p>` : ``}
+      ${!ophalen && verzend === 0 && pricing().freeShipFrom > 0 ? `
+        <p style="font-size:12px;margin:0 0 10px;color:var(--accent);font-weight:600;">
+          ${ic("truck")} Gratis verzending
+        </p>` : ``}
       <div class="cart-item font-mono" style="font-size:13px;margin:0 0 16px;">
         <div class="between"><span class="muted">Subtotaal</span><span>${fmtEUR(cartTotal())}</span></div>
         ${kort ? `<div class="between" style="color:var(--accent);"><span>Korting ${esc(kort.code)}</span><span>&minus;${fmtEUR(kort.bedrag)}</span></div>` : ``}
-        <div class="between"><span class="muted">${ophalen ? "Afhalen" : "Verzending"}</span><span id="ckShipVal">${ophalen ? "gratis" : fmtEUR(verzend)}</span></div>
+        <div class="between"><span class="muted">${ophalen ? "Afhalen" : "Verzending"}</span>
+          <span id="ckShipVal">${ophalen || verzend === 0 ? "gratis" : fmtEUR(verzend)}</span></div>
         <div class="between" style="border-top:1px solid var(--surface2);margin-top:6px;padding-top:6px;color:var(--accent);"><span>Totaal</span><span id="ckTotalVal">${fmtEUR(Math.max(0, cartTotal() - (kort?.bedrag || 0)) + verzend)}</span></div>
       </div>
       <button class="btn btn-accent" style="width:100%;" id="placeOrderBtn"${c?.bezig ? " disabled" : ""}>
@@ -4909,7 +4955,7 @@ function viewCheckout(){
     </div>`;
 }
 function attachCheckoutHandlers(){
-  const ophalen = state.__leverwijze === "afhaal" && afhalen().enabled;
+  const ophalen = afhalen().enabled && state.__leverwijze === "afhaal";
   const sel = document.getElementById('ckCountry');
   const veld = id => document.getElementById(id);
   const lees = () => ({
@@ -4952,12 +4998,11 @@ function attachCheckoutHandlers(){
   if (wisCode) wisCode.onclick = () => { state.__korting = null; state.__codeFout = null; render(); };
 
   if (sel){
-    const updateTotals = () => {
-      const rate = SHIPPING_RATES.find(r=>r.country===sel.value) || SHIPPING_RATES[0];
-      veld('ckShipVal').textContent = fmtEUR(rate.price);
-      veld('ckTotalVal').textContent = fmtEUR(Math.max(0, cartTotal() - (state.__korting?.bedrag || 0)) + rate.price);
+    sel.onchange = () => {
+      state.__ckLand = sel.value;
+      state.__adresCheck = null;
+      render();                 // de grens voor gratis verzending kan meeschuiven
     };
-    sel.onchange = () => { state.__ckLand = sel.value; state.__adresCheck = null; updateTotals(); };
     // typ je iets bij, dan geldt een eerder oordeel niet meer
     for (const id of ['ckStreet','ckZip','ckCity']){
       const el = veld(id);
@@ -5031,9 +5076,10 @@ function viewPayment(){
   if (!ck || state.cart.length === 0){
     return `<div style="padding:32px 0;"><p class="muted">Geen bestelling in behandeling.</p><button class="btn btn-ghost btn-sm" onclick="go('cart')"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Naar winkelwagen</button></div>`;
   }
-  const verzend = ck.pickupAt ? 0 : (SHIPPING_RATES.find(r=>r.country===ck.country) || SHIPPING_RATES[0]).price;
   const kort = state.__korting;
-  const total = Math.max(0, cartTotal() - (kort?.bedrag || 0)) + verzend;
+  const teBetalen = Math.max(0, cartTotal() - (kort?.bedrag || 0));
+  const verzend = verzendKosten(ck.country, teBetalen, !!ck.pickupAt);
+  const total = teBetalen + verzend;
   return `
     <div style="padding:32px 0;max-width:480px;">
       <button class="back" onclick="go('checkout')"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Terug naar gegevens</button>
@@ -5073,7 +5119,7 @@ function viewPayment(){
       <div class="cart-item font-mono" style="font-size:13px;margin:16px 0;">
         <div class="between"><span class="muted">Subtotaal</span><span>${fmtEUR(cartTotal())}</span></div>
         ${kort ? `<div class="between" style="color:var(--accent);"><span>Korting ${esc(kort.code)}</span><span>&minus;${fmtEUR(kort.bedrag)}</span></div>` : ``}
-        <div class="between"><span class="muted">${ck.pickupAt ? "Afhalen" : "Verzending naar " + esc(ck.country)}</span><span>${ck.pickupAt ? "gratis" : fmtEUR(verzend)}</span></div>
+        <div class="between"><span class="muted">${ck.pickupAt ? "Afhalen" : "Verzending naar " + esc(ck.country)}</span><span>${ck.pickupAt || verzend === 0 ? "gratis" : fmtEUR(verzend)}</span></div>
         <div class="between" style="border-top:1px solid var(--surface2);margin-top:6px;padding-top:6px;color:var(--accent);"><span>Te betalen</span><span>${fmtEUR(total)}</span></div>
       </div>
 
@@ -6244,6 +6290,7 @@ const PRICING_FIELDS = [
   ["wallThickness", "Wanddikte (mm)", 0.1],
   ["assemblyBase", "Assembleren, basis (€)", 0.5],
   ["assemblyPerPart", "Assembleren, per extra onderdeel (€)", 0.5],
+  ["freeShipFrom", "Gratis verzending vanaf (€, 0 = nooit)", 1],
 ];
 const SLICER_FIELDS = [
   ["lineWidth", "Extrusiebreedte (mm)", 0.02],
