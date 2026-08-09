@@ -627,6 +627,10 @@
     .beheer-zoek{flex-direction:column;align-items:stretch;}
     .beheer-zoek > input, .beheer-zoek > select{width:100%;min-width:0;}
   }
+  /* Verborgen producten: nog gewoon te bewerken, maar duidelijk uit de winkel. */
+  .rij-verborgen{opacity:.62;border-style:dashed;}
+  .kaart-verborgen .thumb{opacity:.45;}
+  .kaart-verborgen .card-title{color:var(--muted);}
   .admin-thumb{width:42px;height:42px;border-radius:8px;background:var(--plate);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:var(--muted);}
 
   /* =====================================================================
@@ -2564,15 +2568,59 @@ async function haalVoorbeeld(productId){
 /* --------------------------- inlezen per bestand --------------------------- */
 /* Geeft één of meer geometrieën terug: een 3MF met meerdere objecten of
    platen valt hier al uiteen in losse delen. */
+/* =====================================================================
+   Als een 3mf niet meewil
+   Een 3mf is een zipbestand met een XML-model erin, en daar gaat wel eens iets
+   mis: een slicer die de zip net anders schrijft, een beschadigd model, of een
+   bestand dat eigenlijk gewoon een STL is met de verkeerde naam. In plaats van
+   te zeggen "kan niet" proberen we de vorm er langs een andere weg uit te
+   halen. Lukt dat, dan gaat het onderdeel verder als STL — kleuren en losse
+   objecten zijn dan weg, maar de vorm klopt en je kunt gewoon bestellen.
+   ===================================================================== */
+async function stlUitDe3mf(buf, naam){
+  // 1. Misschien is het helemaal geen zip maar een STL met .3mf erachter.
+  //    parseStl herkent zowel de binaire als de tekstvorm.
+  try{
+    const geo = parseStl(buf);
+    if (geo && geo.volume) return { geo, waarom: "het bleek een gewone STL te zijn" };
+  }catch(e){}
+
+  // 2. Het is wél een zip: dan zit er soms een STL in (sommige slicers bewaren
+  //    het origineel ernaast). Die lezen we dan gewoon uit.
+  try{
+    const files = await unzip(buf);
+    for (const [pad, bytes] of files){
+      if (!/\.stl$/i.test(pad)) continue;
+      try{
+        const geo = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+        if (geo && geo.volume) return { geo, waarom: `er zat een STL in (${pad})` };
+      }catch(e){}
+    }
+  }catch(e){}
+  return null;
+}
+
 async function analyzeFile(file, sleutel){
   const buf = await file.arrayBuffer();
   if (/\.3mf$/i.test(file.name)){
     if (typeof DecompressionStream === "undefined"){
+      // Zonder uitpakker kunnen we alleen nog kijken of het stiekem een STL is.
+      const nood = await stlUitDe3mf(buf, file.name);
+      if (nood) return [Object.assign(nood.geo, { __alsStl: nood.waarom })];
       throw new Error("deze browser kan 3mf-bestanden niet uitpakken — stuur een STL door");
     }
     // Een 3mf uitpakken vraagt de XML-lezer van de pagina; die is er in een
     // aparte draad niet. Dat blijft dus hier.
-    return await parse3mf(buf);
+    try{
+      return await parse3mf(buf);
+    }catch(err){
+      const nood = await stlUitDe3mf(buf, file.name);
+      if (!nood) throw err;
+      return [Object.assign(nood.geo, {
+        __alsStl: nood.waarom,
+        __waaromNiet: err.message || String(err),
+      })];
+    }
   }
   // Een STL lezen we wél naast het scherm: dat is het zware stuk bij een groot
   // bestand, en zo blijft de pagina ondertussen soepel.
@@ -3244,12 +3292,34 @@ async function updateProduct(id, p){
   notify("Product bijgewerkt");
 }
 async function deleteProduct(id){
-  if (!confirm("Dit product definitief verwijderen?")) return;
+  const p = state.products.find(x => x.id === id);
+  // Wissen is voorgoed. Verbergen is dat niet — dat noemen we er daarom bij,
+  // zodat je niet iets weggooit terwijl je het alleen even uit de winkel wou.
+  if (!confirm(`"${p?.name || "Dit product"}" definitief verwijderen?\n\n`
+    + "Alles gaat weg: foto's, kleuren, het 3D-model en de instellingen.\n\n"
+    + "Wil je het alleen even niet verkopen, klik dan op annuleren en gebruik "
+    + "het oogje ernaast — dan verdwijnt het uit de collectie maar blijft alles bewaard.")) return;
   await deleteDoc(doc(db,"products",id));
   await wisVoorbeeld(id);            // het 3D-voorbeeld hoort er niet los te blijven
   voorbeeldCache.delete(id);
   notify("Product verwijderd");
 }
+
+/* Verbergen: het product blijft volledig bestaan, maar staat niet meer in de
+   collectie. Zo hoef je niets weg te gooien om iets tijdelijk uit de winkel te
+   halen — en zet je het met één klik weer terug. */
+async function toonProduct(id){
+  const p = state.products.find(x => x.id === id);
+  if (!p) return;
+  const nu = !verborgen(p);
+  try{
+    await updateDoc(doc(db, "products", id), { hidden: nu });
+    notify(nu
+      ? `"${p.name}" staat nu verborgen — alles blijft bewaard`
+      : `"${p.name}" staat weer in de collectie`);
+  }catch(e){ notify("Wijzigen mislukt: " + firestoreHint(e)); }
+}
+window.__toonProduct = toonProduct;
 
 /* Verkleint een gekozen afbeelding in de browser en geeft een data-URL terug.
    Zo staan productfoto's in het Firestore-document zelf en is Storage niet nodig. */
@@ -3301,19 +3371,16 @@ function addToCart(item){
   saveCart();
   notify(item.name + " toegevoegd", { tekst: "Naar winkelwagen", doe: () => go("cart") });
   renderCartBadge();
-  // op de productpagina hangt de knop af van wat er nog op voorraad is
+  // de knop op de productpagina toont dat het gelukt is
   if (state.view === "product") render();
 }
 function removeFromCart(id,kind){ state.cart = state.cart.filter(x=>!(x.id===id&&x.kind===kind)); saveCart(); render(); }
 function setQty(id,kind,qty){
   const it = state.cart.find(x=>x.id===id&&x.kind===kind);
   if (!it) return;
-  const p = state.products.find(x => x.id === (it.productId || it.id));
-  // niet meer dan er op voorraad ligt; op maat gemaakte producten zijn vrij
-  const max = (p && !sizingOf(p)) ? Math.max(1, Number(p.stock) || 0) : 999;
-  const nieuw = Math.min(max, Math.max(1, qty));
-  if (nieuw !== qty && qty > max) notify(`Er zijn er nog maar ${max} op voorraad`);
-  it.qty = nieuw;
+  // Alles wordt op bestelling geprint, dus er is geen bovengrens vanuit een
+  // voorraad. Een ruime grens houdt alleen een vertikte 9999 tegen.
+  it.qty = Math.min(MAX_PER_BESTELLING, Math.max(1, qty));
   saveCart(); render();
 }
 window.__addToCart = addToCart; window.__removeFromCart = removeFromCart; window.__setQty = setQty;
@@ -3443,11 +3510,12 @@ function render(){
 }
 
 function viewShop(){
-  const cards = state.products.map(p => `
-    <button class="card rel" data-open="${p.id}">
+  const cards = zichtbareProducten().map(p => `
+    <button class="card rel${verborgen(p) ? " kaart-verborgen" : ""}" data-open="${p.id}">
       <div class="thumb rel">
         ${productThumb(p)}
-        ${p.featured ? `<span class="flag">Uitgelicht</span>` : ``}
+        ${p.featured && !verborgen(p) ? `<span class="flag">Uitgelicht</span>` : ``}
+        ${verborgen(p) ? `<span class="flag">${ic("eye-slash")} Verborgen</span>` : ``}
         ${discountOf(p) ? `<span class="flag" style="left:auto;right:10px;background:var(--accent);color:#fff;">&minus;${discountOf(p).pct}%</span>` : ``}
       </div>
       <div>
@@ -3455,9 +3523,7 @@ function viewShop(){
         <div class="label" style="margin-top:5px;">${esc(p.material||"")}${p.layerHeight ? " / " + esc(p.layerHeight) : ""}${colorSlots(p).length ? ` / ${colorSlots(p).length} kleuren` : ""}</div>
         <div class="between" style="margin-top:8px;">
           <span class="price">${sizingOf(p) ? "vanaf " + fmtEUR(basePriceOf(p)) : priceWithDiscount(p)}</span>
-          ${sizingOf(p) ? `<span class="label">Op maat</span>`
-            : (p.stock ?? 0) <= 0 ? `<span class="label">Uitverkocht</span>`
-            : (p.stock ?? 0) <= 3 ? `<span class="label">Nog ${esc(p.stock)}</span>` : ``}
+          ${sizingOf(p) ? `<span class="label">Op maat</span>` : ``}
         </div>
       </div>
     </button>`).join("");
@@ -3618,7 +3684,7 @@ function priceBreakdown(est){
 
 /* De prijs die op de pagina en in de winkelwagen geldt. */
 /* =====================================================================
-   Korting en voorraad
+   Korting
    Een korting geldt op de gewone prijs en mag een einddatum hebben. Is die
    datum voorbij, dan valt de korting vanzelf weg — je hoeft er dus niet aan
    te denken om hem uit te zetten.
@@ -3681,15 +3747,18 @@ function gekozenToeslag(p){
   return filamentToeslag(p, currentFilament(p));
 }
 
-/* Hoeveel er nog besteld kan worden: de voorraad min wat al in de wagen ligt.
-   Op maat gemaakte producten worden altijd geprint en kennen geen voorraad. */
-function stockLeft(p){
-  if (sizingOf(p)) return Infinity;
-  const voorraad = Math.max(0, Number(p?.stock) || 0);
-  const inMand = state.cart
-    .filter(i => (i.productId || i.id) === p.id && i.kind === "product")
-    .reduce((s, i) => s + i.qty, 0);
-  return Math.max(0, voorraad - inMand);
+/* Er is geen voorraad meer: alles wordt op bestelling geprint. Een product kan
+   dus nooit "uitverkocht" zijn. Wil je iets tijdelijk niet verkopen, dan zet je
+   het op verborgen — zie verborgen() hieronder. */
+const MAX_PER_BESTELLING = 99;
+
+/* Een verborgen product blijft gewoon bestaan met al zijn foto's, kleuren en
+   instellingen, maar staat niet in de collectie. Zo hoef je niets te wissen om
+   iets even uit de winkel te halen. De beheerder ziet het wél staan. */
+function verborgen(p){ return !!p?.hidden; }
+function zichtbareProducten(){
+  const alles = state.products || [];
+  return state.profile?.isAdmin ? alles : alles.filter(p => !verborgen(p));
 }
 /* De prijs bij de kleinst toegestane maat — dat is de "vanaf"-prijs. */
 function basePriceOf(p){
@@ -3885,6 +3954,13 @@ function viewProduct(){
     ? `<div style="padding:32px 0;"><p class="muted">Dit product bestaat niet meer.</p>
        <button class="btn btn-accent" onclick="go('shop')">Naar de collectie</button></div>`
     : `<div style="padding:32px 0;"><p class="muted"><i class="fa-solid fa-spinner" aria-hidden="true"></i> Even je product ophalen…</p></div>`;
+  // Een verborgen product mag ook niet via een oude link of een bewaarde
+  // pagina alsnog te bestellen zijn. De beheerder mag het wél bekijken.
+  if (verborgen(p) && !state.profile?.isAdmin) return `
+    <div style="padding:32px 0;">
+      <p class="muted" style="line-height:1.6;">Dit product staat op dit moment niet in de collectie.</p>
+      <button class="btn btn-accent" onclick="go('shop')">Naar de collectie</button>
+    </div>`;
   const all = productImages(p);
   const chosen = currentFilament(p);
   const active = Math.min(state.__gallery || 0, Math.max(0, all.length - 1));
@@ -3929,8 +4005,6 @@ function viewProduct(){
 
   const sizing = sizingOf(p);
   const est = sizing ? sizedEstimate(p) : null;
-  const inStock = sizing ? true : (p.stock ?? 0) > 0;   // op maat wordt altijd geprint
-  const rest = stockLeft(p);                            // wat er nog bij kan
   const korting = discountOf(p);
   const toeslag = gekozenToeslag(p);                    // duurder plastic kost meer
   return `
@@ -3964,14 +4038,15 @@ function viewProduct(){
           ${korting ? `<p class="muted" style="font-size:12px;margin:0 0 6px;">
             Tijdelijk ${korting.pct}% korting${korting.until ? ` — nog tot ${esc(new Date(korting.until).toLocaleDateString('nl-BE', { day:'numeric', month:'long' }))}` : ``}.
           </p>` : ``}
-          <p style="font-size:12px;margin:0 0 16px;" class="muted">
-            ${sizing
-              ? `<span class="stock-dot" style="background:var(--accent)"></span>Op maat geprint`
-              : `<span class="stock-dot" style="background:${inStock ? 'var(--accent)' : 'var(--muted)'}"></span>${
-                  !inStock ? "Niet op voorraad"
-                  : rest === 0 ? `Je hebt de laatste ${esc(p.stock)} al in je winkelwagen`
-                  : rest <= 3 ? `Nog maar ${rest} op voorraad` : esc(p.stock) + " op voorraad"}`}
+          <p style="font-size:12.5px;line-height:1.6;margin:0 0 16px;" class="muted">
+            <span class="stock-dot" style="background:var(--accent)"></span>${
+              sizing ? "Op maat geprint" : "Wordt voor jou geprint — niets ligt op voorraad"}
           </p>
+          ${verborgen(p) ? `
+            <p class="notice" style="font-size:13px;line-height:1.6;margin:0 0 16px;">
+              ${ic("eye-slash")} Dit product staat op <strong>verborgen</strong>. Alleen jij ziet het;
+              klanten vinden het niet in de collectie. Zet het in Shopbeheer weer aan om het te verkopen.
+            </p>` : ``}
           ${p.description ? `<p style="font-size:14px;line-height:1.6;color:var(--ink);opacity:.85;">${esc(p.description)}</p>` : ``}
           ${sizing ? sizingBlock(p) : ``}
           ${filamentPicker(p)}
@@ -3980,12 +4055,9 @@ function viewProduct(){
           <div class="row" style="margin-top:18px;">
             <div class="stepper"><button id="qMinus"><i class="fa-solid fa-minus" aria-hidden="true"></i></button><span id="qVal">1</span><button id="qPlus"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></div>
             <button class="btn btn-accent" id="addBtn"
-                    ${inStock && rest > 0 && slotsKlaar(p) ? "" : "disabled style=\"opacity:.5;\""}>
+                    ${slotsKlaar(p) ? "" : "disabled style=\"opacity:.5;\""}>
               <i class="fa-solid fa-cart-plus" aria-hidden="true"></i>
-              ${!inStock ? "Uitverkocht"
-                : rest === 0 ? "Alles al in je wagen"
-                : !slotsKlaar(p) ? `Kies nog ${slotsTeGaan(p)} kleur${slotsTeGaan(p) > 1 ? "en" : ""}`
-                : "Toevoegen"}
+              ${!slotsKlaar(p) ? `Kies nog ${slotsTeGaan(p)} kleur${slotsTeGaan(p) > 1 ? "en" : ""}` : "Toevoegen"}
             </button>
           </div>
           <p class="footer-note"><i class="fa-solid fa-print" aria-hidden="true"></i> Wordt op bestelling geprint — verzending binnen 3 tot 5 werkdagen.</p>
@@ -4045,10 +4117,9 @@ function attachProductHandlers(){
   // Vlak na een herlaadbeurt zijn de producten er nog niet en staat er alleen
   // een melding; dan valt er ook niets aan te haken.
   if (!qv) return;
-  const maxQty = () => { const r = stockLeft(state.selectedProduct); return isFinite(r) ? Math.max(1, r) : 999; };
   document.getElementById('qMinus').onclick = ()=>{ qty=Math.max(1,qty-1); qv.textContent=qty; };
   document.getElementById('qPlus').onclick = ()=>{
-    if (qty >= maxQty()){ notify(`Er zijn er nog maar ${maxQty()} beschikbaar`); return; }
+    if (qty >= MAX_PER_BESTELLING){ notify(`Meer dan ${MAX_PER_BESTELLING} stuks? Stuur even een berichtje.`); return; }
     qty++; qv.textContent=qty;
   };
   document.querySelectorAll('[data-img]').forEach(btn=>{
@@ -4130,9 +4201,6 @@ function attachProductHandlers(){
       return { slot: s.name, id: x?.id, type: x?.type, name: x?.name, hex: x?.hex, finish: x?.finish };
     });
     const f = slots.length ? slotFilament(p, 0) : currentFilament(p);
-    const rest = stockLeft(p);
-    if (rest <= 0){ notify("Dit product is niet meer op voorraad"); return; }
-    if (qty > rest){ qty = rest; qv.textContent = qty; notify(`Aangepast naar ${rest} — meer zijn er niet`); }
     const sizing = sizingOf(p);
     const dims = sizing ? currentDims(p) : null;
     const est = sizing ? sizedEstimate(p) : null;
@@ -4508,8 +4576,17 @@ function partCard(p){
                   ${ic("scissors")} Splits in ${p.splittable.length} onderdelen
                 </button>
               </div>` : ``}
+            ${p.omgezet ? `
+              <div class="notice" style="margin-top:10px;">
+                <p class="notice-title">${ic("file-arrow-down")} Omgezet naar STL</p>
+                <p class="muted" style="font-size:12px;line-height:1.6;margin:0;">
+                  Het 3mf-bestand liet zich niet lezen, maar ${esc(p.omgezet)}. We printen de
+                  vorm zoals hij is; kleuren of losse objecten uit het 3mf zijn niet meegekomen,
+                  dus kies de kleur hier zelf.
+                </p>
+              </div>` : ``}
             ${p.matchedFrom ? `
-              <p class="muted" style="font-size:11px;margin:8px 0 0;">
+              <p class="muted" style="font-size:11px;line-height:1.6;margin:8px 0 0;">
                 Kleur uit het bestand (${esc(p.matchedFrom)}) gekoppeld aan het dichtstbijzijnde filament.
               </p>` : ``}
           </div>
@@ -4726,6 +4803,19 @@ async function analyseerWachtende(){
       const geos = await analyzeFile(part.file, part.id);
       part.geo = geos[0];
       applyGeoColor(part, geos[0]);
+      // Het 3mf wilde niet, maar de vorm hebben we langs een omweg toch. Dan
+      // zetten we het onderdeel om naar een echte STL: die kan de printer aan
+      // en die kun je later gewoon downloaden.
+      if (geos[0].__alsStl){
+        const om = deelAlsBestand(geos[0], part.name.replace(/\.3mf$/i, ""));
+        part.file = om.file;
+        part.fileName = om.file.name;
+        part.fileSize = om.file.size;
+        part.vereenvoudigd = om.vereenvoudigd;
+        part.omgezet = geos[0].__alsStl;
+        bewaarBestand(part.id, om.file);
+        notify(`Dit 3mf-bestand kon niet gelezen worden, maar ${geos[0].__alsStl} — omgezet naar STL, je kunt gewoon verder`);
+      }
       // een 3mf met meerdere objecten of platen valt meteen uiteen; elk object
       // krijgt zijn eigen bestand zodat je het later los kunt downloaden
       if (geos.length > 1){
@@ -5965,15 +6055,22 @@ function viewAdmin(){
   const tab = state.__adminTab || "products";
   const ed = state.__editing ? state.products.find(p => p.id === state.__editing) : null;
   const productRows = state.products.map(p=>`
-    <div class="admin-row between" style="margin-bottom:8px;${p.id===state.__editing?'border-color:var(--accent);':''}">
+    <div class="admin-row between${verborgen(p) ? " rij-verborgen" : ""}" style="margin-bottom:8px;${p.id===state.__editing?'border-color:var(--accent);':''}">
       <div class="row" style="flex:1;min-width:0;">
         <div class="admin-thumb">${productThumb(p, 18)}</div>
         <div style="min-width:0;">
-          <div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.name)}</div>
-          <div class="muted font-mono" style="font-size:11px;">${fmtEUR(p.price)} · voorraad ${esc(p.stock ?? 0)}${p.category ? " · " + esc(p.category) : ""}</div>
+          <div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${esc(p.name)}${verborgen(p) ? ` <span class="sale-flag">VERBORGEN</span>` : ``}
+          </div>
+          <div class="muted font-mono" style="font-size:11px;">${fmtEUR(p.price)}${p.category ? " · " + esc(p.category) : ""}</div>
         </div>
       </div>
       <div class="row" style="flex-shrink:0;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="window.__toonProduct('${p.id}')"
+                title="${verborgen(p) ? "Weer in de collectie zetten" : "Uit de collectie halen zonder iets te wissen"}"
+                aria-label="${verborgen(p) ? "Weer tonen" : "Verbergen"}">
+          <i class="fa-solid fa-${verborgen(p) ? "eye" : "eye-slash"}" aria-hidden="true"></i>
+        </button>
         <button class="btn btn-ghost btn-sm" onclick="window.__editProduct('${p.id}')" title="Bewerken"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
         <button class="btn btn-ghost btn-sm" onclick="window.__deleteProduct('${p.id}')" title="Verwijderen"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
       </div>
@@ -6152,15 +6249,21 @@ function viewAdmin(){
             <label class="field-label">Naam</label>
             <input id="pName" placeholder="Bijv. Plantenvaas — Spiraal" value="${esc(ed?.name || '')}" />
 
-            <div class="form-grid">
-              <div>
-                <label class="field-label">Prijs (€)</label>
-                <input id="pPrice" type="number" step="0.01" min="0" placeholder="18.00" value="${ed?.price ?? ''}" />
-              </div>
-              <div>
-                <label class="field-label">Voorraad</label>
-                <input id="pStock" type="number" min="0" placeholder="10" value="${ed?.stock ?? 10}" />
-              </div>
+            <label class="field-label">Prijs (€)</label>
+            <input id="pPrice" type="number" step="0.01" min="0" placeholder="18.00" value="${ed?.price ?? ''}" />
+
+            <div class="cart-item" style="padding:12px 13px;margin:2px 0 12px;">
+              <label class="row" style="gap:10px;cursor:pointer;align-items:flex-start;">
+                <input type="checkbox" id="pHidden" ${ed?.hidden ? "checked" : ""}
+                       style="width:18px;height:18px;margin:2px 0 0;flex-shrink:0;" />
+                <span style="min-width:0;">
+                  <span style="font-size:13.5px;font-weight:600;display:block;line-height:1.5;">Verbergen in de collectie</span>
+                  <span class="muted" style="font-size:12px;line-height:1.6;display:block;">
+                    Het product blijft volledig bestaan — foto's, kleuren, 3D-model, alles — maar
+                    klanten zien het niet. Handig om iets even uit de winkel te halen zonder het te wissen.
+                  </span>
+                </span>
+              </label>
             </div>
 
             <label class="field-label">Beschrijving</label>
@@ -6317,7 +6420,16 @@ function viewAdmin(){
           </div>
           <div>
             <h2 class="font-display" style="font-size:17px;margin:0 0 2px;">In de collectie</h2>
-            <p class="muted" style="font-size:12px;margin:0 0 12px;">${state.products.length} product${state.products.length === 1 ? "" : "en"}</p>
+            <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 6px;">
+              ${state.products.length} product${state.products.length === 1 ? "" : "en"}${
+                state.products.filter(verborgen).length
+                  ? ` — waarvan ${state.products.filter(verborgen).length} verborgen` : ``}
+            </p>
+            <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 12px;">
+              ${ic("eye-slash")} Met het oogje haal je een product uit de collectie zonder het te verwijderen:
+              foto's, kleuren en het 3D-model blijven staan, klanten zien het alleen niet meer.
+              Eén klik en het staat er weer.
+            </p>
             ${productRows || `<p class="muted" style="font-size:13px;">Nog geen producten.</p>`}
           </div>
         </div>
@@ -6565,8 +6677,7 @@ function viewBeheerOverzicht(openstaand){
   const teHalen = state.orders.filter(o => o.pickupAt && o.status !== "Geleverd").length;
   const maand = Date.now() - 30 * 864e5;
   const omzet = state.orders.filter(o => o.createdAt > maand).reduce((s, o) => s + (o.total || 0), 0);
-  const opRaken = (state.products || []).filter(p => !sizingOf(p) && (p.stock ?? 0) > 0 && (p.stock ?? 0) <= 3);
-  const uitverkocht = (state.products || []).filter(p => !sizingOf(p) && (p.stock ?? 0) <= 0);
+  const verstopt = (state.products || []).filter(verborgen);
   const kaart = (cijfer, naam, let_) => `
     <div class="kpi${let_ ? " let" : ""}"><div class="cijfer">${cijfer}</div><div class="naam">${esc(naam)}</div></div>`;
   return `
@@ -6594,14 +6705,15 @@ function viewBeheerOverzicht(openstaand){
         <p style="font-size:13px;margin:0;">${ic("circle-check")} Niets dat op je wacht.</p>
       </div>`}
 
-    ${(opRaken.length || uitverkocht.length) ? `
+    ${verstopt.length ? `
       <div class="cart-item" style="margin-bottom:12px;">
-        <p style="font-size:13px;font-weight:600;margin:0 0 6px;">${ic("boxes-stacked")} Voorraad</p>
-        ${uitverkocht.map(p => `<p style="font-size:13px;margin:0 0 3px;">
-          <span class="stock-dot" style="background:var(--muted);"></span>${esc(p.name)} — uitverkocht</p>`).join("")}
-        ${opRaken.map(p => `<p style="font-size:13px;margin:0 0 3px;">
-          <span class="stock-dot" style="background:var(--accent);"></span>${esc(p.name)} — nog ${p.stock}</p>`).join("")}
-        <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="window.__setAdminTab('products')">Voorraad bijwerken</button>
+        <p style="font-size:13px;font-weight:600;margin:0 0 4px;">${ic("eye-slash")} Niet in de collectie</p>
+        <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 8px;">
+          Deze staan op verborgen. Ze bestaan nog volledig — klanten zien ze alleen niet.
+        </p>
+        ${verstopt.map(p => `<p style="font-size:13px;line-height:1.6;margin:0 0 3px;">
+          <span class="stock-dot" style="background:var(--muted);"></span>${esc(p.name)}</p>`).join("")}
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="window.__setAdminTab('products')">Naar de producten</button>
       </div>` : ``}
 
     <div class="cart-item">
@@ -7301,7 +7413,7 @@ function sizingFromForm(){
 
 /* Het productformulier wordt opnieuw getekend zodra je een kleurvak toevoegt
    of een model kiest. Zonder dit was je dan kwijt wat je al ingetypt had. */
-const PRODUCT_VELDEN = ['pName','pPrice','pStock','pDesc','pCategory','pColor','pMaterial',
+const PRODUCT_VELDEN = ['pName','pPrice','pDesc','pCategory','pColor','pMaterial',
   'pInfill','pLayer','pDim','pTime','pWeight','pDiscount','pDiscountUntil',
   'pSolidity','pSizeInfill','pSizeLayer'];
 function herstelProductFormulier(){
@@ -7436,9 +7548,12 @@ function attachAdminHandlers(){
     const stand = document.getElementById('modelStand');
     if (stand) stand.textContent = "inlezen…";
     try{
-      state.__draftModel = voorbeeldUitDelen(await analyzeFile(f));
+      const delen = await analyzeFile(f);
+      state.__draftModel = voorbeeldUitDelen(delen);
       render();
-      notify(`Model ingelezen — ${state.__draftModel.parts.length} ${state.__draftModel.parts.length > 1 ? "onderdelen" : "onderdeel"}`);
+      notify(delen[0]?.__alsStl
+        ? `Het 3mf wilde niet, maar ${delen[0].__alsStl} — als STL ingelezen`
+        : `Model ingelezen — ${state.__draftModel.parts.length} ${state.__draftModel.parts.length > 1 ? "onderdelen" : "onderdeel"}`);
     }catch(err){
       state.__draftModel = undefined;
       render();
@@ -7472,7 +7587,7 @@ function attachAdminHandlers(){
     const data = {
       name, price,
       description: val('pDesc'),
-      stock: parseInt(val('pStock'),10) || 0,
+      hidden: !!document.getElementById('pHidden')?.checked,
       discountPct: Math.min(90, Math.max(0, parseInt(val('pDiscount'),10) || 0)),
       discountUntil: val('pDiscountUntil') ? new Date(val('pDiscountUntil') + "T23:59:59").getTime() : null,
       colorSlots: (state.__draftSlots || [])
