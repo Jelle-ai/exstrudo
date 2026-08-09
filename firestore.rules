@@ -28,13 +28,36 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
+    // Wie zichzelf beheerder mag maken: het vaste adres, plus wie er in
+    // Shopbeheer bij de winkelgegevens is gezet. Zo kun je iemand toevoegen
+    // zonder in de code te duiken, terwijl niemand anders het vlaggetje kan
+    // zetten.
+    function magBeheerderWorden() {
+      return ingelogd() && (
+        request.auth.token.email == 'jelle@mattan.be'
+        || (exists(/databases/$(database)/documents/settings/shop)
+            && get(/databases/$(database)/documents/settings/shop).data.get('beheerders', [])
+                 .hasAny([request.auth.token.email]))
+      );
+    }
 
     // --- producten -------------------------------------------------
     // Iedereen mag de collectie zien, ook wie niet ingelogd is.
     // Alleen de beheerder verandert er iets aan.
     match /products/{id} {
       allow read: if true;
-      allow write: if beheerder();
+      allow create, delete: if beheerder();
+      // De beheerder mag alles. Een ingelogde klant mag bij het bestellen één
+      // ding: de verkoopteller ophogen. Daar hangt de lijst "populair" aan;
+      // zonder dit kon niemand zien wat het meest verkocht wordt, want een
+      // klant ziet alleen zijn eigen bestellingen.
+      allow update: if beheerder()
+        || (ingelogd()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verkocht'])
+            && request.resource.data.verkocht
+                 > (('verkocht' in resource.data) ? resource.data.verkocht : 0)
+            && request.resource.data.verkocht
+                 <= (('verkocht' in resource.data) ? resource.data.verkocht : 0) + 99);
 
       // Het printbestand dat jij bij een product zet: de echte STL of 3mf,
       // klaar om te printen als er een bestelling binnenkomt. Dit is wat je
@@ -86,12 +109,12 @@ service cloud.firestore {
       allow read: if ikBen(uid) || beheerder();
       allow create: if ikBen(uid)
         && (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == false
-            || request.auth.token.email == 'jelle@mattan.be');
+            || magBeheerderWorden());
       allow update: if beheerder()
         || (ikBen(uid)
             && (!('isAdmin' in request.resource.data)
                 || request.resource.data.isAdmin == resource.data.isAdmin
-                || request.auth.token.email == 'jelle@mattan.be'));
+                || magBeheerderWorden()));
       allow delete: if beheerder();
     }
 
