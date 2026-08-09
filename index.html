@@ -186,29 +186,60 @@
     background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px;
   }
   /* ---------- winkelwagen ----------
-     De bovenste helft vertelt wát je koopt, de onderste wat het kost en
-     hoeveel. Niets staat naast elkaar geperst, dus niets valt weg. */
-  .wagen-kop{display:flex;align-items:flex-start;gap:11px;}
+     Dicht zie je in één regel wát het is, welke kleuren en wat het kost; klap
+     je het open, dan staat er per onderdeel bij welke kleur waar komt — net
+     als bij een bestelling in Shopbeheer. Het aantal blijft altijd staan, dat
+     wil je kunnen wijzigen zonder eerst iets open te doen.
+     Ruim gezet: regels mogen ademen, anders leest het als een propje. */
+  .wagen-kaart{padding:0;overflow:hidden;margin-bottom:12px;}
+  .wagenvak > summary{
+    display:flex;align-items:center;gap:13px;padding:15px;cursor:pointer;list-style:none;min-height:64px;
+  }
+  .wagenvak > summary::-webkit-details-marker{display:none;}
+  .wagenvak > summary:hover{background:var(--surface2);}
+  .wagenvak-tekst{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1;}
+  .wagenvak-naam{font-size:15.5px;font-weight:600;line-height:1.4;word-break:break-word;}
+  .wagenvak-kort{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    font-size:12.5px;color:var(--muted);line-height:1.6;
+  }
+  .wagenvak-kort .fil-chip{width:22px;height:22px;border-radius:7px;flex-shrink:0;}
+  .wagenvak-prijs{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;flex-shrink:0;}
+  .wagenvak-meer{
+    display:flex;align-items:center;gap:5px;flex-shrink:0;color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+  }
+  .wagenvak[open] > summary .bestelvak-pijl{transform:rotate(180deg);}
+  /* op een smal scherm is er geen plaats voor het woord; het pijltje volstaat */
+  @media(max-width:520px){
+    .wagenvak-meer{font-size:0;gap:0;}
+    .wagenvak-meer .bestelvak-pijl{font-size:15px;}
+  }
+  .wagenvak-body{padding:2px 15px 6px;}
   .wagen-tekst{min-width:0;flex:1;}
-  .wagen-naam{font-size:15px;font-weight:600;line-height:1.3;word-break:break-word;}
-  .wagen-specs{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
-  .wagen-spec{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.35;min-height:28px;}
+  .wagen-naam{font-size:15px;font-weight:600;line-height:1.4;word-break:break-word;}
+  .wagen-specs{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+  .wagen-spec{display:flex;align-items:center;gap:12px;font-size:14px;line-height:1.5;min-height:30px;}
   .wagen-spec .sleutel{
     color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;
-    letter-spacing:.04em;text-transform:uppercase;flex:0 0 74px;padding-top:2px;
+    letter-spacing:.05em;text-transform:uppercase;flex:0 0 84px;padding-top:2px;line-height:1.5;
   }
-  .wagen-spec .waarde{min-width:0;flex:1;word-break:break-word;
-    display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .wagen-spec .waarde{min-width:0;flex:1;word-break:break-word;font-size:14px;line-height:1.5;
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
   .wagen-spec .fil-chip{width:24px;height:24px;border-radius:8px;flex-shrink:0;}
-  .wagen-spec .waarde{font-size:14px;}
-  .wagen-deel{display:flex;align-items:center;gap:7px;flex-wrap:wrap;width:100%;}
+  .wagen-deel{display:flex;align-items:center;gap:9px;flex-wrap:wrap;width:100%;line-height:1.5;}
   .wagen-voet{
-    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-    margin-top:13px;padding-top:12px;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    padding:13px 15px 14px;border-top:1px solid var(--line);
   }
-  .wagen-prijs{font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  .wagen-prijs{font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.6;}
   .wagen-prijs .totaal{font-size:15px;font-weight:600;}
-  @media(max-width:420px){ .wagen-spec{flex-direction:column;gap:2px;} .wagen-spec .sleutel{flex:none;} }
+  @media(max-width:420px){
+    .wagen-spec{flex-direction:column;align-items:flex-start;gap:4px;}
+    .wagen-spec .sleutel{flex:none;}
+    .wagenvak > summary{gap:11px;padding:13px;}
+    .wagenvak-prijs{font-size:14px;}
+  }
   .kv{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0;}
   .kv span:first-child{color:var(--muted);}
   .kv span:last-child{font-family:'IBM Plex Mono',monospace;}
@@ -249,9 +280,11 @@
   .toast{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);
     border-radius:12px;padding:11px 12px 11px 16px;font-size:13px;z-index:60;max-width:calc(100vw - 32px);
-    display:flex;align-items:center;gap:10px;
+    display:flex;align-items:center;gap:11px;line-height:1.45;
   }
-  .toast span{overflow:hidden;text-overflow:ellipsis;}
+  /* Op een telefoon brak de tekst hiernaast in drie stukjes af. Eén regel die
+     netjes eindigt met … leest een stuk rustiger. */
+  .toast > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
   .toast i{color:var(--accent);}
   .notice{border:1px solid var(--accent);border-left-width:3px;border-radius:12px;padding:13px 15px;background:var(--surface);}
   .notice-title{color:var(--accent);font-weight:600;font-size:13px;margin:0 0 6px;display:flex;align-items:center;gap:8px;}
@@ -510,7 +543,6 @@
   .bestelvak{
     background:var(--surface);border:1px solid var(--line);border-radius:14px;
     margin-bottom:10px;overflow:hidden;
-    animation:opkomen .24s cubic-bezier(.22,.7,.3,1) both;
   }
   .bestelvak[open]{border-color:var(--line-strong);}
   .bestelvak-kop{
@@ -524,7 +556,7 @@
   .bestelvak-pijl{color:var(--muted);font-size:15px;line-height:1;flex-shrink:0;transition:transform .2s;}
   .bestelvak[open] > .bestelvak-kop .bestelvak-pijl,
   .deelvak[open] > summary .bestelvak-pijl{transform:rotate(180deg);}
-  .bestelvak-body{padding:0 15px 15px;animation:uitvouwen .22s cubic-bezier(.22,.7,.3,1) both;}
+  .bestelvak-body{padding:0 15px 15px;}
   .deelvak{border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden;background:var(--surface);}
   .deelvak > summary{
     display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer;list-style:none;
@@ -537,7 +569,7 @@
   .deelvak-stand{
     font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:var(--muted);flex-shrink:0;
   }
-  .deelvak-body{padding:0 12px 12px;animation:uitvouwen .22s cubic-bezier(.22,.7,.3,1) both;}
+  .deelvak-body{padding:0 12px 12px;}
   @media(max-width:420px){
     .bestelvak-kop{flex-wrap:wrap;gap:8px;}
     .bestelvak-stand{width:100%;justify-content:space-between;}
@@ -589,72 +621,101 @@
   .order-foot{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
   .order-foot .addr{min-width:0;flex:1 1 200px;word-break:break-word;}
   .admin-row img{width:42px;height:42px;border-radius:8px;object-fit:cover;display:block;}
+  /* Zoeken en filteren staan naast elkaar zolang dat past. Op een telefoon
+     paste het niet: het keuzemenu liep dan half buiten het scherm. */
+  @media(max-width:560px){
+    .beheer-zoek{flex-direction:column;align-items:stretch;}
+    .beheer-zoek > input, .beheer-zoek > select{width:100%;min-width:0;}
+  }
   .admin-thumb{width:42px;height:42px;border-radius:8px;background:var(--plate);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:var(--muted);}
 
   /* =====================================================================
      Beweging
-     Alles wat verschijnt komt op, wat opengaat schuift uit. Kort en klein
-     gehouden: een scherm dat danst leidt af. Wie in zijn toestel heeft gezegd
-     dat hij minder beweging wil, krijgt onderaan alles uitgezet.
+     Twee regels. Eén: wat al op het scherm staat, blijft staan. De site tekent
+     zichzelf opnieuw bij elke kleinigheid — een nieuwe bestelling, een getypte
+     letter — en als dan telkens de hele pagina opnieuw komt opzetten, schokt
+     het beeld voortdurend. Alles wat binnenkomt hangt daarom aan .wissel, en
+     die klasse zet render() alleen bij een échte paginawissel.
+     Twee: wat wél beweegt, moet je kunnen zien. Een schokje van zes pixels
+     leest als haperen; een duidelijke, zachte beweging leest als animatie.
+     Wie in zijn toestel om minder beweging vraagt, krijgt onderaan alles uit.
      ===================================================================== */
-  @keyframes opkomen   { from { opacity:0; transform:translateY(9px);  } to { opacity:1; transform:none; } }
-  @keyframes uitvouwen { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
-  @keyframes indraaien { from { opacity:0; transform:scale(.94);       } to { opacity:1; transform:none; } }
-  @keyframes omhoog    { from { opacity:0; transform:translate(-50%,14px); } to { opacity:1; transform:translate(-50%,0); } }
+  /* Een nieuwe pagina komt op met licht en diepte, niet met een sprong: geen
+     verschuiving betekent dat de tekst niet lijkt te verspringen. */
+  @keyframes paginain  { from { opacity:0; transform:scale(.985); } to { opacity:1; transform:none; } }
+  @keyframes opkomen   { from { opacity:0; transform:translateY(18px) scale(.98); } to { opacity:1; transform:none; } }
+  /* een lade rolt echt open: de inhoud wordt van boven naar beneden vrijgegeven */
+  @keyframes uitvouwen { from { opacity:0; transform:translateY(-10px); clip-path:inset(0 0 100% 0); }
+                         to   { opacity:1; transform:none;              clip-path:inset(0 0 0 0);    } }
+  @keyframes indraaien { from { opacity:0; transform:scale(.9);        } to { opacity:1; transform:none; } }
+  @keyframes omhoog    { from { opacity:0; transform:translate(-50%,28px) scale(.94); }
+                         to   { opacity:1; transform:translate(-50%,0) scale(1); } }
   @keyframes tikje     { 0%{transform:scale(1);} 40%{transform:scale(1.28);} 100%{transform:scale(1);} }
   @keyframes pols      { 0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent);}
-                         70%{box-shadow:0 0 0 9px transparent;} 100%{box-shadow:0 0 0 0 transparent;} }
+                         70%{box-shadow:0 0 0 12px transparent;} 100%{box-shadow:0 0 0 0 transparent;} }
 
-  /* een nieuw scherm komt rustig op */
-  #app > div{ animation:opkomen .26s cubic-bezier(.22,.7,.3,1) both; }
+  /* --- alleen bij een paginawissel: het scherm komt één keer op --- */
+  #app.wissel > div{ animation:paginain .38s cubic-bezier(.22,.7,.3,1) both; }
 
   /* de collectie druppelt binnen in plaats van in één klap te staan */
-  .grid > .card{ animation:opkomen .34s cubic-bezier(.22,.7,.3,1) both; }
-  .grid > .card:nth-child(1){animation-delay:.02s;} .grid > .card:nth-child(2){animation-delay:.06s;}
-  .grid > .card:nth-child(3){animation-delay:.10s;} .grid > .card:nth-child(4){animation-delay:.14s;}
-  .grid > .card:nth-child(5){animation-delay:.18s;} .grid > .card:nth-child(6){animation-delay:.22s;}
-  .grid > .card:nth-child(n+7){animation-delay:.26s;}
+  #app.wissel .grid > .card{ animation:opkomen .46s cubic-bezier(.22,.7,.3,1) both; }
+  #app.wissel .grid > .card:nth-child(1){animation-delay:.04s;} #app.wissel .grid > .card:nth-child(2){animation-delay:.10s;}
+  #app.wissel .grid > .card:nth-child(3){animation-delay:.16s;} #app.wissel .grid > .card:nth-child(4){animation-delay:.22s;}
+  #app.wissel .grid > .card:nth-child(5){animation-delay:.28s;} #app.wissel .grid > .card:nth-child(6){animation-delay:.34s;}
+  #app.wissel .grid > .card:nth-child(n+7){animation-delay:.40s;}
 
-  /* alles wat uitklapt schuift open */
-  .kleurkiezer-lade, .stappen-body, .bestelregel-body, .vak-body, .slot-body{
-    animation:uitvouwen .22s cubic-bezier(.22,.7,.3,1) both;
+  /* onderdelen, bestellingen en winkelwagenvakken schuiven mee binnen */
+  #app.wissel .part-card, #app.wissel .bestelvak,
+  #app.wissel .order-card, #app.wissel .admin-row, #app.wissel .wagen-kaart{
+    animation:opkomen .42s cubic-bezier(.22,.7,.3,1) both;
   }
-  .kleurkiezer{ transition:border-color .18s, background .18s; }
-  .kleurkiezer.open{ animation:indraaien .2s cubic-bezier(.22,.7,.3,1) both; }
+  #app.wissel .part-card:nth-of-type(2), #app.wissel .bestelvak:nth-of-type(2),
+  #app.wissel .order-card:nth-of-type(2), #app.wissel .wagen-kaart:nth-of-type(2){animation-delay:.06s;}
+  #app.wissel .part-card:nth-of-type(3), #app.wissel .bestelvak:nth-of-type(3),
+  #app.wissel .order-card:nth-of-type(3), #app.wissel .wagen-kaart:nth-of-type(3){animation-delay:.12s;}
+  #app.wissel .part-card:nth-of-type(n+4), #app.wissel .bestelvak:nth-of-type(n+4),
+  #app.wissel .order-card:nth-of-type(n+4), #app.wissel .wagen-kaart:nth-of-type(n+4){animation-delay:.18s;}
+
+  /* --- altijd: wat jíj opendoet, gaat zichtbaar open --- */
+  .kleurkiezer-lade, .stappen-body, .bestelregel-body, .vak-body, .slot-body,
+  .bestelvak-body, .deelvak-body, .wagenvak-body{
+    animation:uitvouwen .34s cubic-bezier(.22,.7,.3,1) both;
+  }
+  .kleurkiezer{ transition:border-color .2s, background .2s, box-shadow .2s; }
+  .kleurkiezer.open{ animation:indraaien .28s cubic-bezier(.22,.7,.3,1) both; }
   /* het vak dat nog wacht trekt even de aandacht */
-  .kleurkiezer.leeg.open{ animation:indraaien .2s cubic-bezier(.22,.7,.3,1) both, pols 1.6s ease-out .2s 2; }
+  .kleurkiezer.leeg.open{ animation:indraaien .28s cubic-bezier(.22,.7,.3,1) both, pols 1.6s ease-out .25s 2; }
   .kleurkiezer-nr{ transition:background .22s, color .22s, transform .22s; }
   .kleurkiezer.gekozen .kleurkiezer-nr{ animation:tikje .34s cubic-bezier(.3,1.4,.5,1) both; }
   .kleurkiezer-keuze .fil-chip{ transition:transform .2s; }
 
   /* knoppen geven mee onder je vinger */
   .btn, .fil-type, .swatch, .tab, .stap, .beheer-nav button, .bestelregel-kop, .kleurkiezer-knop{
-    transition:transform .12s cubic-bezier(.3,1.3,.5,1), background .14s, border-color .14s, color .14s, opacity .14s;
+    transition:transform .14s cubic-bezier(.3,1.3,.5,1), background .16s, border-color .16s, color .16s, opacity .16s;
   }
   .btn:active, .fil-type:active, .tab:active, .stap:active,
-  .beheer-nav button:active, .bestelregel-kop:active, .kleurkiezer-knop:active{ transform:scale(.975); }
+  .beheer-nav button:active, .bestelregel-kop:active, .kleurkiezer-knop:active{ transform:scale(.97); }
   .swatch:hover{ transform:translateY(-2px); }
   .swatch:active{ transform:scale(.9); }
   .swatch.active{ animation:tikje .3s cubic-bezier(.3,1.4,.5,1) both; }
-  .card{ transition:transform .18s cubic-bezier(.22,.7,.3,1), box-shadow .18s, background .14s; }
-  .card:hover{ transform:translateY(-3px); }
+  .card{ transition:transform .22s cubic-bezier(.22,.7,.3,1), box-shadow .22s, background .16s; }
+  .card:hover{ transform:translateY(-4px); box-shadow:0 10px 26px rgba(0,0,0,.14); }
+  .cart-item, .wagenvak, .bestelvak, .deelvak{ transition:border-color .2s, box-shadow .2s, background .2s; }
+  .wagenvak-kop, .bestelvak-kop, .deelvak > summary{ transition:background .16s; }
 
-  /* de melding onderaan schuift omhoog in beeld */
-  .toast:not(.hidden){ animation:omhoog .28s cubic-bezier(.22,.7,.3,1) both; }
+  /* de melding onderaan schuift duidelijk omhoog in beeld */
+  .toast:not(.hidden){ animation:omhoog .4s cubic-bezier(.22,.9,.28,1) both; }
   .toast .toast-actie{
     margin-left:4px;background:var(--paper);color:var(--ink);border:none;border-radius:8px;
     padding:7px 12px;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;
+    transition:transform .14s cubic-bezier(.3,1.3,.5,1);
   }
   .toast .toast-actie:active{ transform:scale(.96); }
 
   /* het aantal in de winkelwagen springt op als er iets bij komt */
   .cart-count.bump{ animation:tikje .42s cubic-bezier(.3,1.5,.5,1) both; }
 
-  /* onderdelen en bestelregels komen op als ze verschijnen */
-  .part-card, .bestelregel, .order-card, .admin-row{
-    animation:opkomen .24s cubic-bezier(.22,.7,.3,1) both;
-  }
-  .stappen-balk > span, .snijbalk > span{ transition:width .3s cubic-bezier(.22,.7,.3,1); }
+  .stappen-balk > span, .snijbalk > span{ transition:width .35s cubic-bezier(.22,.7,.3,1); }
 
   @media(prefers-reduced-motion:reduce){
     *, *::before, *::after{
@@ -750,7 +811,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc,
-  onSnapshot, query, where, orderBy, serverTimestamp, Bytes
+  onSnapshot, query, where, orderBy, serverTimestamp, increment, Bytes
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 /* =====================================================================
    Modellen bewaren zonder Firebase Storage.
@@ -1045,6 +1106,46 @@ async function loadOrCreateProfile(u){
     profile.isAdmin = true;
   }
   return profile;
+}
+
+/* =====================================================================
+   Je adres wordt onthouden
+   Wie eenmaal iets besteld heeft, hoeft zijn straat niet elke keer opnieuw te
+   typen. We bewaren het op twee plaatsen: in dit toestel (dan staat het er al
+   vóór het profiel geladen is, en ook als je nog niet ingelogd bent) en in je
+   profiel (dan gaat het mee naar je telefoon of een andere browser).
+   ===================================================================== */
+const ADRES_SLEUTEL = 'lc_adres';
+function bewaardAdres(){
+  try{ return JSON.parse(localStorage.getItem(ADRES_SLEUTEL) || "null"); }catch(e){ return null; }
+}
+/* Wat de velden bij het afrekenen moeten tonen als je nog niets getypt hebt. */
+function bekendAdres(){
+  const p = state.profile?.address;
+  if (p && p.street) return p;
+  const b = bewaardAdres();
+  return (b && b.street) ? b : {};
+}
+function bekendLand(){
+  return state.profile?.shippingCountry || bewaardAdres()?.land || null;
+}
+async function onthoudAdres(address, land){
+  if (!address || !address.street) return;
+  const kaal = { street: address.street || "", zip: address.zip || "", city: address.city || "" };
+  try{ localStorage.setItem(ADRES_SLEUTEL, JSON.stringify({ ...kaal, land: land || null })); }catch(e){}
+  if (!state.user) return;
+  const oud = state.profile?.address || {};
+  const gelijk = oud.street === kaal.street && oud.zip === kaal.zip && oud.city === kaal.city
+    && state.profile?.shippingCountry === (land || null);
+  if (gelijk) return;                       // niets veranderd, niets te schrijven
+  state.profile = { ...(state.profile || {}), address: kaal, shippingCountry: land || null };
+  try{
+    await updateDoc(doc(db, "users", state.user.uid), { address: kaal, shippingCountry: land || null });
+  }catch(e){
+    // Het adres staat sowieso al in dit toestel; dit is alleen de kopie die
+    // meegaat naar een ander apparaat. Daar hoeft niemand een melding voor.
+    console.warn("adres niet in het profiel bewaard:", e);
+  }
 }
 
 async function doRegister(name, email, password, address){
@@ -2831,10 +2932,15 @@ async function zoekCode(code, subtotaal){
 /* Eén gebruik bijtellen. Lukt dat niet, dan is de bestelling belangrijker. */
 async function telCodeGebruik(code){
   try{
-    const ref = doc(db, "codes", code);
-    const snap = await getDoc(ref);
-    if (snap.exists()) await updateDoc(ref, { used: (snap.data().used || 0) + 1 });
-  }catch(e){ /* niet erg genoeg om een bestelling voor tegen te houden */ }
+    // increment telt op in de database zelf. Eerst lezen en dan schrijven zou
+    // bij twee bestellingen tegelijk één gebruik laten verdwijnen.
+    await updateDoc(doc(db, "codes", code), { used: increment(1) });
+  }catch(e){
+    // Dit stil laten mislukken was fout: dan bleef het aantal op nul staan en
+    // kon een code die maar één keer mocht eindeloos opnieuw gebruikt worden.
+    console.warn("gebruik van code niet bijgeteld:", e);
+    notify("Let op: het gebruik van code " + code + " is niet geteld — " + firestoreHint(e));
+  }
 }
 
 /* =====================================================================
@@ -2860,8 +2966,13 @@ async function savePickup(v){ await setDoc(AFHAAL_DOC(), v); }
 function listenCodes(){
   if (state.__codesListening || !state.profile?.isAdmin) return;
   state.__codesListening = true;
-  onSnapshot(query(collection(db, "codes"), orderBy("createdAt", "desc")), (snap) => {
-    state.codes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Bewust geen orderBy: Firestore laat documenten die dat veld missen dan
+  // stilzwijgend weg uit de uitslag. Zo'n code stond niet in je lijst maar was
+  // wél gewoon te gebruiken. Sorteren doen we hier zelf.
+  onSnapshot(query(collection(db, "codes")), (snap) => {
+    state.codes = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     if (state.view === "admin") render();
   }, () => { state.codes = []; });
 }
@@ -2896,7 +3007,20 @@ const fmtMoment = (t) => new Date(t).toLocaleString('nl-BE',
 async function placeOrder(shippingCountry, address, payment){
   if (!state.user){ notify("Log in om te bestellen"); go("login"); return; }
   const ophalen = state.__checkout?.pickupAt || null;
-  const korting = state.__korting || null;
+  // De code is nagekeken toen hij ingevuld werd, maar tussen dat moment en het
+  // afrekenen kan hij opgebruikt of verlopen zijn. Daarom kijken we hem hier
+  // nog eens na in plaats van hem op ons woord te geloven.
+  let korting = state.__korting || null;
+  if (korting){
+    const opnieuw = await zoekCode(korting.code, cartTotal());
+    if (!opnieuw.ok){
+      state.__korting = null;
+      notify("De code " + korting.code + " geldt niet meer: " + opnieuw.waarom);
+      go("checkout");
+      return;
+    }
+    korting = opnieuw;
+  }
   const teBetalen = Math.max(0, cartTotal() - (korting?.bedrag || 0));
   const rate = { price: verzendKosten(shippingCountry, teBetalen, !!ophalen) };
   const order = {
@@ -2929,6 +3053,8 @@ async function placeOrder(shippingCountry, address, payment){
   };
   try{
     const ref = await addDoc(collection(db,"orders"), order);
+    // het adres onthouden, zodat het de volgende keer al ingevuld staat
+    if (!ophalen) onthoudAdres(address, shippingCountry);
     state.cart = []; saveCart();
     state.__checkout = null;
     state.__ckVeld = null; state.__ckLand = null; state.__adresCheck = null;
@@ -3279,14 +3405,33 @@ function renderCartBadge(){
 function esc(s=""){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 /* --------------------------- render: views --------------------------- */
+/* Wanneer mag het scherm bewegen?
+   render() draait bij elke kleinigheid: een bestelling die binnenkomt, een
+   letter die je typt, een laag die gesneden is. Lieten we de binnenkomst-
+   animatie daaraan hangen, dan wipte de hele pagina de hele tijd op en neer —
+   precies wat er onprofessioneel uitzag. Ze hangt daarom aan de klasse
+   .wissel, en die zetten we alleen als je écht naar een andere pagina gaat.
+   Achteraf moet hij er weer af: anders speelt alles wat later opnieuw getekend
+   wordt de binnenkomst alsnog af. */
+function wisselAnimatie(app){
+  if (state.view === state.__getoondeView) return;
+  state.__getoondeView = state.view;
+  app.classList.remove('wissel');
+  void app.offsetWidth;            // afdwingen dat de animatie opnieuw begint
+  app.classList.add('wissel');
+  clearTimeout(state.__wisselTimer);
+  state.__wisselTimer = setTimeout(() => app.classList.remove('wissel'), 900);
+}
+
 function render(){
   renderCartBadge();
   const app = document.getElementById('app');
+  wisselAnimatie(app);
   switch(state.view){
     case "shop": app.innerHTML = viewShop(); break;
     case "product": app.innerHTML = viewProduct(); attachProductHandlers(); return;
     case "custom": app.innerHTML = viewCustom(); attachCustomHandlers(); return;
-    case "cart": app.innerHTML = viewCart(); break;
+    case "cart": app.innerHTML = viewCart(); attachCartHandlers(); return;
     case "checkout": app.innerHTML = viewCheckout(); attachCheckoutHandlers(); return;
     case "payment": app.innerHTML = viewPayment(); attachPaymentHandlers(); return;
     case "login": app.innerHTML = viewAuth(state.__authMode || "login"); attachAuthHandlers(); return;
@@ -3392,6 +3537,21 @@ function emptyCollectionNotice(){
       </button>
     </div>`;
 }
+/* Een dichtgeklapt vak in de winkelwagen moet dicht blijven als het scherm
+   opnieuw getekend wordt. <details> doet het klappen zelf; wij houden alleen
+   bij wat er dicht stond. Bewust geen render() hier: dan zou het vak in
+   dezelfde tel opnieuw beginnen te bewegen. */
+function attachCartHandlers(){
+  document.querySelectorAll('[data-wagen]').forEach(kop => {
+    kop.onclick = () => {
+      const sleutel = kop.dataset.wagen;
+      state.__dichtWagen = state.__dichtWagen || {};
+      if (state.__dichtWagen[sleutel]) delete state.__dichtWagen[sleutel];
+      else state.__dichtWagen[sleutel] = true;
+    };
+  });
+}
+
 function attachShopHandlers(){
   document.querySelectorAll('[data-open]').forEach(btn=>{
     btn.onclick = () => {
@@ -4932,34 +5092,61 @@ function wagenSpecs(it){
   return uit.join("");
 }
 
+/* De regel die dicht al zichtbaar is: de kleuren als bolletjes, met er kort
+   bij wat het is. Genoeg om je winkelwagen te overzien zonder alles open te
+   klappen — en de kleuren staan groot, want daar gaat het om. */
+function wagenKort(it){
+  const vakken = Array.isArray(it.colorChoices) ? it.colorChoices : [];
+  const kleuren = vakken.length ? vakken : (it.filament ? [it.filament] : []);
+  const bollen = kleuren.slice(0, 6).map(f =>
+    `<span class="fil-chip ${finishClass(f.finish)}" style="background-color:${esc(f.hex || "#888")};"
+           title="${esc([f.slot, f.type, f.name].filter(Boolean).join(" · "))}"></span>`).join("");
+  const woorden = vakken.length
+    ? `${vakken.length} kleuren`
+    : it.filament ? esc([it.filament.type, it.filament.name].filter(Boolean).join(" · "))
+    : (Array.isArray(it.jobParts) && it.jobParts.length) ? `${it.jobParts.length} onderdelen` : "";
+  return `${bollen}${woorden ? `<span>${woorden}</span>` : ``}`;
+}
+
 /* De vorm van het bijbehorende product, zodat het kleurvoorbeeld in de
    winkelwagen hetzelfde object toont als op de productpagina. */
 function viewCart(){
   if (state.cart.length===0){
     return `<div style="padding:32px 0;"><button class="back" onclick="go('shop')"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Verder winkelen</button><h1 class="font-display" style="font-size:22px;">Winkelwagen</h1><p class="muted">Je winkelwagen is leeg.</p></div>`;
   }
-  const items = state.cart.map(it=>`
-    <div class="cart-item" style="margin-bottom:10px;">
-      <div class="wagen-kop">
-        <div class="admin-thumb">${
-          it.kind==='custom'
-            ? `<i class="fa-solid fa-file-lines" aria-hidden="true"></i>`
-            : productThumb(state.products.find(x=>x.id===(it.productId||it.id)) || {}, 18)
-        }</div>
-        <div class="wagen-tekst">
-          <div class="wagen-naam">${esc(it.name)}</div>
+  const items = state.cart.map(it=>{
+    const sleutel = it.id + "|" + it.kind;
+    // Standaard open: je moet in één oogopslag zien welke kleur waar komt.
+    // Wie het te lang vindt worden, klikt het dicht — dat onthouden we.
+    const open = !(state.__dichtWagen || {})[sleutel];
+    return `
+    <div class="cart-item wagen-kaart">
+      <details class="wagenvak"${open ? " open" : ""}>
+        <summary class="wagenvak-kop" data-wagen="${esc(sleutel)}">
+          <span class="admin-thumb">${
+            it.kind==='custom'
+              ? `<i class="fa-solid fa-file-lines" aria-hidden="true"></i>`
+              : productThumb(state.products.find(x=>x.id===(it.productId||it.id)) || {}, 18)
+          }</span>
+          <span class="wagenvak-tekst">
+            <span class="wagenvak-naam">${it.qty > 1 ? it.qty + "× " : ""}${esc(it.name)}</span>
+            <span class="wagenvak-kort">${wagenKort(it)}</span>
+          </span>
+          <span class="wagenvak-prijs">${it.needsQuote ? "—" : fmtEUR(it.price * it.qty)}</span>
+          <span class="wagenvak-meer">Details <span class="bestelvak-pijl" aria-hidden="true">⌄</span></span>
+        </summary>
+        <div class="wagenvak-body">
           <div class="wagen-specs">${wagenSpecs(it)}</div>
         </div>
-      </div>
+      </details>
       <div class="wagen-voet">
         <div class="wagen-prijs">
           ${it.needsQuote
             ? `<span class="muted">prijs op aanvraag</span>`
-            : `<span class="totaal">${fmtEUR(it.price * it.qty)}</span>
-               <span class="muted"> &middot; ${it.discountPct
+            : `<span class="muted">${it.discountPct
                  ? `<span class="was">${fmtEUR(it.listPrice)}</span>${fmtEUR(it.price)}`
                  : fmtEUR(it.price)} per stuk</span>
-               ${it.discountPct ? `<span class="sale-flag" style="margin-left:6px;">&minus;${it.discountPct}%</span>` : ``}`}
+               ${it.discountPct ? `<span class="sale-flag" style="margin-left:7px;">&minus;${it.discountPct}%</span>` : ``}`}
         </div>
         <div class="row" style="gap:8px;">
           <div class="stepper">
@@ -4970,11 +5157,14 @@ function viewCart(){
           <button class="btn btn-ghost btn-sm" onclick="window.__removeFromCart('${it.id}','${it.kind}')" title="Uit de winkelwagen" aria-label="Uit de winkelwagen"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
         </div>
       </div>
-    </div>`).join("");
+    </div>`; }).join("");
   return `
     <div style="padding:32px 0;max-width:480px;">
       <button class="back" onclick="go('shop')"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Verder winkelen</button>
-      <h1 class="font-display" style="font-size:22px;margin-bottom:16px;">Winkelwagen</h1>
+      <h1 class="font-display" style="font-size:22px;margin:0 0 6px;">Winkelwagen</h1>
+      <p class="muted" style="font-size:13px;line-height:1.6;margin:0 0 16px;">
+        Klik op een product om te zien welke kleur waar komt.
+      </p>
       ${items}
       ${(() => {
         // Hier beslist iemand of hij er nog iets bij doet, dus hier hoort het
@@ -5080,11 +5270,13 @@ function afhaalBlok(){
 
 function viewCheckout(){
   // wat er getypt is overleeft een hertekening; anders ben je het kwijt zodra
-  // de adrescontrole iets te melden heeft
-  const addr = state.__ckVeld || state.profile?.address || {};
+  // de adrescontrole iets te melden heeft. Staat er nog niets, dan vullen we
+  // het adres in dat we van je vorige bestelling onthouden hebben.
+  const addr = state.__ckVeld || bekendAdres();
   const kanAfhalen = afhalen().enabled;
   const ophalen = kanAfhalen && state.__leverwijze === "afhaal";
-  const land = state.__ckLand || SHIPPING_RATES[0].country;
+  const land = state.__ckLand || bekendLand() || SHIPPING_RATES[0].country;
+  const onthouden = !state.__ckVeld && !!addr.street;
   const kort = state.__korting;
   const teBetalen = Math.max(0, cartTotal() - (kort?.bedrag || 0));
   const verzend = verzendKosten(land, teBetalen, ophalen);
@@ -5104,6 +5296,11 @@ function viewCheckout(){
         </div>` : ``}
 
       <div${ophalen ? ' hidden' : ''}>
+        ${onthouden ? `
+          <p class="muted" style="font-size:12.5px;line-height:1.5;margin:0 0 10px;">
+            ${ic("location-dot")} We hebben je adres van de vorige keer al ingevuld. Klopt het niet meer? Typ het gewoon over.
+          </p>` : ``}
+        <label class="field-label" style="margin-top:0;">Bezorgadres</label>
         <input id="ckStreet" placeholder="Straat + nr" autocomplete="street-address" name="street-address" value="${esc(addr.street||'')}" />
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <input id="ckZip" placeholder="Postcode" autocomplete="postal-code" name="postal-code" inputmode="numeric" value="${esc(addr.zip||'')}" />
@@ -5240,7 +5437,9 @@ function attachCheckoutHandlers(){
   }
 
   const doorGaan = (extra) => {
-    state.__checkout = { country: sel?.value || "België", address: state.__ckVeld, ...extra };
+    // lees() als achtervang: heb je niets getypt omdat het adres al ingevuld
+    // stond, dan is __ckVeld nog leeg en zou de bestelling zonder adres vertrekken
+    state.__checkout = { country: sel?.value || "België", address: state.__ckVeld || lees(), ...extra };
     state.__adresCheck = null;
     go("payment");
   };
@@ -6129,7 +6328,7 @@ function viewAdmin(){
           <p>Wat nog werk vraagt staat bovenaan. Zet de status door zodra je verder bent —
              de klant krijgt er vanzelf bericht van.</p>
         </div>
-        <div class="row" style="gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <div class="row beheer-zoek" style="gap:9px;margin-bottom:14px;flex-wrap:wrap;">
           <input id="ordZoek" placeholder="Zoek op naam, nummer of product…"
                  value="${esc(state.__ordZoek || "")}" style="margin:0;flex:1;min-width:190px;" />
           <select class="field" id="ordStatus" style="margin:0;width:auto;">
