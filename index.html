@@ -316,18 +316,16 @@
     font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;
     text-transform:uppercase;color:var(--muted);margin:0 0 10px;
   }
-  /* De tekening is op ware verhouding; laat ze niet meegroeien met een breed
-     scherm, anders wordt een bankkaart ter grootte van een half beeldscherm
-     getoond en klopt het gevoel juist niet meer. */
-  .maatvak svg{display:block;margin:0 auto;max-width:320px;}
-  .maat-vloer{stroke:var(--line-strong);stroke-width:1;}
-  .maat-kaart{fill:var(--surface2);stroke:var(--line-strong);stroke-width:1;}
-  .maat-ding{fill:var(--accent);opacity:.9;}
-  .maat-label-in{
-    fill:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:9px;text-anchor:middle;
+  .maatdoek{
+    position:relative;width:100%;aspect-ratio:16/10;background:var(--plate);
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;
   }
-  .maat-label{
-    fill:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;text-anchor:middle;
+  .maatkiezer{
+    display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin:10px 0 0;
+  }
+  .maatkiezer-kop{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);white-space:nowrap;
   }
 
   /* ---------- zoeken en filteren in de collectie ---------- */
@@ -4625,53 +4623,143 @@ function slotPicker(p){
 /* =====================================================================
    Hoe groot is dat nu echt?
    "Ik dacht dat het groter was" is de meest gehoorde teleurstelling bij een
-   3D-print. Millimeters op een pagina zeggen weinig; een bankkaart ernaast wél
-   — die heeft iedereen in zijn zak en is overal even groot (85,6 × 54 mm).
-   We tekenen het voorwerp van opzij naast zo'n kaart, op dezelfde schaal.
+   3D-print. Millimeters op een pagina zeggen weinig. Daarom zetten we er een
+   voorwerp naast dat iedereen kent, op ware grootte, in dezelfde 3D-weergave —
+   je kunt er samen mee ronddraaien. Een tekening van opzij was niet genoeg:
+   diepte zie je daar niet, en dat is nu net wat je mist.
    ===================================================================== */
-const KAART = { b: 85.6, h: 54 };
+
+/* Een blokje: twaalf driehoeken, gecentreerd op (ox,oy) en staand op z = oz. */
+function blokMesh(bx, by, bz, ox, oy, oz){
+  const x0 = ox - bx/2, x1 = ox + bx/2;
+  const y0 = oy - by/2, y1 = oy + by/2;
+  const z0 = oz, z1 = oz + bz;
+  const v = [[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],
+             [x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]];
+  const f = [[0,3,2],[0,2,1],[4,5,6],[4,6,7],[0,1,5],[0,5,4],
+             [1,2,6],[1,6,5],[2,3,7],[2,7,6],[3,0,4],[3,4,7]];
+  const m = new Float32Array(f.length * 9);
+  let w = 0;
+  for (const t of f) for (const i of t){ m[w++] = v[i][0]; m[w++] = v[i][1]; m[w++] = v[i][2]; }
+  return m;
+}
+/* Een staande cilinder. De zijkant krijgt vanzelf zachte normalen omdat de
+   vlakjes maar negen graden verschillen; de rand naar het deksel staat er
+   haaks op en blijft dus scherp. */
+function cilinderMesh(r, h, ox, oy, oz, kanten = 44){
+  const tri = [];
+  const p = (i, z) => [ox + r*Math.cos(i/kanten*2*Math.PI), oy + r*Math.sin(i/kanten*2*Math.PI), z];
+  for (let i = 0; i < kanten; i++){
+    const a = p(i, oz), b = p(i+1, oz), c = p(i+1, oz+h), d = p(i, oz+h);
+    tri.push([a,b,c], [a,c,d]);
+    tri.push([[ox,oy,oz], b, a]);
+    tri.push([[ox,oy,oz+h], d, c]);
+  }
+  const m = new Float32Array(tri.length * 9);
+  let w = 0;
+  for (const t of tri) for (const q of t){ m[w++] = q[0]; m[w++] = q[1]; m[w++] = q[2]; }
+  return m;
+}
+
+/* Wat iedereen in huis heeft, met de maten die overal gelden. */
+const MAAT_REFS = [
+  { id: "kaart",  naam: "Bankkaart", b: 85.6, d: 54,    h: 0.76,
+    maak: (x,y,z) => blokMesh(85.6, 54, 0.76, x, y, z) },
+  { id: "munt",   naam: "Muntstuk",  b: 25.75, d: 25.75, h: 2.2,
+    maak: (x,y,z) => cilinderMesh(12.875, 2.2, x, y, z) },
+  { id: "blikje", naam: "Blikje",    b: 66,   d: 66,    h: 115,
+    maak: (x,y,z) => cilinderMesh(33, 115, x, y, z) },
+];
+const REF_KLEUR = { hex: "#8E949C", finish: "matte" };
+
 function productMaat(p){
   if (Array.isArray(p?.modelSize) && p.modelSize.length === 3) return p.modelSize.map(Number);
   const s = sizingOf(p);
   if (s) return currentDims(p);
   return maatUitTekst(p?.dimensions);
 }
-function maatVergelijking(p){
-  const m = productMaat(p);
-  if (!m || !m.every(v => isFinite(v) && v > 0)) return ``;
-  const [x, y, z] = m;
-  const breed = Math.max(x, y);                 // van opzij zie je de breedste kant
-  const hoog = z;
-  // alles in één tekening, dus één schaal voor beide voorwerpen
-  const mmBreed = Math.max(breed, KAART.b) * 1.16;
-  const mmHoog = Math.max(hoog, KAART.h) * 1.22;
-  const W = 320, H = Math.max(90, Math.round(W * mmHoog / mmBreed));
-  const s = W / mmBreed;
-  const vloer = H - 14;
-  const kb = KAART.b * s, kh = KAART.h * s;
-  const ob = breed * s, oh = hoog * s;
-  const gat = 16;
-  const totaal = kb + gat + ob;
-  const x0 = (W - totaal) / 2;
+/* Welk voorwerp past het best naast dit ding? Een munt naast een vaas zegt
+   niets, een blikje naast een sleutelhanger evenmin. */
+function autoReferentie(maat){
+  const grootste = Math.max(...maat);
+  if (grootste <= 45) return "munt";
+  if (grootste <= 170) return "kaart";
+  return "blikje";
+}
+/* standaardAan: in het aparte maatvak hoort er meteen iets naast te staan —
+   dat vak bestaat er net voor. In de grote weergave niet: daar wil je eerst je
+   product zien, want zodra er iets naast staat moet alles kleiner om samen in
+   beeld te passen. Eén klik en het staat er. */
+function huidigeReferentie(maat, standaardAan){
+  const gekozen = state.__maatRef;
+  if (gekozen === "geen") return null;
+  if (!gekozen) return standaardAan ? MAAT_REFS.find(r => r.id === autoReferentie(maat)) : null;
+  return MAAT_REFS.find(r => r.id === gekozen) || null;
+}
+
+/* Zet het referentievoorwerp naast het model en levert de gezamenlijke doos,
+   zodat allebei in beeld passen en ze op dezelfde vloer staan. */
+function maatScene(min, size, ref){
+  if (!ref){
+    return {
+      delen: [], doos: {
+        center: [min[0] + size[0]/2, min[1] + size[1]/2, 0],
+        size, minZ: min[2] + size[2]/2,
+      },
+    };
+  }
+  const gat = Math.max(6, Math.max(...size) * 0.08);
+  const ox = min[0] + size[0] + gat + ref.b/2;
+  const oy = min[1] + size[1]/2;
+  const oz = min[2];
+  const mesh = ref.maak(ox, oy, oz);
+  const minX = min[0],                    maxX = ox + ref.b/2;
+  const minY = Math.min(min[1], oy - ref.d/2), maxY = Math.max(min[1] + size[1], oy + ref.d/2);
+  const minZ = min[2],                    maxZ = Math.max(min[2] + size[2], oz + ref.h);
+  return {
+    delen: [mesh],
+    doos: {
+      center: [(minX + maxX)/2, (minY + maxY)/2, 0],
+      size: [maxX - minX, maxY - minY, maxZ - minZ],
+      minZ: (minZ + maxZ)/2,
+    },
+  };
+}
+
+/* Voor een product zonder 3D-model: een eigen vakje met een blok van de juiste
+   afmetingen naast het bekende voorwerp. Ook hier in 3D en ook draaibaar — de
+   vorm klopt niet, de grootte wel. */
+function maatBlokVak(p){
+  const maat = productMaat(p);
+  if (!maat || !maat.every(v => isFinite(v) && v > 0)) return ``;
   return `
     <div class="cart-item maatvak">
       <p class="maatvak-kop">${ic("ruler-combined")} Hoe groot is het?</p>
-      <svg viewBox="0 0 ${W} ${H}" role="img" width="100%"
-           aria-label="Het voorwerp is ${Math.round(breed)} bij ${Math.round(hoog)} millimeter, naast een bankkaart van 86 bij 54 millimeter">
-        <line x1="0" y1="${vloer}" x2="${W}" y2="${vloer}" class="maat-vloer" />
-        <rect x="${x0.toFixed(1)}" y="${(vloer - kh).toFixed(1)}" width="${kb.toFixed(1)}" height="${kh.toFixed(1)}"
-              rx="${(3.2 * s).toFixed(1)}" class="maat-kaart" />
-        <text x="${(x0 + kb / 2).toFixed(1)}" y="${(vloer - kh / 2 + 4).toFixed(1)}" class="maat-label-in">bankkaart</text>
-        <rect x="${(x0 + kb + gat).toFixed(1)}" y="${(vloer - oh).toFixed(1)}" width="${ob.toFixed(1)}" height="${oh.toFixed(1)}"
-              rx="${Math.min(6, 2 * s).toFixed(1)}" class="maat-ding" />
-        <text x="${(x0 + kb + gat + ob / 2).toFixed(1)}" y="${(vloer + 11).toFixed(1)}" class="maat-label">
-          ${Math.round(breed)} × ${Math.round(hoog)} mm
-        </text>
-      </svg>
+      <div class="maatdoek">
+        <canvas id="maatMesh" style="width:100%;height:100%;display:block;touch-action:none;cursor:grab;"></canvas>
+        <span class="viewer-hint">${ic("arrows-up-down-left-right")} Sleep om te draaien</span>
+      </div>
+      ${maatKiezer(p, true)}
       <p class="muted" style="font-size:12px;line-height:1.65;margin:8px 0 0;">
-        Op ware grootte naast elkaar, zodat je niet hoeft te gokken.
-        ${sizingOf(p) ? "De tekening volgt de maat die je hierboven kiest." : ""}
+        Op ware grootte naast elkaar. Het blok heeft de afmetingen van dit product,
+        niet zijn vorm &mdash; ${p.has3d ? "het echte model laadt zo" : "er hoort nog geen 3D-model bij dit product"}.
       </p>
+    </div>`;
+}
+
+/* De knoppenrij onder de weergave: waar wil je het naast zien? */
+function maatKiezer(p, standaardAan){
+  const maat = productMaat(p);
+  if (!maat || !maat.every(v => isFinite(v) && v > 0)) return ``;
+  const nu = huidigeReferentie(maat, standaardAan);
+  return `
+    <div class="maatkiezer">
+      <span class="maatkiezer-kop">${ic("ruler-combined")} ${maat.map(v => Math.round(v)).join(" × ")} mm &mdash; ernaast:</span>
+      <div class="fil-types" style="margin:0;flex:1;min-width:180px;">
+        ${MAAT_REFS.map(r => `
+          <button class="fil-type ${nu?.id === r.id ? "active" : ""}" data-maatref="${esc(r.id)}">${esc(r.naam)}</button>`).join("")}
+        <button class="fil-type ${nu ? "" : "active"}" data-maatref="geen">Niets</button>
+      </div>
     </div>`;
 }
 
@@ -4789,7 +4877,7 @@ function viewProduct(){
               <button class="fil-type ${toon3d ? "active" : ""}" data-toon="3d">${ic("cube")} 3D</button>
               <button class="fil-type ${toon3d ? "" : "active"}" data-toon="foto">${ic("image")} Foto's</button>
             </div>` : ``}
-          ${toon3d ? `` : strip}
+          ${toon3d ? maatKiezer(p, false) : strip}
         </div>
         <div>
           ${p.category ? `<span class="badge badge-accent">${esc(p.category)}</span>` : ``}
@@ -4819,7 +4907,7 @@ function viewProduct(){
           ${filamentPicker(p)}
           ${est ? priceBreakdown(est) : ``}
           ${specs ? `<div class="spec-grid">${specs}</div>` : ``}
-          ${maatVergelijking(p)}
+          ${toon3d ? `` : maatBlokVak(p)}
           <div class="row" style="margin-top:18px;">
             <div class="stepper"><button id="qMinus"><i class="fa-solid fa-minus" aria-hidden="true"></i></button><span id="qVal">1</span><button id="qPlus"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></div>
             <button class="btn btn-accent" id="addBtn"
@@ -4850,18 +4938,26 @@ async function toon3dVoorbeeld(){
   const cv = document.getElementById('productMesh');
   if (!v || !cv) return;
 
-  if (!state.__meshView) state.__meshView = { yaw: 0.7, pitch: 0.42 };
   const meshes = v.__meshes || (v.__meshes = voorbeeldNaarMeshes(v));
   const vakken = colorSlots(p);
   const kleuren = vakken.length
     ? vakken.map((_, i) => slotFilament(p, i) || currentFilament(p) || {})
     : [currentFilament(p) || { hex: "#B8BCC2", finish: "basic" }];
+  tekenMaatScene(cv, v.min, v.size, meshes, kleuren, huidigeReferentie(v.size, false));
+}
 
-  const teken = () => drawModel(cv, meshes, kleuren, {
-    center: [v.min[0] + v.size[0]/2, v.min[1] + v.size[1]/2, 0],
-    // Op de plaat staat een model op zijn onderkant; hier hoort het gewoon
-    // midden in beeld, dus draaien we om het midden in plaats van om de voet.
-    size: v.size, minZ: v.min[2] + v.size[2] / 2,
+/* Tekent het model met — als je dat wil — een bekend voorwerp ernaast, en
+   maakt het geheel draaibaar. Eén plek voor allebei de gevallen: een product
+   mét 3D-model, en een product zonder waar we een blok van de juiste maat
+   neerzetten. */
+function tekenMaatScene(cv, min, size, meshes, kleuren, ref){
+  if (!state.__meshView) state.__meshView = { yaw: 0.7, pitch: 0.42 };
+  const scene = maatScene(min, size, ref);
+  const alle = [...meshes, ...scene.delen];
+  const kleur = [...kleuren, ...scene.delen.map(() => REF_KLEUR)];
+
+  const teken = () => drawModel(cv, alle, kleur, {
+    ...scene.doos,
     yaw: state.__meshView.yaw, pitch: state.__meshView.pitch,
   });
   teken();
@@ -4877,6 +4973,21 @@ async function toon3dVoorbeeld(){
     teken();
   };
   cv.onpointerup = cv.onpointercancel = () => { slepen = false; };
+}
+
+/* Geen 3D-model bij dit product, maar de maten kennen we wel. Dan tonen we een
+   blok van precies die afmetingen naast het bekende voorwerp — de vorm klopt
+   niet, de grootte wel, en dat is waar het hier om gaat. */
+function tekenMaatBlok(){
+  const cv = document.getElementById('maatMesh');
+  const p = state.selectedProduct;
+  if (!cv || !p) return;
+  const maat = productMaat(p);
+  if (!maat) return;
+  const [x, y, z] = maat;
+  const f = currentFilament(p) || { hex: "#B8BCC2", finish: "basic" };
+  tekenMaatScene(cv, [0, 0, 0], [x, y, z],
+    [blokMesh(x, y, z, x/2, y/2, 0)], [f], huidigeReferentie(maat, true));
 }
 
 function attachProductHandlers(){
@@ -4896,7 +5007,11 @@ function attachProductHandlers(){
   document.querySelectorAll('[data-toon]').forEach(btn=>{
     btn.onclick = () => { state.__toon3d = btn.dataset.toon === "3d"; render(); };
   });
+  document.querySelectorAll('[data-maatref]').forEach(btn=>{
+    btn.onclick = () => { state.__maatRef = btn.dataset.maatref; render(); };
+  });
   toon3dVoorbeeld();
+  tekenMaatBlok();
   document.querySelectorAll('[data-filtype]').forEach(btn=>{
     btn.onclick = () => {
       state.__filType = btn.dataset.filtype;
@@ -9234,6 +9349,7 @@ window.__lc = {
   pricing, slicerSettings, render,
   slotFilament, currentFilament,
   plaatIndeling, printRij, maatUitTekst, itemMaat, tijdUitTekst,
+  MAAT_REFS, productMaat, autoReferentie,
   get snijders(){ return snijders; },
 };
 
