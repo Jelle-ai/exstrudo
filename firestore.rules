@@ -54,10 +54,14 @@ service cloud.firestore {
       allow get: if true;
       allow list: if beheerder();
       allow create, delete: if beheerder();
+      // Een klant telt bij het bestellen één gebruik bij. Stond er nog geen
+      // teller in het document, dan begint hij bij nul — zonder dit stukje
+      // werd zo'n bijtelling geweigerd en bleef een code eindeloos geldig.
       allow update: if beheerder()
         || (ingelogd()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used'])
-            && request.resource.data.used == resource.data.used + 1);
+            && request.resource.data.used
+                 == (('used' in resource.data) ? resource.data.used : 0) + 1);
     }
 
     // --- instellingen: filamenten, prijzen, e-mail -----------------

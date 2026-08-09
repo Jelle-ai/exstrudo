@@ -186,29 +186,60 @@
     background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px;
   }
   /* ---------- winkelwagen ----------
-     De bovenste helft vertelt wát je koopt, de onderste wat het kost en
-     hoeveel. Niets staat naast elkaar geperst, dus niets valt weg. */
-  .wagen-kop{display:flex;align-items:flex-start;gap:11px;}
+     Dicht zie je in één regel wát het is, welke kleuren en wat het kost; klap
+     je het open, dan staat er per onderdeel bij welke kleur waar komt — net
+     als bij een bestelling in Shopbeheer. Het aantal blijft altijd staan, dat
+     wil je kunnen wijzigen zonder eerst iets open te doen.
+     Ruim gezet: regels mogen ademen, anders leest het als een propje. */
+  .wagen-kaart{padding:0;overflow:hidden;margin-bottom:12px;}
+  .wagenvak > summary{
+    display:flex;align-items:center;gap:13px;padding:15px;cursor:pointer;list-style:none;min-height:64px;
+  }
+  .wagenvak > summary::-webkit-details-marker{display:none;}
+  .wagenvak > summary:hover{background:var(--surface2);}
+  .wagenvak-tekst{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1;}
+  .wagenvak-naam{font-size:15.5px;font-weight:600;line-height:1.4;word-break:break-word;}
+  .wagenvak-kort{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    font-size:12.5px;color:var(--muted);line-height:1.6;
+  }
+  .wagenvak-kort .fil-chip{width:22px;height:22px;border-radius:7px;flex-shrink:0;}
+  .wagenvak-prijs{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;flex-shrink:0;}
+  .wagenvak-meer{
+    display:flex;align-items:center;gap:5px;flex-shrink:0;color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+  }
+  .wagenvak[open] > summary .bestelvak-pijl{transform:rotate(180deg);}
+  /* op een smal scherm is er geen plaats voor het woord; het pijltje volstaat */
+  @media(max-width:520px){
+    .wagenvak-meer{font-size:0;gap:0;}
+    .wagenvak-meer .bestelvak-pijl{font-size:15px;}
+  }
+  .wagenvak-body{padding:2px 15px 6px;}
   .wagen-tekst{min-width:0;flex:1;}
-  .wagen-naam{font-size:15px;font-weight:600;line-height:1.3;word-break:break-word;}
-  .wagen-specs{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
-  .wagen-spec{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.35;min-height:28px;}
+  .wagen-naam{font-size:15px;font-weight:600;line-height:1.4;word-break:break-word;}
+  .wagen-specs{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+  .wagen-spec{display:flex;align-items:center;gap:12px;font-size:14px;line-height:1.5;min-height:30px;}
   .wagen-spec .sleutel{
     color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;
-    letter-spacing:.04em;text-transform:uppercase;flex:0 0 74px;padding-top:2px;
+    letter-spacing:.05em;text-transform:uppercase;flex:0 0 84px;padding-top:2px;line-height:1.5;
   }
-  .wagen-spec .waarde{min-width:0;flex:1;word-break:break-word;
-    display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .wagen-spec .waarde{min-width:0;flex:1;word-break:break-word;font-size:14px;line-height:1.5;
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
   .wagen-spec .fil-chip{width:24px;height:24px;border-radius:8px;flex-shrink:0;}
-  .wagen-spec .waarde{font-size:14px;}
-  .wagen-deel{display:flex;align-items:center;gap:7px;flex-wrap:wrap;width:100%;}
+  .wagen-deel{display:flex;align-items:center;gap:9px;flex-wrap:wrap;width:100%;line-height:1.5;}
   .wagen-voet{
-    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-    margin-top:13px;padding-top:12px;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    padding:13px 15px 14px;border-top:1px solid var(--line);
   }
-  .wagen-prijs{font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  .wagen-prijs{font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.6;}
   .wagen-prijs .totaal{font-size:15px;font-weight:600;}
-  @media(max-width:420px){ .wagen-spec{flex-direction:column;gap:2px;} .wagen-spec .sleutel{flex:none;} }
+  @media(max-width:420px){
+    .wagen-spec{flex-direction:column;align-items:flex-start;gap:4px;}
+    .wagen-spec .sleutel{flex:none;}
+    .wagenvak > summary{gap:11px;padding:13px;}
+    .wagenvak-prijs{font-size:14px;}
+  }
   .kv{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0;}
   .kv span:first-child{color:var(--muted);}
   .kv span:last-child{font-family:'IBM Plex Mono',monospace;}
@@ -249,9 +280,11 @@
   .toast{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);
     border-radius:12px;padding:11px 12px 11px 16px;font-size:13px;z-index:60;max-width:calc(100vw - 32px);
-    display:flex;align-items:center;gap:10px;
+    display:flex;align-items:center;gap:11px;line-height:1.45;
   }
-  .toast span{overflow:hidden;text-overflow:ellipsis;}
+  /* Op een telefoon brak de tekst hiernaast in drie stukjes af. Eén regel die
+     netjes eindigt met … leest een stuk rustiger. */
+  .toast > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
   .toast i{color:var(--accent);}
   .notice{border:1px solid var(--accent);border-left-width:3px;border-radius:12px;padding:13px 15px;background:var(--surface);}
   .notice-title{color:var(--accent);font-weight:600;font-size:13px;margin:0 0 6px;display:flex;align-items:center;gap:8px;}
@@ -268,6 +301,7 @@
   .viewer{width:100%;aspect-ratio:1/1;background:var(--plate);border:1px solid var(--line);border-radius:16px;overflow:hidden;position:relative;}
   .viewer img{width:100%;height:100%;object-fit:cover;display:block;}
   .viewer canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab;}
+  .viewer canvas[hidden]{display:none;}
   .viewer canvas:active{cursor:grabbing;}
   .viewer-leeg{
     position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -510,7 +544,6 @@
   .bestelvak{
     background:var(--surface);border:1px solid var(--line);border-radius:14px;
     margin-bottom:10px;overflow:hidden;
-    animation:opkomen .24s cubic-bezier(.22,.7,.3,1) both;
   }
   .bestelvak[open]{border-color:var(--line-strong);}
   .bestelvak-kop{
@@ -524,7 +557,7 @@
   .bestelvak-pijl{color:var(--muted);font-size:15px;line-height:1;flex-shrink:0;transition:transform .2s;}
   .bestelvak[open] > .bestelvak-kop .bestelvak-pijl,
   .deelvak[open] > summary .bestelvak-pijl{transform:rotate(180deg);}
-  .bestelvak-body{padding:0 15px 15px;animation:uitvouwen .22s cubic-bezier(.22,.7,.3,1) both;}
+  .bestelvak-body{padding:0 15px 15px;}
   .deelvak{border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden;background:var(--surface);}
   .deelvak > summary{
     display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer;list-style:none;
@@ -537,7 +570,7 @@
   .deelvak-stand{
     font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:var(--muted);flex-shrink:0;
   }
-  .deelvak-body{padding:0 12px 12px;animation:uitvouwen .22s cubic-bezier(.22,.7,.3,1) both;}
+  .deelvak-body{padding:0 12px 12px;}
   @media(max-width:420px){
     .bestelvak-kop{flex-wrap:wrap;gap:8px;}
     .bestelvak-stand{width:100%;justify-content:space-between;}
@@ -589,72 +622,105 @@
   .order-foot{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
   .order-foot .addr{min-width:0;flex:1 1 200px;word-break:break-word;}
   .admin-row img{width:42px;height:42px;border-radius:8px;object-fit:cover;display:block;}
+  /* Zoeken en filteren staan naast elkaar zolang dat past. Op een telefoon
+     paste het niet: het keuzemenu liep dan half buiten het scherm. */
+  @media(max-width:560px){
+    .beheer-zoek{flex-direction:column;align-items:stretch;}
+    .beheer-zoek > input, .beheer-zoek > select{width:100%;min-width:0;}
+  }
+  /* Verborgen producten: nog gewoon te bewerken, maar duidelijk uit de winkel. */
+  .rij-verborgen{opacity:.62;border-style:dashed;}
+  .kaart-verborgen .thumb{opacity:.45;}
+  .kaart-verborgen .card-title{color:var(--muted);}
   .admin-thumb{width:42px;height:42px;border-radius:8px;background:var(--plate);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:var(--muted);}
 
   /* =====================================================================
      Beweging
-     Alles wat verschijnt komt op, wat opengaat schuift uit. Kort en klein
-     gehouden: een scherm dat danst leidt af. Wie in zijn toestel heeft gezegd
-     dat hij minder beweging wil, krijgt onderaan alles uitgezet.
+     Twee regels. Eén: wat al op het scherm staat, blijft staan. De site tekent
+     zichzelf opnieuw bij elke kleinigheid — een nieuwe bestelling, een getypte
+     letter — en als dan telkens de hele pagina opnieuw komt opzetten, schokt
+     het beeld voortdurend. Alles wat binnenkomt hangt daarom aan .wissel, en
+     die klasse zet render() alleen bij een échte paginawissel.
+     Twee: wat wél beweegt, moet je kunnen zien. Een schokje van zes pixels
+     leest als haperen; een duidelijke, zachte beweging leest als animatie.
+     Wie in zijn toestel om minder beweging vraagt, krijgt onderaan alles uit.
      ===================================================================== */
-  @keyframes opkomen   { from { opacity:0; transform:translateY(9px);  } to { opacity:1; transform:none; } }
-  @keyframes uitvouwen { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
-  @keyframes indraaien { from { opacity:0; transform:scale(.94);       } to { opacity:1; transform:none; } }
-  @keyframes omhoog    { from { opacity:0; transform:translate(-50%,14px); } to { opacity:1; transform:translate(-50%,0); } }
+  /* Een nieuwe pagina komt op met licht en diepte, niet met een sprong: geen
+     verschuiving betekent dat de tekst niet lijkt te verspringen. */
+  @keyframes paginain  { from { opacity:0; transform:scale(.985); } to { opacity:1; transform:none; } }
+  @keyframes opkomen   { from { opacity:0; transform:translateY(18px) scale(.98); } to { opacity:1; transform:none; } }
+  /* een lade rolt echt open: de inhoud wordt van boven naar beneden vrijgegeven */
+  @keyframes uitvouwen { from { opacity:0; transform:translateY(-10px); clip-path:inset(0 0 100% 0); }
+                         to   { opacity:1; transform:none;              clip-path:inset(0 0 0 0);    } }
+  @keyframes indraaien { from { opacity:0; transform:scale(.9);        } to { opacity:1; transform:none; } }
+  @keyframes omhoog    { from { opacity:0; transform:translate(-50%,28px) scale(.94); }
+                         to   { opacity:1; transform:translate(-50%,0) scale(1); } }
   @keyframes tikje     { 0%{transform:scale(1);} 40%{transform:scale(1.28);} 100%{transform:scale(1);} }
   @keyframes pols      { 0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent);}
-                         70%{box-shadow:0 0 0 9px transparent;} 100%{box-shadow:0 0 0 0 transparent;} }
+                         70%{box-shadow:0 0 0 12px transparent;} 100%{box-shadow:0 0 0 0 transparent;} }
 
-  /* een nieuw scherm komt rustig op */
-  #app > div{ animation:opkomen .26s cubic-bezier(.22,.7,.3,1) both; }
+  /* --- alleen bij een paginawissel: het scherm komt één keer op --- */
+  #app.wissel > div{ animation:paginain .38s cubic-bezier(.22,.7,.3,1) both; }
 
   /* de collectie druppelt binnen in plaats van in één klap te staan */
-  .grid > .card{ animation:opkomen .34s cubic-bezier(.22,.7,.3,1) both; }
-  .grid > .card:nth-child(1){animation-delay:.02s;} .grid > .card:nth-child(2){animation-delay:.06s;}
-  .grid > .card:nth-child(3){animation-delay:.10s;} .grid > .card:nth-child(4){animation-delay:.14s;}
-  .grid > .card:nth-child(5){animation-delay:.18s;} .grid > .card:nth-child(6){animation-delay:.22s;}
-  .grid > .card:nth-child(n+7){animation-delay:.26s;}
+  #app.wissel .grid > .card{ animation:opkomen .46s cubic-bezier(.22,.7,.3,1) both; }
+  #app.wissel .grid > .card:nth-child(1){animation-delay:.04s;} #app.wissel .grid > .card:nth-child(2){animation-delay:.10s;}
+  #app.wissel .grid > .card:nth-child(3){animation-delay:.16s;} #app.wissel .grid > .card:nth-child(4){animation-delay:.22s;}
+  #app.wissel .grid > .card:nth-child(5){animation-delay:.28s;} #app.wissel .grid > .card:nth-child(6){animation-delay:.34s;}
+  #app.wissel .grid > .card:nth-child(n+7){animation-delay:.40s;}
 
-  /* alles wat uitklapt schuift open */
-  .kleurkiezer-lade, .stappen-body, .bestelregel-body, .vak-body, .slot-body{
-    animation:uitvouwen .22s cubic-bezier(.22,.7,.3,1) both;
+  /* onderdelen, bestellingen en winkelwagenvakken schuiven mee binnen */
+  #app.wissel .part-card, #app.wissel .bestelvak,
+  #app.wissel .order-card, #app.wissel .admin-row, #app.wissel .wagen-kaart{
+    animation:opkomen .42s cubic-bezier(.22,.7,.3,1) both;
   }
-  .kleurkiezer{ transition:border-color .18s, background .18s; }
-  .kleurkiezer.open{ animation:indraaien .2s cubic-bezier(.22,.7,.3,1) both; }
+  #app.wissel .part-card:nth-of-type(2), #app.wissel .bestelvak:nth-of-type(2),
+  #app.wissel .order-card:nth-of-type(2), #app.wissel .wagen-kaart:nth-of-type(2){animation-delay:.06s;}
+  #app.wissel .part-card:nth-of-type(3), #app.wissel .bestelvak:nth-of-type(3),
+  #app.wissel .order-card:nth-of-type(3), #app.wissel .wagen-kaart:nth-of-type(3){animation-delay:.12s;}
+  #app.wissel .part-card:nth-of-type(n+4), #app.wissel .bestelvak:nth-of-type(n+4),
+  #app.wissel .order-card:nth-of-type(n+4), #app.wissel .wagen-kaart:nth-of-type(n+4){animation-delay:.18s;}
+
+  /* --- altijd: wat jíj opendoet, gaat zichtbaar open --- */
+  .kleurkiezer-lade, .stappen-body, .bestelregel-body, .vak-body, .slot-body,
+  .bestelvak-body, .deelvak-body, .wagenvak-body{
+    animation:uitvouwen .34s cubic-bezier(.22,.7,.3,1) both;
+  }
+  .kleurkiezer{ transition:border-color .2s, background .2s, box-shadow .2s; }
+  .kleurkiezer.open{ animation:indraaien .28s cubic-bezier(.22,.7,.3,1) both; }
   /* het vak dat nog wacht trekt even de aandacht */
-  .kleurkiezer.leeg.open{ animation:indraaien .2s cubic-bezier(.22,.7,.3,1) both, pols 1.6s ease-out .2s 2; }
+  .kleurkiezer.leeg.open{ animation:indraaien .28s cubic-bezier(.22,.7,.3,1) both, pols 1.6s ease-out .25s 2; }
   .kleurkiezer-nr{ transition:background .22s, color .22s, transform .22s; }
   .kleurkiezer.gekozen .kleurkiezer-nr{ animation:tikje .34s cubic-bezier(.3,1.4,.5,1) both; }
   .kleurkiezer-keuze .fil-chip{ transition:transform .2s; }
 
   /* knoppen geven mee onder je vinger */
   .btn, .fil-type, .swatch, .tab, .stap, .beheer-nav button, .bestelregel-kop, .kleurkiezer-knop{
-    transition:transform .12s cubic-bezier(.3,1.3,.5,1), background .14s, border-color .14s, color .14s, opacity .14s;
+    transition:transform .14s cubic-bezier(.3,1.3,.5,1), background .16s, border-color .16s, color .16s, opacity .16s;
   }
   .btn:active, .fil-type:active, .tab:active, .stap:active,
-  .beheer-nav button:active, .bestelregel-kop:active, .kleurkiezer-knop:active{ transform:scale(.975); }
+  .beheer-nav button:active, .bestelregel-kop:active, .kleurkiezer-knop:active{ transform:scale(.97); }
   .swatch:hover{ transform:translateY(-2px); }
   .swatch:active{ transform:scale(.9); }
   .swatch.active{ animation:tikje .3s cubic-bezier(.3,1.4,.5,1) both; }
-  .card{ transition:transform .18s cubic-bezier(.22,.7,.3,1), box-shadow .18s, background .14s; }
-  .card:hover{ transform:translateY(-3px); }
+  .card{ transition:transform .22s cubic-bezier(.22,.7,.3,1), box-shadow .22s, background .16s; }
+  .card:hover{ transform:translateY(-4px); box-shadow:0 10px 26px rgba(0,0,0,.14); }
+  .cart-item, .wagenvak, .bestelvak, .deelvak{ transition:border-color .2s, box-shadow .2s, background .2s; }
+  .wagenvak-kop, .bestelvak-kop, .deelvak > summary{ transition:background .16s; }
 
-  /* de melding onderaan schuift omhoog in beeld */
-  .toast:not(.hidden){ animation:omhoog .28s cubic-bezier(.22,.7,.3,1) both; }
+  /* de melding onderaan schuift duidelijk omhoog in beeld */
+  .toast:not(.hidden){ animation:omhoog .4s cubic-bezier(.22,.9,.28,1) both; }
   .toast .toast-actie{
     margin-left:4px;background:var(--paper);color:var(--ink);border:none;border-radius:8px;
     padding:7px 12px;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;
+    transition:transform .14s cubic-bezier(.3,1.3,.5,1);
   }
   .toast .toast-actie:active{ transform:scale(.96); }
 
   /* het aantal in de winkelwagen springt op als er iets bij komt */
   .cart-count.bump{ animation:tikje .42s cubic-bezier(.3,1.5,.5,1) both; }
 
-  /* onderdelen en bestelregels komen op als ze verschijnen */
-  .part-card, .bestelregel, .order-card, .admin-row{
-    animation:opkomen .24s cubic-bezier(.22,.7,.3,1) both;
-  }
-  .stappen-balk > span, .snijbalk > span{ transition:width .3s cubic-bezier(.22,.7,.3,1); }
+  .stappen-balk > span, .snijbalk > span{ transition:width .35s cubic-bezier(.22,.7,.3,1); }
 
   @media(prefers-reduced-motion:reduce){
     *, *::before, *::after{
@@ -750,7 +816,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc,
-  onSnapshot, query, where, orderBy, serverTimestamp, Bytes
+  onSnapshot, query, where, orderBy, serverTimestamp, increment, Bytes
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 /* =====================================================================
    Modellen bewaren zonder Firebase Storage.
@@ -1045,6 +1111,46 @@ async function loadOrCreateProfile(u){
     profile.isAdmin = true;
   }
   return profile;
+}
+
+/* =====================================================================
+   Je adres wordt onthouden
+   Wie eenmaal iets besteld heeft, hoeft zijn straat niet elke keer opnieuw te
+   typen. We bewaren het op twee plaatsen: in dit toestel (dan staat het er al
+   vóór het profiel geladen is, en ook als je nog niet ingelogd bent) en in je
+   profiel (dan gaat het mee naar je telefoon of een andere browser).
+   ===================================================================== */
+const ADRES_SLEUTEL = 'lc_adres';
+function bewaardAdres(){
+  try{ return JSON.parse(localStorage.getItem(ADRES_SLEUTEL) || "null"); }catch(e){ return null; }
+}
+/* Wat de velden bij het afrekenen moeten tonen als je nog niets getypt hebt. */
+function bekendAdres(){
+  const p = state.profile?.address;
+  if (p && p.street) return p;
+  const b = bewaardAdres();
+  return (b && b.street) ? b : {};
+}
+function bekendLand(){
+  return state.profile?.shippingCountry || bewaardAdres()?.land || null;
+}
+async function onthoudAdres(address, land){
+  if (!address || !address.street) return;
+  const kaal = { street: address.street || "", zip: address.zip || "", city: address.city || "" };
+  try{ localStorage.setItem(ADRES_SLEUTEL, JSON.stringify({ ...kaal, land: land || null })); }catch(e){}
+  if (!state.user) return;
+  const oud = state.profile?.address || {};
+  const gelijk = oud.street === kaal.street && oud.zip === kaal.zip && oud.city === kaal.city
+    && state.profile?.shippingCountry === (land || null);
+  if (gelijk) return;                       // niets veranderd, niets te schrijven
+  state.profile = { ...(state.profile || {}), address: kaal, shippingCountry: land || null };
+  try{
+    await updateDoc(doc(db, "users", state.user.uid), { address: kaal, shippingCountry: land || null });
+  }catch(e){
+    // Het adres staat sowieso al in dit toestel; dit is alleen de kopie die
+    // meegaat naar een ander apparaat. Daar hoeft niemand een melding voor.
+    console.warn("adres niet in het profiel bewaard:", e);
+  }
 }
 
 async function doRegister(name, email, password, address){
@@ -2293,7 +2399,11 @@ function nearestFilament(hex){
    meerdere objecten, dan hoort object 1 bij kleurvak 1, object 2 bij vak 2 —
    precies zoals je het in Bambu Studio klaarzet.
    ===================================================================== */
-const VOORBEELD_DRIEHOEKEN = 26000;   // samen over alle onderdelen
+/* Samen over alle onderdelen. De grens komt van Firestore: een document mag
+   niet groter zijn dan een megabyte. Sinds we punten knopen in plaats van elke
+   driehoek voluit te bewaren, past er ongeveer het dubbele in — en dat is
+   precies waar het blokkige vandaan kwam. */
+const VOORBEELD_DRIEHOEKEN = 55000;
 
 /* Vereenvoudigt een model door punten die dicht bij elkaar liggen op één punt
    te leggen: het model gaat over een denkbeeldig rooster en alle punten in
@@ -2401,31 +2511,75 @@ function voorbeeldUitDelen(delen){
           u[o+d] = Math.max(0, Math.min(65535, Math.round((dun[o+d] - min[d]) / span * 65535)));
         }
       }
-      return { u, label: delen[i]?.label || null };
+      return { ...knoopPunten(u), label: delen[i]?.label || null };
     }),
   };
 }
 
-/* Terug naar echte punten. */
+/* Punten die precies op elkaar liggen één keer bewaren, en de driehoeken naar
+   die punten laten verwijzen. In een gesloten model deelt elk punt gemiddeld
+   zes driehoeken, dus dat scheelt ongeveer de helft aan opslag — en die ruimte
+   gaat rechtstreeks naar meer driehoeken, dus naar een gladder model.
+   Zijn er te veel punten om er met twee bytes naar te wijzen, dan bewaren we
+   het onderdeel gewoon plat; dat blijft altijd werken. */
+function knoopPunten(u){
+  const n = u.length / 3;
+  const kaart = new Map();
+  const punten = [];
+  const idx = new Uint16Array(n);
+  for (let i = 0; i < n; i++){
+    const o = i * 3;
+    const s = u[o] + "," + u[o+1] + "," + u[o+2];
+    let k = kaart.get(s);
+    if (k === undefined){
+      k = punten.length / 3;
+      if (k > 65535) return { u };            // te veel punten: plat bewaren
+      punten.push(u[o], u[o+1], u[o+2]);
+      kaart.set(s, k);
+    }
+    idx[i] = k;
+  }
+  return { p: new Uint16Array(punten), i: idx };
+}
+
+/* Terug naar echte punten. Zowel de geknoopte vorm als de oude platte vorm. */
 function voorbeeldNaarMeshes(v){
   return v.parts.map(p => {
-    const u = p.u, m = new Float32Array(u.length);
-    for (let o = 0; o < u.length; o += 3){
-      for (let d = 0; d < 3; d++) m[o+d] = v.min[d] + u[o+d] / 65535 * v.span;
+    if (p.u){
+      const u = p.u, m = new Float32Array(u.length);
+      for (let o = 0; o < u.length; o += 3){
+        for (let d = 0; d < 3; d++) m[o+d] = v.min[d] + u[o+d] / 65535 * v.span;
+      }
+      return m;
+    }
+    const m = new Float32Array(p.i.length * 3);
+    for (let t = 0; t < p.i.length; t++){
+      const b = p.i[t] * 3, o = t * 3;
+      for (let d = 0; d < 3; d++) m[o+d] = v.min[d] + p.p[b+d] / 65535 * v.span;
     }
     return m;
   });
 }
 
+const bytesVan = (arr) =>
+  Bytes.fromUint8Array(new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength));
+
 async function bewaarVoorbeeld(productId, v){
   await setDoc(doc(db, "previews", productId), {
     min: v.min, span: v.span, size: v.size,
-    parts: v.parts.map(p => ({
-      b: Bytes.fromUint8Array(new Uint8Array(p.u.buffer, p.u.byteOffset, p.u.byteLength)),
-      label: p.label || null,
-    })),
+    parts: v.parts.map(p => p.u
+      // een onderdeel met te veel punten om te knopen: plat, zoals vroeger
+      ? { b: bytesVan(p.u), label: p.label || null }
+      : { p: bytesVan(p.p), i: bytesVan(p.i), label: p.label || null }),
     createdAt: Date.now(),
   });
+}
+/* Bytes uit Firestore hoeven niet op een even adres te beginnen; een Uint16Array
+   eist dat wel. Daarom altijd overkopiëren. */
+function alsU16(bytes){
+  const u = new Uint16Array(bytes.length / 2);
+  new Uint8Array(u.buffer).set(bytes);
+  return u;
 }
 async function wisVoorbeeld(productId){
   try{ await deleteDoc(doc(db, "previews", productId)); }catch(e){ /* stond er al niet */ }
@@ -2442,13 +2596,11 @@ async function haalVoorbeeld(productId){
       const d = snap.data();
       uit = {
         min: d.min, span: d.span, size: d.size,
-        parts: (d.parts || []).map(p => {
-          const bytes = p.b.toUint8Array();
-          // een kopie: de onderliggende buffer hoeft niet uitgelijnd te zijn
-          const u = new Uint16Array(bytes.length / 2);
-          new Uint8Array(u.buffer).set(bytes);
-          return { u, label: p.label || null };
-        }),
+        // p + i is de geknoopte vorm; b is de oude platte vorm, die blijft
+        // gewoon werken voor voorbeelden die er al stonden
+        parts: (d.parts || []).map(p => p.b
+          ? { u: alsU16(p.b.toUint8Array()), label: p.label || null }
+          : { p: alsU16(p.p.toUint8Array()), i: alsU16(p.i.toUint8Array()), label: p.label || null }),
       };
     }
   }catch(e){
@@ -2463,15 +2615,59 @@ async function haalVoorbeeld(productId){
 /* --------------------------- inlezen per bestand --------------------------- */
 /* Geeft één of meer geometrieën terug: een 3MF met meerdere objecten of
    platen valt hier al uiteen in losse delen. */
+/* =====================================================================
+   Als een 3mf niet meewil
+   Een 3mf is een zipbestand met een XML-model erin, en daar gaat wel eens iets
+   mis: een slicer die de zip net anders schrijft, een beschadigd model, of een
+   bestand dat eigenlijk gewoon een STL is met de verkeerde naam. In plaats van
+   te zeggen "kan niet" proberen we de vorm er langs een andere weg uit te
+   halen. Lukt dat, dan gaat het onderdeel verder als STL — kleuren en losse
+   objecten zijn dan weg, maar de vorm klopt en je kunt gewoon bestellen.
+   ===================================================================== */
+async function stlUitDe3mf(buf, naam){
+  // 1. Misschien is het helemaal geen zip maar een STL met .3mf erachter.
+  //    parseStl herkent zowel de binaire als de tekstvorm.
+  try{
+    const geo = parseStl(buf);
+    if (geo && geo.volume) return { geo, waarom: "het bleek een gewone STL te zijn" };
+  }catch(e){}
+
+  // 2. Het is wél een zip: dan zit er soms een STL in (sommige slicers bewaren
+  //    het origineel ernaast). Die lezen we dan gewoon uit.
+  try{
+    const files = await unzip(buf);
+    for (const [pad, bytes] of files){
+      if (!/\.stl$/i.test(pad)) continue;
+      try{
+        const geo = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+        if (geo && geo.volume) return { geo, waarom: `er zat een STL in (${pad})` };
+      }catch(e){}
+    }
+  }catch(e){}
+  return null;
+}
+
 async function analyzeFile(file, sleutel){
   const buf = await file.arrayBuffer();
   if (/\.3mf$/i.test(file.name)){
     if (typeof DecompressionStream === "undefined"){
+      // Zonder uitpakker kunnen we alleen nog kijken of het stiekem een STL is.
+      const nood = await stlUitDe3mf(buf, file.name);
+      if (nood) return [Object.assign(nood.geo, { __alsStl: nood.waarom })];
       throw new Error("deze browser kan 3mf-bestanden niet uitpakken — stuur een STL door");
     }
     // Een 3mf uitpakken vraagt de XML-lezer van de pagina; die is er in een
     // aparte draad niet. Dat blijft dus hier.
-    return await parse3mf(buf);
+    try{
+      return await parse3mf(buf);
+    }catch(err){
+      const nood = await stlUitDe3mf(buf, file.name);
+      if (!nood) throw err;
+      return [Object.assign(nood.geo, {
+        __alsStl: nood.waarom,
+        __waaromNiet: err.message || String(err),
+      })];
+    }
   }
   // Een STL lezen we wél naast het scherm: dat is het zware stuk bij een groot
   // bestand, en zo blijft de pagina ondertussen soepel.
@@ -2485,12 +2681,339 @@ async function analyzeFile(file, sleutel){
 }
 
 /* =====================================================================
-   3D-weergave — eigen renderer op een canvas, zonder externe bibliotheek.
-   Driehoeken worden geprojecteerd, van achter naar voor getekend en vlak
-   belicht. Dat is licht genoeg voor een telefoon en toont het model in het
-   gekozen filament. Daarnaast tonen we op verzoek de lagen zoals de slicer
-   ze gesneden heeft.
+   3D-weergave
+   Er zijn twee wegen. De grafische kaart (WebGL) is de gewone: die houdt per
+   beeldpunt bij wat er vooraan staat, dus loopt niets meer door elkaar heen en
+   kun je nergens door het model heen kijken. Kan een toestel dat niet, dan
+   valt hij terug op de tekening op een gewoon canvas: driehoeken van achter
+   naar voor. Die tweede weg blijft nodig voor de lagenweergave, en als
+   achtervang op oude toestellen.
+
+   Waarom niet three.js? Dat is inderdaad dé opensource-bibliotheek hiervoor en
+   ze doet dit prima. Maar ze is groter dan deze hele winkel bij elkaar, ze zou
+   van buitenaf ingeladen moeten worden, en we hebben er maar één ding uit
+   nodig: een dieptebuffer. Dat is hieronder een pagina of twee — zonder extra
+   bestand, zonder wachttijd, en zonder dat de site stukgaat als die ene server
+   het even niet doet.
    ===================================================================== */
+
+/* Zachte normalen.
+   Een driehoek heeft één richting, dus met vlakke belichting zie je elk vlakje
+   apart zitten: precies het blokkige. Punten die op dezelfde plek liggen laten
+   we daarom hun richting delen, zodat een ronding er ook rond uitziet. Alleen:
+   staan twee vlakken scherp op elkaar — de rand van een doos — dan mag dat
+   níet, anders wordt de rand een vage vlek. Vandaar de knikgrens. */
+/* De grens staat op 0.78. Bij een kubus staat een hoekpunt van drie vlakken op
+   0.577 — die blijft dus scherp, zoals het hoort. Bij een ronding liggen de
+   vlakken veel dichter bij elkaar en zitten ze ruim boven de grens, dus die
+   wordt wél glad. */
+const ZACHT_TOT = 260000;    // daarboven duurt het samenvoegen te lang
+
+function vlakkeNormalen(mesh){
+  const n = mesh.length / 9;
+  const uit = new Float32Array(n * 9);
+  for (let t = 0; t < n; t++){
+    const o = t * 9;
+    const ux = mesh[o+3]-mesh[o],   uy = mesh[o+4]-mesh[o+1], uz = mesh[o+5]-mesh[o+2];
+    const vx = mesh[o+6]-mesh[o],   vy = mesh[o+7]-mesh[o+1], vz = mesh[o+8]-mesh[o+2];
+    let nx = uy*vz - uz*vy, ny = uz*vx - ux*vz, nz = ux*vy - uy*vx;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    nx/=len; ny/=len; nz/=len;
+    for (let k = 0; k < 3; k++){ uit[o+k*3] = nx; uit[o+k*3+1] = ny; uit[o+k*3+2] = nz; }
+  }
+  return uit;
+}
+
+function zachteNormalen(mesh, knik = 0.78){
+  const n = mesh.length / 9;
+  // Een model van een miljoen driehoeken samenvoegen kost seconden en een berg
+  // geheugen. Zo fijn getekend valt het verschil toch niet meer op, dus dan
+  // nemen we per driehoek gewoon zijn eigen richting.
+  if (n > ZACHT_TOT) return vlakkeNormalen(mesh);
+  const vlakN = new Float32Array(n * 3);
+  const opTel = new Map();                 // plek → opgetelde richting
+
+  const sleutel = (x, y, z) =>
+    Math.round(x * 512) + "," + Math.round(y * 512) + "," + Math.round(z * 512);
+
+  for (let t = 0; t < n; t++){
+    const o = t * 9;
+    const ux = mesh[o+3]-mesh[o],   uy = mesh[o+4]-mesh[o+1], uz = mesh[o+5]-mesh[o+2];
+    const vx = mesh[o+6]-mesh[o],   vy = mesh[o+7]-mesh[o+1], vz = mesh[o+8]-mesh[o+2];
+    let nx = uy*vz - uz*vy, ny = uz*vx - ux*vz, nz = ux*vy - uy*vx;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    // niet delen door de lengte bij het optellen: een grote driehoek hoort
+    // zwaarder te wegen dan een spikkeltje
+    vlakN[t*3] = nx/len; vlakN[t*3+1] = ny/len; vlakN[t*3+2] = nz/len;
+    for (let k = 0; k < 3; k++){
+      const p = o + k*3;
+      const s = sleutel(mesh[p], mesh[p+1], mesh[p+2]);
+      const a = opTel.get(s);
+      if (a){ a[0] += nx; a[1] += ny; a[2] += nz; }
+      else opTel.set(s, [nx, ny, nz]);
+    }
+  }
+
+  const uit = new Float32Array(n * 9);
+  for (let t = 0; t < n; t++){
+    const o = t * 9;
+    const fx = vlakN[t*3], fy = vlakN[t*3+1], fz = vlakN[t*3+2];
+    for (let k = 0; k < 3; k++){
+      const p = o + k*3;
+      const a = opTel.get(sleutel(mesh[p], mesh[p+1], mesh[p+2]));
+      let nx = fx, ny = fy, nz = fz;
+      if (a){
+        const l = Math.hypot(a[0], a[1], a[2]) || 1;
+        const gx = a[0]/l, gy = a[1]/l, gz = a[2]/l;
+        // te scherp een knik? dan houdt dit hoekpunt zijn eigen richting
+        if (gx*fx + gy*fy + gz*fz > knik){ nx = gx; ny = gy; nz = gz; }
+      }
+      uit[p] = nx; uit[p+1] = ny; uit[p+2] = nz;
+    }
+  }
+  return uit;
+}
+
+/* --------------------------- de grafische kaart --------------------------- */
+const GL_VERT = `
+precision highp float;
+attribute vec3 aPos;
+attribute vec3 aNor;
+uniform vec3 uMidden;      // waar het model omheen draait
+uniform vec2 uDraai;       // cos/sin van de horizontale hoek
+uniform vec2 uKantel;      // cos/sin van de verticale hoek
+uniform float uZoom;
+uniform vec2 uOorsprong;   // middelpunt op het scherm, in beeldpunten
+uniform vec2 uDoek;        // breedte en hoogte in beeldpunten
+uniform float uDiepte;     // halve diepte, om naar [-1,1] te brengen
+varying vec3 vNor;
+varying float vDiepte;
+
+// dezelfde projectie als de tekening op canvas, zodat beide wegen er gelijk
+// uitzien: z omhoog, y naar achter, recht vooruit gekeken
+vec3 draai(vec3 p){
+  vec3 d = p - uMidden;
+  float rx = d.x * uDraai.x - d.y * uDraai.y;
+  float ry = d.x * uDraai.y + d.y * uDraai.x;
+  float op = d.z * uKantel.x - ry * uKantel.y;
+  float di = ry * uKantel.x + d.z * uKantel.y;
+  return vec3(rx, op, di);
+}
+void main(){
+  vec3 v = draai(aPos);
+  float sx = uOorsprong.x + v.x * uZoom;
+  float sy = uOorsprong.y - v.y * uZoom;
+  vDiepte = v.z;
+  gl_Position = vec4(sx / uDoek.x * 2.0 - 1.0,
+                     1.0 - sy / uDoek.y * 2.0,
+                     clamp(v.z / uDiepte, -0.999, 0.999),
+                     1.0);
+  // de normaal draait mee, maar verschuift niet
+  vNor = draai(aPos + aNor) - draai(aPos);
+}`;
+
+const GL_FRAG = `
+precision highp float;
+uniform vec3 uKleur;
+uniform float uGlans;
+varying vec3 vNor;
+varying float vDiepte;
+void main(){
+  vec3 N = normalize(vNor);
+  // Dubbelzijdig belichten. Veel modellen hebben ergens een driehoek die
+  // verkeerd om staat; met eenzijdige belichting zie je daar een zwart gat en
+  // lijkt het model hol. Zo blijft het overal massief.
+  if (!gl_FrontFacing) N = -N;
+  // Diepte loopt het scherm ín, dus wie naar je toe kijkt heeft een negatieve
+  // z. Het licht staat links-boven vóór het model, net naast de kijker.
+  vec3 L = normalize(vec3(0.40, 0.55, -0.72));
+  vec3 O = vec3(0.0, 0.0, -1.0);                 // richting naar de kijker
+  float diffuus = max(dot(N, L), 0.0);
+  // een tweede, zwak licht van de andere kant haalt de schaduwzijde uit het
+  // zwart; zonder dat wordt een donkere kleur één zwarte vlek
+  float vul = max(dot(N, normalize(vec3(-0.55, -0.30, -0.45))), 0.0) * 0.26;
+  vec3 H = normalize(L + O);
+  float glans = pow(max(dot(N, H), 0.0), 30.0) * uGlans;
+  // randlicht: geeft de vorm een zichtbare omtrek tegen de achtergrond
+  float rand = pow(1.0 - abs(dot(N, O)), 3.0) * 0.14;
+  vec3 kleur = uKleur * (0.34 + 0.70 * diffuus + vul) + glans + rand;
+  gl_FragColor = vec4(min(kleur, vec3(1.0)), 1.0);
+}`;
+
+const GL_LIJN_FRAG = `
+precision highp float;
+uniform vec3 uKleur;
+uniform float uGlans;
+void main(){ gl_FragColor = vec4(uKleur, uGlans); }`;
+
+/* Eén opzet per canvas: een canvas onthoudt zijn soort context, dus dit kan
+   maar één keer. Lukt WebGL niet, dan onthouden we dat ook — dan wordt er niet
+   bij elke tekenbeurt opnieuw geprobeerd. */
+const glDoeken = new WeakMap();
+function glVoor(canvas){
+  if (glDoeken.has(canvas)) return glDoeken.get(canvas);
+  let uit = null;
+  try{
+    const gl = canvas.getContext('webgl', { antialias: true, alpha: true, depth: true, preserveDrawingBuffer: true })
+            || canvas.getContext('experimental-webgl', { antialias: true, alpha: true, depth: true, preserveDrawingBuffer: true });
+    if (gl){
+      const maak = (bron, soort) => {
+        const s = gl.createShader(soort);
+        gl.shaderSource(s, bron); gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+        return s;
+      };
+      const programma = (frag) => {
+        const p = gl.createProgram();
+        gl.attachShader(p, maak(GL_VERT, gl.VERTEX_SHADER));
+        gl.attachShader(p, maak(frag, gl.FRAGMENT_SHADER));
+        gl.linkProgram(p);
+        if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+        return p;
+      };
+      const vlak = programma(GL_FRAG);
+      const lijn = programma(GL_LIJN_FRAG);
+      uit = {
+        gl, vlak, lijn,
+        posBuf: gl.createBuffer(), norBuf: gl.createBuffer(),
+        lijnBuf: gl.createBuffer(),
+      };
+    }
+  }catch(e){ uit = null; }
+  glDoeken.set(canvas, uit);
+  return uit;
+}
+
+/* Zet de gedeelde instellingen klaar en levert de projectie die ook de
+   tekenweg op canvas gebruikt, zodat beide wegen hetzelfde beeld geven. */
+function glOpzet(ctx, programma, kader){
+  const { gl } = ctx;
+  const { w, h, midden, draai, kantel, zoom, oorsprong, diepte } = kader;
+  gl.useProgram(programma);
+  const u = (naam) => gl.getUniformLocation(programma, naam);
+  gl.uniform3f(u('uMidden'), midden[0], midden[1], midden[2]);
+  gl.uniform2f(u('uDraai'), draai[0], draai[1]);
+  gl.uniform2f(u('uKantel'), kantel[0], kantel[1]);
+  gl.uniform1f(u('uZoom'), zoom);
+  gl.uniform2f(u('uOorsprong'), oorsprong[0], oorsprong[1]);
+  gl.uniform2f(u('uDoek'), w, h);
+  gl.uniform1f(u('uDiepte'), diepte);
+  return u;
+}
+
+/* Tekent één of meer onderdelen, elk in zijn eigen kleur, met een echte
+   dieptebuffer. Geeft false terug als WebGL hier niet kan — dan neemt de
+   tekening op canvas het over. */
+function glTeken(canvas, delen, kader, plaat){
+  const ctx = glVoor(canvas);
+  if (!ctx) return false;
+  const { gl } = ctx;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = canvas.clientWidth || 320, h = canvas.clientHeight || 320;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)){
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+  // Bewust géén achterkanten wegknippen: bij een model met een omgekeerde
+  // driehoek zou daar een gat vallen waar je doorheen kijkt. De dieptebuffer
+  // regelt de volgorde toch al.
+  gl.disable(gl.CULL_FACE);
+
+  const k = { ...kader, w, h };
+
+  if (plaat && plaat.length){
+    // Het plaatraster is een achtergrond, geen voorwerp. Zonder deze twee
+    // regels zouden de lijnen die tussen jou en het model liggen er dwars
+    // overheen getekend worden — geometrisch juist, maar het model lijkt er
+    // dan van gaas. Dus: geen diepte schrijven, geen diepte toetsen.
+    gl.depthMask(false);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    const u = glOpzet(ctx, ctx.lijn, k);
+    const pos = gl.getAttribLocation(ctx.lijn, 'aPos');
+    const nor = gl.getAttribLocation(ctx.lijn, 'aNor');
+    gl.bindBuffer(gl.ARRAY_BUFFER, ctx.lijnBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, plaat, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(pos);
+    gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
+    if (nor >= 0){ gl.disableVertexAttribArray(nor); gl.vertexAttrib3f(nor, 0, 0, 1); }
+    gl.uniform3f(u('uKleur'), 1, 1, 1);
+    gl.uniform1f(u('uGlans'), 0.16);
+    gl.drawArrays(gl.LINES, 0, plaat.length / 3);
+    gl.disable(gl.BLEND);
+    gl.depthMask(true);
+    gl.enable(gl.DEPTH_TEST);
+  }
+
+  const u = glOpzet(ctx, ctx.vlak, k);
+  const pos = gl.getAttribLocation(ctx.vlak, 'aPos');
+  const nor = gl.getAttribLocation(ctx.vlak, 'aNor');
+  gl.enableVertexAttribArray(pos);
+  gl.enableVertexAttribArray(nor);
+  for (const d of delen){
+    if (!d.mesh || !d.mesh.length) continue;
+    const { r, g, b } = hexToRgb(d.hex || "#B8BCC2");
+    gl.bindBuffer(gl.ARRAY_BUFFER, ctx.posBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, d.mesh, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, ctx.norBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, d.normalen, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(nor, 3, gl.FLOAT, false, 0, 0);
+    gl.uniform3f(u('uKleur'), r/255, g/255, b/255);
+    gl.uniform1f(u('uGlans'), d.finish === "silk" ? 0.55 : d.finish === "basic" ? 0.22 : 0.05);
+    gl.drawArrays(gl.TRIANGLES, 0, d.mesh.length / 3);
+  }
+  return true;
+}
+
+/* De normalen horen bij een model, niet bij een tekenbeurt: ze uitrekenen bij
+   elke draaibeweging zou het slepen laten haperen. Daarom hangen we ze aan de
+   reeks punten zelf. */
+const normalenCache = new WeakMap();
+function normalenVan(mesh){
+  let n = normalenCache.get(mesh);
+  if (!n){ n = zachteNormalen(mesh); normalenCache.set(mesh, n); }
+  return n;
+}
+
+/* De projectie in getallen, zodat de grafische kaart precies hetzelfde beeld
+   maakt als de tekening op canvas. Eén plek waar hoek, schaal en middelpunt
+   bepaald worden. */
+function kijkKader(canvas, geo, opts){
+  const { yaw = 0.6, pitch = 0.5, scale = 1, vul = 0.36, zak = 0.10 } = opts || {};
+  const w = canvas.clientWidth || 320, h = canvas.clientHeight || 320;
+  const span = Math.max(geo.size[0], geo.size[1], geo.size[2]) * scale || 1;
+  const zoom = Math.min(w, h) * vul / span;
+  return {
+    w, h, zoom,
+    midden: [geo.center[0] * scale, geo.center[1] * scale, geo.minZ * scale],
+    draai:  [Math.cos(yaw), Math.sin(yaw)],
+    kantel: [Math.cos(pitch), Math.sin(pitch)],
+    oorsprong: [w / 2, h / 2 + Math.min(w, h) * zak],
+    // ruim genomen: het model mag ook bij het draaien nooit tegen de voor- of
+    // achterwand aanlopen, anders zou er een stuk uit wegvallen
+    diepte: Math.max(1e-3, span * 2.5),
+  };
+}
+
+/* Het plaatraster als losse lijnstukken, voor de weg via de grafische kaart. */
+function plaatLijnen(midden){
+  const half = PLATE.x / 2;
+  const uit = [];
+  const [cx, cy, z] = midden;
+  for (let v = -half; v <= half; v += 50){
+    uit.push(cx + v, cy - half, z,  cx + v, cy + half, z);
+    uit.push(cx - half, cy + v, z,  cx + half, cy + v, z);
+  }
+  return new Float32Array(uit);
+}
+
 /* Zet het canvas klaar en levert de projectie: één plek waar de hoek, de
    schaal en het plaatraster geregeld worden, voor beide weergaven. */
 function meshCanvas(canvas, geo, opts){
@@ -2564,16 +3087,24 @@ function drawSlices(canvas, geo, slice, opts){
 }
 
 function drawMesh(canvas, geo, opts){
-  const { hex = "#B8BCC2", finish = "basic", ruw = false } = opts || {};
-  const c = meshCanvas(canvas, geo, opts);
-  if (!c) return;
-  const { g, project, cy, sy } = c;
+  const { hex = "#B8BCC2", finish = "basic", ruw = false, plate = true } = opts || {};
 
   // Een steekproef van driehoeken laat gaten vallen — dan lijkt het model een
   // kluwen draden in plaats van een massief voorwerp. Daarom tekenen we het
   // hele model, en pakken we alleen tijdens het slepen de lichte versie.
   const m = (ruw || !geo.full) ? geo.mesh : geo.full;
   if (!m || !m.length) return;
+
+  // Eerst de grafische kaart proberen: die houdt zelf bij wat vooraan staat.
+  const kader = kijkKader(canvas, geo, opts);
+  if (glTeken(canvas,
+        [{ mesh: m, normalen: normalenVan(m), hex, finish }],
+        kader,
+        plate ? plaatLijnen(kader.midden) : null)) return;
+
+  const c = meshCanvas(canvas, geo, opts);
+  if (!c) return;
+  const { g, project, cy, sy } = c;
 
   const n = m.length / 9;
   const order = new Array(n);
@@ -2637,7 +3168,17 @@ function drawMesh(canvas, geo, opts){
 function drawModel(canvas, meshes, kleuren, opts){
   const o = opts || {};
   const geo = { center: o.center, size: o.size, minZ: o.minZ };
-  const c = meshCanvas(canvas, geo, { ...o, plate: false, vul: 0.58, zak: 0 });
+  const instel = { ...o, plate: false, vul: 0.58, zak: 0 };
+
+  // De gewone weg: de grafische kaart. Elk onderdeel wordt apart getekend maar
+  // ze delen één dieptebuffer, dus een arm die achter een lichaam zit blijft
+  // daar ook staan — en dat blijft kloppen terwijl je draait.
+  if (glTeken(canvas, meshes.map((m, deel) => {
+        const kl = kleuren[deel] || kleuren[kleuren.length - 1] || { hex: "#B8BCC2", finish: "basic" };
+        return { mesh: m, normalen: normalenVan(m), hex: kl.hex || "#B8BCC2", finish: kl.finish };
+      }), kijkKader(canvas, geo, instel), null)) return;
+
+  const c = meshCanvas(canvas, geo, instel);
   if (!c) return;
   const { g, project, cy, sy } = c;
   const light = [0.42, -0.55, 0.72];
@@ -2831,10 +3372,15 @@ async function zoekCode(code, subtotaal){
 /* Eén gebruik bijtellen. Lukt dat niet, dan is de bestelling belangrijker. */
 async function telCodeGebruik(code){
   try{
-    const ref = doc(db, "codes", code);
-    const snap = await getDoc(ref);
-    if (snap.exists()) await updateDoc(ref, { used: (snap.data().used || 0) + 1 });
-  }catch(e){ /* niet erg genoeg om een bestelling voor tegen te houden */ }
+    // increment telt op in de database zelf. Eerst lezen en dan schrijven zou
+    // bij twee bestellingen tegelijk één gebruik laten verdwijnen.
+    await updateDoc(doc(db, "codes", code), { used: increment(1) });
+  }catch(e){
+    // Dit stil laten mislukken was fout: dan bleef het aantal op nul staan en
+    // kon een code die maar één keer mocht eindeloos opnieuw gebruikt worden.
+    console.warn("gebruik van code niet bijgeteld:", e);
+    notify("Let op: het gebruik van code " + code + " is niet geteld — " + firestoreHint(e));
+  }
 }
 
 /* =====================================================================
@@ -2860,8 +3406,13 @@ async function savePickup(v){ await setDoc(AFHAAL_DOC(), v); }
 function listenCodes(){
   if (state.__codesListening || !state.profile?.isAdmin) return;
   state.__codesListening = true;
-  onSnapshot(query(collection(db, "codes"), orderBy("createdAt", "desc")), (snap) => {
-    state.codes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Bewust geen orderBy: Firestore laat documenten die dat veld missen dan
+  // stilzwijgend weg uit de uitslag. Zo'n code stond niet in je lijst maar was
+  // wél gewoon te gebruiken. Sorteren doen we hier zelf.
+  onSnapshot(query(collection(db, "codes")), (snap) => {
+    state.codes = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     if (state.view === "admin") render();
   }, () => { state.codes = []; });
 }
@@ -2896,7 +3447,20 @@ const fmtMoment = (t) => new Date(t).toLocaleString('nl-BE',
 async function placeOrder(shippingCountry, address, payment){
   if (!state.user){ notify("Log in om te bestellen"); go("login"); return; }
   const ophalen = state.__checkout?.pickupAt || null;
-  const korting = state.__korting || null;
+  // De code is nagekeken toen hij ingevuld werd, maar tussen dat moment en het
+  // afrekenen kan hij opgebruikt of verlopen zijn. Daarom kijken we hem hier
+  // nog eens na in plaats van hem op ons woord te geloven.
+  let korting = state.__korting || null;
+  if (korting){
+    const opnieuw = await zoekCode(korting.code, cartTotal());
+    if (!opnieuw.ok){
+      state.__korting = null;
+      notify("De code " + korting.code + " geldt niet meer: " + opnieuw.waarom);
+      go("checkout");
+      return;
+    }
+    korting = opnieuw;
+  }
   const teBetalen = Math.max(0, cartTotal() - (korting?.bedrag || 0));
   const rate = { price: verzendKosten(shippingCountry, teBetalen, !!ophalen) };
   const order = {
@@ -2929,6 +3493,8 @@ async function placeOrder(shippingCountry, address, payment){
   };
   try{
     const ref = await addDoc(collection(db,"orders"), order);
+    // het adres onthouden, zodat het de volgende keer al ingevuld staat
+    if (!ophalen) onthoudAdres(address, shippingCountry);
     state.cart = []; saveCart();
     state.__checkout = null;
     state.__ckVeld = null; state.__ckLand = null; state.__adresCheck = null;
@@ -3118,12 +3684,34 @@ async function updateProduct(id, p){
   notify("Product bijgewerkt");
 }
 async function deleteProduct(id){
-  if (!confirm("Dit product definitief verwijderen?")) return;
+  const p = state.products.find(x => x.id === id);
+  // Wissen is voorgoed. Verbergen is dat niet — dat noemen we er daarom bij,
+  // zodat je niet iets weggooit terwijl je het alleen even uit de winkel wou.
+  if (!confirm(`"${p?.name || "Dit product"}" definitief verwijderen?\n\n`
+    + "Alles gaat weg: foto's, kleuren, het 3D-model en de instellingen.\n\n"
+    + "Wil je het alleen even niet verkopen, klik dan op annuleren en gebruik "
+    + "het oogje ernaast — dan verdwijnt het uit de collectie maar blijft alles bewaard.")) return;
   await deleteDoc(doc(db,"products",id));
   await wisVoorbeeld(id);            // het 3D-voorbeeld hoort er niet los te blijven
   voorbeeldCache.delete(id);
   notify("Product verwijderd");
 }
+
+/* Verbergen: het product blijft volledig bestaan, maar staat niet meer in de
+   collectie. Zo hoef je niets weg te gooien om iets tijdelijk uit de winkel te
+   halen — en zet je het met één klik weer terug. */
+async function toonProduct(id){
+  const p = state.products.find(x => x.id === id);
+  if (!p) return;
+  const nu = !verborgen(p);
+  try{
+    await updateDoc(doc(db, "products", id), { hidden: nu });
+    notify(nu
+      ? `"${p.name}" staat nu verborgen — alles blijft bewaard`
+      : `"${p.name}" staat weer in de collectie`);
+  }catch(e){ notify("Wijzigen mislukt: " + firestoreHint(e)); }
+}
+window.__toonProduct = toonProduct;
 
 /* Verkleint een gekozen afbeelding in de browser en geeft een data-URL terug.
    Zo staan productfoto's in het Firestore-document zelf en is Storage niet nodig. */
@@ -3175,19 +3763,16 @@ function addToCart(item){
   saveCart();
   notify(item.name + " toegevoegd", { tekst: "Naar winkelwagen", doe: () => go("cart") });
   renderCartBadge();
-  // op de productpagina hangt de knop af van wat er nog op voorraad is
+  // de knop op de productpagina toont dat het gelukt is
   if (state.view === "product") render();
 }
 function removeFromCart(id,kind){ state.cart = state.cart.filter(x=>!(x.id===id&&x.kind===kind)); saveCart(); render(); }
 function setQty(id,kind,qty){
   const it = state.cart.find(x=>x.id===id&&x.kind===kind);
   if (!it) return;
-  const p = state.products.find(x => x.id === (it.productId || it.id));
-  // niet meer dan er op voorraad ligt; op maat gemaakte producten zijn vrij
-  const max = (p && !sizingOf(p)) ? Math.max(1, Number(p.stock) || 0) : 999;
-  const nieuw = Math.min(max, Math.max(1, qty));
-  if (nieuw !== qty && qty > max) notify(`Er zijn er nog maar ${max} op voorraad`);
-  it.qty = nieuw;
+  // Alles wordt op bestelling geprint, dus er is geen bovengrens vanuit een
+  // voorraad. Een ruime grens houdt alleen een vertikte 9999 tegen.
+  it.qty = Math.min(MAX_PER_BESTELLING, Math.max(1, qty));
   saveCart(); render();
 }
 window.__addToCart = addToCart; window.__removeFromCart = removeFromCart; window.__setQty = setQty;
@@ -3279,14 +3864,33 @@ function renderCartBadge(){
 function esc(s=""){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 /* --------------------------- render: views --------------------------- */
+/* Wanneer mag het scherm bewegen?
+   render() draait bij elke kleinigheid: een bestelling die binnenkomt, een
+   letter die je typt, een laag die gesneden is. Lieten we de binnenkomst-
+   animatie daaraan hangen, dan wipte de hele pagina de hele tijd op en neer —
+   precies wat er onprofessioneel uitzag. Ze hangt daarom aan de klasse
+   .wissel, en die zetten we alleen als je écht naar een andere pagina gaat.
+   Achteraf moet hij er weer af: anders speelt alles wat later opnieuw getekend
+   wordt de binnenkomst alsnog af. */
+function wisselAnimatie(app){
+  if (state.view === state.__getoondeView) return;
+  state.__getoondeView = state.view;
+  app.classList.remove('wissel');
+  void app.offsetWidth;            // afdwingen dat de animatie opnieuw begint
+  app.classList.add('wissel');
+  clearTimeout(state.__wisselTimer);
+  state.__wisselTimer = setTimeout(() => app.classList.remove('wissel'), 900);
+}
+
 function render(){
   renderCartBadge();
   const app = document.getElementById('app');
+  wisselAnimatie(app);
   switch(state.view){
     case "shop": app.innerHTML = viewShop(); break;
     case "product": app.innerHTML = viewProduct(); attachProductHandlers(); return;
     case "custom": app.innerHTML = viewCustom(); attachCustomHandlers(); return;
-    case "cart": app.innerHTML = viewCart(); break;
+    case "cart": app.innerHTML = viewCart(); attachCartHandlers(); return;
     case "checkout": app.innerHTML = viewCheckout(); attachCheckoutHandlers(); return;
     case "payment": app.innerHTML = viewPayment(); attachPaymentHandlers(); return;
     case "login": app.innerHTML = viewAuth(state.__authMode || "login"); attachAuthHandlers(); return;
@@ -3298,11 +3902,12 @@ function render(){
 }
 
 function viewShop(){
-  const cards = state.products.map(p => `
-    <button class="card rel" data-open="${p.id}">
+  const cards = zichtbareProducten().map(p => `
+    <button class="card rel${verborgen(p) ? " kaart-verborgen" : ""}" data-open="${p.id}">
       <div class="thumb rel">
         ${productThumb(p)}
-        ${p.featured ? `<span class="flag">Uitgelicht</span>` : ``}
+        ${p.featured && !verborgen(p) ? `<span class="flag">Uitgelicht</span>` : ``}
+        ${verborgen(p) ? `<span class="flag">${ic("eye-slash")} Verborgen</span>` : ``}
         ${discountOf(p) ? `<span class="flag" style="left:auto;right:10px;background:var(--accent);color:#fff;">&minus;${discountOf(p).pct}%</span>` : ``}
       </div>
       <div>
@@ -3310,9 +3915,7 @@ function viewShop(){
         <div class="label" style="margin-top:5px;">${esc(p.material||"")}${p.layerHeight ? " / " + esc(p.layerHeight) : ""}${colorSlots(p).length ? ` / ${colorSlots(p).length} kleuren` : ""}</div>
         <div class="between" style="margin-top:8px;">
           <span class="price">${sizingOf(p) ? "vanaf " + fmtEUR(basePriceOf(p)) : priceWithDiscount(p)}</span>
-          ${sizingOf(p) ? `<span class="label">Op maat</span>`
-            : (p.stock ?? 0) <= 0 ? `<span class="label">Uitverkocht</span>`
-            : (p.stock ?? 0) <= 3 ? `<span class="label">Nog ${esc(p.stock)}</span>` : ``}
+          ${sizingOf(p) ? `<span class="label">Op maat</span>` : ``}
         </div>
       </div>
     </button>`).join("");
@@ -3392,6 +3995,21 @@ function emptyCollectionNotice(){
       </button>
     </div>`;
 }
+/* Een dichtgeklapt vak in de winkelwagen moet dicht blijven als het scherm
+   opnieuw getekend wordt. <details> doet het klappen zelf; wij houden alleen
+   bij wat er dicht stond. Bewust geen render() hier: dan zou het vak in
+   dezelfde tel opnieuw beginnen te bewegen. */
+function attachCartHandlers(){
+  document.querySelectorAll('[data-wagen]').forEach(kop => {
+    kop.onclick = () => {
+      const sleutel = kop.dataset.wagen;
+      state.__dichtWagen = state.__dichtWagen || {};
+      if (state.__dichtWagen[sleutel]) delete state.__dichtWagen[sleutel];
+      else state.__dichtWagen[sleutel] = true;
+    };
+  });
+}
+
 function attachShopHandlers(){
   document.querySelectorAll('[data-open]').forEach(btn=>{
     btn.onclick = () => {
@@ -3458,7 +4076,7 @@ function priceBreakdown(est){
 
 /* De prijs die op de pagina en in de winkelwagen geldt. */
 /* =====================================================================
-   Korting en voorraad
+   Korting
    Een korting geldt op de gewone prijs en mag een einddatum hebben. Is die
    datum voorbij, dan valt de korting vanzelf weg — je hoeft er dus niet aan
    te denken om hem uit te zetten.
@@ -3521,15 +4139,18 @@ function gekozenToeslag(p){
   return filamentToeslag(p, currentFilament(p));
 }
 
-/* Hoeveel er nog besteld kan worden: de voorraad min wat al in de wagen ligt.
-   Op maat gemaakte producten worden altijd geprint en kennen geen voorraad. */
-function stockLeft(p){
-  if (sizingOf(p)) return Infinity;
-  const voorraad = Math.max(0, Number(p?.stock) || 0);
-  const inMand = state.cart
-    .filter(i => (i.productId || i.id) === p.id && i.kind === "product")
-    .reduce((s, i) => s + i.qty, 0);
-  return Math.max(0, voorraad - inMand);
+/* Er is geen voorraad meer: alles wordt op bestelling geprint. Een product kan
+   dus nooit "uitverkocht" zijn. Wil je iets tijdelijk niet verkopen, dan zet je
+   het op verborgen — zie verborgen() hieronder. */
+const MAX_PER_BESTELLING = 99;
+
+/* Een verborgen product blijft gewoon bestaan met al zijn foto's, kleuren en
+   instellingen, maar staat niet in de collectie. Zo hoef je niets te wissen om
+   iets even uit de winkel te halen. De beheerder ziet het wél staan. */
+function verborgen(p){ return !!p?.hidden; }
+function zichtbareProducten(){
+  const alles = state.products || [];
+  return state.profile?.isAdmin ? alles : alles.filter(p => !verborgen(p));
 }
 /* De prijs bij de kleinst toegestane maat — dat is de "vanaf"-prijs. */
 function basePriceOf(p){
@@ -3725,6 +4346,13 @@ function viewProduct(){
     ? `<div style="padding:32px 0;"><p class="muted">Dit product bestaat niet meer.</p>
        <button class="btn btn-accent" onclick="go('shop')">Naar de collectie</button></div>`
     : `<div style="padding:32px 0;"><p class="muted"><i class="fa-solid fa-spinner" aria-hidden="true"></i> Even je product ophalen…</p></div>`;
+  // Een verborgen product mag ook niet via een oude link of een bewaarde
+  // pagina alsnog te bestellen zijn. De beheerder mag het wél bekijken.
+  if (verborgen(p) && !state.profile?.isAdmin) return `
+    <div style="padding:32px 0;">
+      <p class="muted" style="line-height:1.6;">Dit product staat op dit moment niet in de collectie.</p>
+      <button class="btn btn-accent" onclick="go('shop')">Naar de collectie</button>
+    </div>`;
   const all = productImages(p);
   const chosen = currentFilament(p);
   const active = Math.min(state.__gallery || 0, Math.max(0, all.length - 1));
@@ -3769,8 +4397,6 @@ function viewProduct(){
 
   const sizing = sizingOf(p);
   const est = sizing ? sizedEstimate(p) : null;
-  const inStock = sizing ? true : (p.stock ?? 0) > 0;   // op maat wordt altijd geprint
-  const rest = stockLeft(p);                            // wat er nog bij kan
   const korting = discountOf(p);
   const toeslag = gekozenToeslag(p);                    // duurder plastic kost meer
   return `
@@ -3804,14 +4430,15 @@ function viewProduct(){
           ${korting ? `<p class="muted" style="font-size:12px;margin:0 0 6px;">
             Tijdelijk ${korting.pct}% korting${korting.until ? ` — nog tot ${esc(new Date(korting.until).toLocaleDateString('nl-BE', { day:'numeric', month:'long' }))}` : ``}.
           </p>` : ``}
-          <p style="font-size:12px;margin:0 0 16px;" class="muted">
-            ${sizing
-              ? `<span class="stock-dot" style="background:var(--accent)"></span>Op maat geprint`
-              : `<span class="stock-dot" style="background:${inStock ? 'var(--accent)' : 'var(--muted)'}"></span>${
-                  !inStock ? "Niet op voorraad"
-                  : rest === 0 ? `Je hebt de laatste ${esc(p.stock)} al in je winkelwagen`
-                  : rest <= 3 ? `Nog maar ${rest} op voorraad` : esc(p.stock) + " op voorraad"}`}
+          <p style="font-size:12.5px;line-height:1.6;margin:0 0 16px;" class="muted">
+            <span class="stock-dot" style="background:var(--accent)"></span>${
+              sizing ? "Op maat geprint" : "Wordt voor jou geprint — niets ligt op voorraad"}
           </p>
+          ${verborgen(p) ? `
+            <p class="notice" style="font-size:13px;line-height:1.6;margin:0 0 16px;">
+              ${ic("eye-slash")} Dit product staat op <strong>verborgen</strong>. Alleen jij ziet het;
+              klanten vinden het niet in de collectie. Zet het in Shopbeheer weer aan om het te verkopen.
+            </p>` : ``}
           ${p.description ? `<p style="font-size:14px;line-height:1.6;color:var(--ink);opacity:.85;">${esc(p.description)}</p>` : ``}
           ${sizing ? sizingBlock(p) : ``}
           ${filamentPicker(p)}
@@ -3820,12 +4447,9 @@ function viewProduct(){
           <div class="row" style="margin-top:18px;">
             <div class="stepper"><button id="qMinus"><i class="fa-solid fa-minus" aria-hidden="true"></i></button><span id="qVal">1</span><button id="qPlus"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></div>
             <button class="btn btn-accent" id="addBtn"
-                    ${inStock && rest > 0 && slotsKlaar(p) ? "" : "disabled style=\"opacity:.5;\""}>
+                    ${slotsKlaar(p) ? "" : "disabled style=\"opacity:.5;\""}>
               <i class="fa-solid fa-cart-plus" aria-hidden="true"></i>
-              ${!inStock ? "Uitverkocht"
-                : rest === 0 ? "Alles al in je wagen"
-                : !slotsKlaar(p) ? `Kies nog ${slotsTeGaan(p)} kleur${slotsTeGaan(p) > 1 ? "en" : ""}`
-                : "Toevoegen"}
+              ${!slotsKlaar(p) ? `Kies nog ${slotsTeGaan(p)} kleur${slotsTeGaan(p) > 1 ? "en" : ""}` : "Toevoegen"}
             </button>
           </div>
           <p class="footer-note"><i class="fa-solid fa-print" aria-hidden="true"></i> Wordt op bestelling geprint — verzending binnen 3 tot 5 werkdagen.</p>
@@ -3885,10 +4509,9 @@ function attachProductHandlers(){
   // Vlak na een herlaadbeurt zijn de producten er nog niet en staat er alleen
   // een melding; dan valt er ook niets aan te haken.
   if (!qv) return;
-  const maxQty = () => { const r = stockLeft(state.selectedProduct); return isFinite(r) ? Math.max(1, r) : 999; };
   document.getElementById('qMinus').onclick = ()=>{ qty=Math.max(1,qty-1); qv.textContent=qty; };
   document.getElementById('qPlus').onclick = ()=>{
-    if (qty >= maxQty()){ notify(`Er zijn er nog maar ${maxQty()} beschikbaar`); return; }
+    if (qty >= MAX_PER_BESTELLING){ notify(`Meer dan ${MAX_PER_BESTELLING} stuks? Stuur even een berichtje.`); return; }
     qty++; qv.textContent=qty;
   };
   document.querySelectorAll('[data-img]').forEach(btn=>{
@@ -3970,9 +4593,6 @@ function attachProductHandlers(){
       return { slot: s.name, id: x?.id, type: x?.type, name: x?.name, hex: x?.hex, finish: x?.finish };
     });
     const f = slots.length ? slotFilament(p, 0) : currentFilament(p);
-    const rest = stockLeft(p);
-    if (rest <= 0){ notify("Dit product is niet meer op voorraad"); return; }
-    if (qty > rest){ qty = rest; qv.textContent = qty; notify(`Aangepast naar ${rest} — meer zijn er niet`); }
     const sizing = sizingOf(p);
     const dims = sizing ? currentDims(p) : null;
     const est = sizing ? sizedEstimate(p) : null;
@@ -4311,7 +4931,12 @@ function partCard(p){
         <div class="part-body">
           <div>
             <div class="viewer rel" style="aspect-ratio:1/1;">
-              <canvas class="mesh3d" data-mesh="${esc(p.id)}"></canvas>
+              ${/* Twee doeken. Een canvas onthoudt voorgoed of het met de
+                    grafische kaart of met de gewone tekenaar werkt, en de
+                    lagenweergave heeft die tweede nodig. Ze omwisselen is
+                    eenvoudiger — en betrouwbaarder — dan er één te dwingen. */""}
+              <canvas class="mesh3d" data-mesh="${esc(p.id)}"${p.viewMode === "lagen" ? " hidden" : ""}></canvas>
+              <canvas class="mesh2d" data-lagen="${esc(p.id)}"${p.viewMode === "lagen" ? "" : " hidden"}></canvas>
               <span class="viewer-tag">${p.viewMode === "lagen"
                 ? `LAGEN &middot; ${partSlice(p)?.layers || 0}`
                 : `3D &middot; ${esc(fil?.name || "")}`}</span>
@@ -4348,8 +4973,17 @@ function partCard(p){
                   ${ic("scissors")} Splits in ${p.splittable.length} onderdelen
                 </button>
               </div>` : ``}
+            ${p.omgezet ? `
+              <div class="notice" style="margin-top:10px;">
+                <p class="notice-title">${ic("file-arrow-down")} Omgezet naar STL</p>
+                <p class="muted" style="font-size:12px;line-height:1.6;margin:0;">
+                  Het 3mf-bestand liet zich niet lezen, maar ${esc(p.omgezet)}. We printen de
+                  vorm zoals hij is; kleuren of losse objecten uit het 3mf zijn niet meegekomen,
+                  dus kies de kleur hier zelf.
+                </p>
+              </div>` : ``}
             ${p.matchedFrom ? `
-              <p class="muted" style="font-size:11px;margin:8px 0 0;">
+              <p class="muted" style="font-size:11px;line-height:1.6;margin:8px 0 0;">
                 Kleur uit het bestand (${esc(p.matchedFrom)}) gekoppeld aan het dichtstbijzijnde filament.
               </p>` : ``}
           </div>
@@ -4490,11 +5124,13 @@ function projectSummary(t, canAssemble){
 /* Hangt de 3D-weergaven aan hun canvas en maakt ze draaibaar met de muis of
    een vinger. De hoek wordt per onderdeel onthouden. */
 function attachMeshViewers(){
-  document.querySelectorAll('.mesh3d').forEach(cv=>{
+  document.querySelectorAll('.mesh3d[data-mesh]').forEach(cv=>{
     const part = (state.parts || []).find(p => p.id === cv.dataset.mesh);
     if (!part || !part.geo) return;
     const fil = partFilament(part);
     if (!part.view) part.view = { yaw: 0.7, pitch: 0.45 };
+    // het tweede doek, dat de lagen tekent
+    const lagenDoek = cv.parentElement?.querySelector(`.mesh2d[data-lagen="${CSS.escape(part.id)}"]`);
 
     const paint = (ruw) => {
       const opts = {
@@ -4503,8 +5139,8 @@ function attachMeshViewers(){
       };
       const sl = part.viewMode === "lagen" ? partSlice(part) : null;
       // de lagen zijn al op ware grootte gesneden, het model nog niet
-      if (sl) drawSlices(cv, part.geo, sl, { ...opts, scale: partFactor(part) });
-      else drawMesh(cv, part.geo, opts);
+      if (sl && lagenDoek) drawSlices(lagenDoek, part.geo, sl, { ...opts, scale: partFactor(part) });
+      else if (!sl) drawMesh(cv, part.geo, opts);
     };
     // Eerst de lichte versie: die staat er meteen. Het volledige model — dat
     // kunnen honderdduizenden driehoeken zijn — tekenen we een tel later, als
@@ -4513,20 +5149,24 @@ function attachMeshViewers(){
     const straks = window.requestIdleCallback || ((fn) => setTimeout(fn, 60));
     straks(() => { if (document.body.contains(cv)) paint(false); });
 
+    // draaien moet op allebei de doeken werken
     let dragging = false, lx = 0, ly = 0, netjes = null;
-    cv.onpointerdown = (e) => { dragging = true; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); };
-    cv.onpointermove = (e) => {
-      if (!dragging) return;
-      part.view.yaw += (e.clientX - lx) * 0.011;
-      part.view.pitch = Math.max(-1.3, Math.min(1.4, part.view.pitch + (e.clientY - ly) * 0.009));
-      lx = e.clientX; ly = e.clientY;
-      paint(true);                    // tijdens het slepen de lichte versie
-    };
-    cv.onpointerup = cv.onpointercancel = () => {
-      dragging = false;
-      clearTimeout(netjes);
-      netjes = setTimeout(() => paint(false), 60);   // en daarna weer het echte model
-    };
+    for (const doek of [cv, lagenDoek]){
+      if (!doek) continue;
+      doek.onpointerdown = (e) => { dragging = true; lx = e.clientX; ly = e.clientY; doek.setPointerCapture(e.pointerId); };
+      doek.onpointermove = (e) => {
+        if (!dragging) return;
+        part.view.yaw += (e.clientX - lx) * 0.011;
+        part.view.pitch = Math.max(-1.3, Math.min(1.4, part.view.pitch + (e.clientY - ly) * 0.009));
+        lx = e.clientX; ly = e.clientY;
+        paint(true);                    // tijdens het slepen de lichte versie
+      };
+      doek.onpointerup = doek.onpointercancel = () => {
+        dragging = false;
+        clearTimeout(netjes);
+        netjes = setTimeout(() => paint(false), 60);   // en daarna weer het echte model
+      };
+    }
   });
 }
 
@@ -4566,6 +5206,19 @@ async function analyseerWachtende(){
       const geos = await analyzeFile(part.file, part.id);
       part.geo = geos[0];
       applyGeoColor(part, geos[0]);
+      // Het 3mf wilde niet, maar de vorm hebben we langs een omweg toch. Dan
+      // zetten we het onderdeel om naar een echte STL: die kan de printer aan
+      // en die kun je later gewoon downloaden.
+      if (geos[0].__alsStl){
+        const om = deelAlsBestand(geos[0], part.name.replace(/\.3mf$/i, ""));
+        part.file = om.file;
+        part.fileName = om.file.name;
+        part.fileSize = om.file.size;
+        part.vereenvoudigd = om.vereenvoudigd;
+        part.omgezet = geos[0].__alsStl;
+        bewaarBestand(part.id, om.file);
+        notify(`Dit 3mf-bestand kon niet gelezen worden, maar ${geos[0].__alsStl} — omgezet naar STL, je kunt gewoon verder`);
+      }
       // een 3mf met meerdere objecten of platen valt meteen uiteen; elk object
       // krijgt zijn eigen bestand zodat je het later los kunt downloaden
       if (geos.length > 1){
@@ -4932,34 +5585,61 @@ function wagenSpecs(it){
   return uit.join("");
 }
 
+/* De regel die dicht al zichtbaar is: de kleuren als bolletjes, met er kort
+   bij wat het is. Genoeg om je winkelwagen te overzien zonder alles open te
+   klappen — en de kleuren staan groot, want daar gaat het om. */
+function wagenKort(it){
+  const vakken = Array.isArray(it.colorChoices) ? it.colorChoices : [];
+  const kleuren = vakken.length ? vakken : (it.filament ? [it.filament] : []);
+  const bollen = kleuren.slice(0, 6).map(f =>
+    `<span class="fil-chip ${finishClass(f.finish)}" style="background-color:${esc(f.hex || "#888")};"
+           title="${esc([f.slot, f.type, f.name].filter(Boolean).join(" · "))}"></span>`).join("");
+  const woorden = vakken.length
+    ? `${vakken.length} kleuren`
+    : it.filament ? esc([it.filament.type, it.filament.name].filter(Boolean).join(" · "))
+    : (Array.isArray(it.jobParts) && it.jobParts.length) ? `${it.jobParts.length} onderdelen` : "";
+  return `${bollen}${woorden ? `<span>${woorden}</span>` : ``}`;
+}
+
 /* De vorm van het bijbehorende product, zodat het kleurvoorbeeld in de
    winkelwagen hetzelfde object toont als op de productpagina. */
 function viewCart(){
   if (state.cart.length===0){
     return `<div style="padding:32px 0;"><button class="back" onclick="go('shop')"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Verder winkelen</button><h1 class="font-display" style="font-size:22px;">Winkelwagen</h1><p class="muted">Je winkelwagen is leeg.</p></div>`;
   }
-  const items = state.cart.map(it=>`
-    <div class="cart-item" style="margin-bottom:10px;">
-      <div class="wagen-kop">
-        <div class="admin-thumb">${
-          it.kind==='custom'
-            ? `<i class="fa-solid fa-file-lines" aria-hidden="true"></i>`
-            : productThumb(state.products.find(x=>x.id===(it.productId||it.id)) || {}, 18)
-        }</div>
-        <div class="wagen-tekst">
-          <div class="wagen-naam">${esc(it.name)}</div>
+  const items = state.cart.map(it=>{
+    const sleutel = it.id + "|" + it.kind;
+    // Standaard open: je moet in één oogopslag zien welke kleur waar komt.
+    // Wie het te lang vindt worden, klikt het dicht — dat onthouden we.
+    const open = !(state.__dichtWagen || {})[sleutel];
+    return `
+    <div class="cart-item wagen-kaart">
+      <details class="wagenvak"${open ? " open" : ""}>
+        <summary class="wagenvak-kop" data-wagen="${esc(sleutel)}">
+          <span class="admin-thumb">${
+            it.kind==='custom'
+              ? `<i class="fa-solid fa-file-lines" aria-hidden="true"></i>`
+              : productThumb(state.products.find(x=>x.id===(it.productId||it.id)) || {}, 18)
+          }</span>
+          <span class="wagenvak-tekst">
+            <span class="wagenvak-naam">${it.qty > 1 ? it.qty + "× " : ""}${esc(it.name)}</span>
+            <span class="wagenvak-kort">${wagenKort(it)}</span>
+          </span>
+          <span class="wagenvak-prijs">${it.needsQuote ? "—" : fmtEUR(it.price * it.qty)}</span>
+          <span class="wagenvak-meer">Details <span class="bestelvak-pijl" aria-hidden="true">⌄</span></span>
+        </summary>
+        <div class="wagenvak-body">
           <div class="wagen-specs">${wagenSpecs(it)}</div>
         </div>
-      </div>
+      </details>
       <div class="wagen-voet">
         <div class="wagen-prijs">
           ${it.needsQuote
             ? `<span class="muted">prijs op aanvraag</span>`
-            : `<span class="totaal">${fmtEUR(it.price * it.qty)}</span>
-               <span class="muted"> &middot; ${it.discountPct
+            : `<span class="muted">${it.discountPct
                  ? `<span class="was">${fmtEUR(it.listPrice)}</span>${fmtEUR(it.price)}`
                  : fmtEUR(it.price)} per stuk</span>
-               ${it.discountPct ? `<span class="sale-flag" style="margin-left:6px;">&minus;${it.discountPct}%</span>` : ``}`}
+               ${it.discountPct ? `<span class="sale-flag" style="margin-left:7px;">&minus;${it.discountPct}%</span>` : ``}`}
         </div>
         <div class="row" style="gap:8px;">
           <div class="stepper">
@@ -4970,11 +5650,14 @@ function viewCart(){
           <button class="btn btn-ghost btn-sm" onclick="window.__removeFromCart('${it.id}','${it.kind}')" title="Uit de winkelwagen" aria-label="Uit de winkelwagen"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
         </div>
       </div>
-    </div>`).join("");
+    </div>`; }).join("");
   return `
     <div style="padding:32px 0;max-width:480px;">
       <button class="back" onclick="go('shop')"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Verder winkelen</button>
-      <h1 class="font-display" style="font-size:22px;margin-bottom:16px;">Winkelwagen</h1>
+      <h1 class="font-display" style="font-size:22px;margin:0 0 6px;">Winkelwagen</h1>
+      <p class="muted" style="font-size:13px;line-height:1.6;margin:0 0 16px;">
+        Klik op een product om te zien welke kleur waar komt.
+      </p>
       ${items}
       ${(() => {
         // Hier beslist iemand of hij er nog iets bij doet, dus hier hoort het
@@ -5080,11 +5763,13 @@ function afhaalBlok(){
 
 function viewCheckout(){
   // wat er getypt is overleeft een hertekening; anders ben je het kwijt zodra
-  // de adrescontrole iets te melden heeft
-  const addr = state.__ckVeld || state.profile?.address || {};
+  // de adrescontrole iets te melden heeft. Staat er nog niets, dan vullen we
+  // het adres in dat we van je vorige bestelling onthouden hebben.
+  const addr = state.__ckVeld || bekendAdres();
   const kanAfhalen = afhalen().enabled;
   const ophalen = kanAfhalen && state.__leverwijze === "afhaal";
-  const land = state.__ckLand || SHIPPING_RATES[0].country;
+  const land = state.__ckLand || bekendLand() || SHIPPING_RATES[0].country;
+  const onthouden = !state.__ckVeld && !!addr.street;
   const kort = state.__korting;
   const teBetalen = Math.max(0, cartTotal() - (kort?.bedrag || 0));
   const verzend = verzendKosten(land, teBetalen, ophalen);
@@ -5104,6 +5789,11 @@ function viewCheckout(){
         </div>` : ``}
 
       <div${ophalen ? ' hidden' : ''}>
+        ${onthouden ? `
+          <p class="muted" style="font-size:12.5px;line-height:1.5;margin:0 0 10px;">
+            ${ic("location-dot")} We hebben je adres van de vorige keer al ingevuld. Klopt het niet meer? Typ het gewoon over.
+          </p>` : ``}
+        <label class="field-label" style="margin-top:0;">Bezorgadres</label>
         <input id="ckStreet" placeholder="Straat + nr" autocomplete="street-address" name="street-address" value="${esc(addr.street||'')}" />
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <input id="ckZip" placeholder="Postcode" autocomplete="postal-code" name="postal-code" inputmode="numeric" value="${esc(addr.zip||'')}" />
@@ -5240,7 +5930,9 @@ function attachCheckoutHandlers(){
   }
 
   const doorGaan = (extra) => {
-    state.__checkout = { country: sel?.value || "België", address: state.__ckVeld, ...extra };
+    // lees() als achtervang: heb je niets getypt omdat het adres al ingevuld
+    // stond, dan is __ckVeld nog leeg en zou de bestelling zonder adres vertrekken
+    state.__checkout = { country: sel?.value || "België", address: state.__ckVeld || lees(), ...extra };
     state.__adresCheck = null;
     go("payment");
   };
@@ -5766,15 +6458,22 @@ function viewAdmin(){
   const tab = state.__adminTab || "products";
   const ed = state.__editing ? state.products.find(p => p.id === state.__editing) : null;
   const productRows = state.products.map(p=>`
-    <div class="admin-row between" style="margin-bottom:8px;${p.id===state.__editing?'border-color:var(--accent);':''}">
+    <div class="admin-row between${verborgen(p) ? " rij-verborgen" : ""}" style="margin-bottom:8px;${p.id===state.__editing?'border-color:var(--accent);':''}">
       <div class="row" style="flex:1;min-width:0;">
         <div class="admin-thumb">${productThumb(p, 18)}</div>
         <div style="min-width:0;">
-          <div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.name)}</div>
-          <div class="muted font-mono" style="font-size:11px;">${fmtEUR(p.price)} · voorraad ${esc(p.stock ?? 0)}${p.category ? " · " + esc(p.category) : ""}</div>
+          <div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${esc(p.name)}${verborgen(p) ? ` <span class="sale-flag">VERBORGEN</span>` : ``}
+          </div>
+          <div class="muted font-mono" style="font-size:11px;">${fmtEUR(p.price)}${p.category ? " · " + esc(p.category) : ""}</div>
         </div>
       </div>
       <div class="row" style="flex-shrink:0;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="window.__toonProduct('${p.id}')"
+                title="${verborgen(p) ? "Weer in de collectie zetten" : "Uit de collectie halen zonder iets te wissen"}"
+                aria-label="${verborgen(p) ? "Weer tonen" : "Verbergen"}">
+          <i class="fa-solid fa-${verborgen(p) ? "eye" : "eye-slash"}" aria-hidden="true"></i>
+        </button>
         <button class="btn btn-ghost btn-sm" onclick="window.__editProduct('${p.id}')" title="Bewerken"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
         <button class="btn btn-ghost btn-sm" onclick="window.__deleteProduct('${p.id}')" title="Verwijderen"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
       </div>
@@ -5953,15 +6652,21 @@ function viewAdmin(){
             <label class="field-label">Naam</label>
             <input id="pName" placeholder="Bijv. Plantenvaas — Spiraal" value="${esc(ed?.name || '')}" />
 
-            <div class="form-grid">
-              <div>
-                <label class="field-label">Prijs (€)</label>
-                <input id="pPrice" type="number" step="0.01" min="0" placeholder="18.00" value="${ed?.price ?? ''}" />
-              </div>
-              <div>
-                <label class="field-label">Voorraad</label>
-                <input id="pStock" type="number" min="0" placeholder="10" value="${ed?.stock ?? 10}" />
-              </div>
+            <label class="field-label">Prijs (€)</label>
+            <input id="pPrice" type="number" step="0.01" min="0" placeholder="18.00" value="${ed?.price ?? ''}" />
+
+            <div class="cart-item" style="padding:12px 13px;margin:2px 0 12px;">
+              <label class="row" style="gap:10px;cursor:pointer;align-items:flex-start;">
+                <input type="checkbox" id="pHidden" ${ed?.hidden ? "checked" : ""}
+                       style="width:18px;height:18px;margin:2px 0 0;flex-shrink:0;" />
+                <span style="min-width:0;">
+                  <span style="font-size:13.5px;font-weight:600;display:block;line-height:1.5;">Verbergen in de collectie</span>
+                  <span class="muted" style="font-size:12px;line-height:1.6;display:block;">
+                    Het product blijft volledig bestaan — foto's, kleuren, 3D-model, alles — maar
+                    klanten zien het niet. Handig om iets even uit de winkel te halen zonder het te wissen.
+                  </span>
+                </span>
+              </label>
             </div>
 
             <label class="field-label">Beschrijving</label>
@@ -6118,7 +6823,16 @@ function viewAdmin(){
           </div>
           <div>
             <h2 class="font-display" style="font-size:17px;margin:0 0 2px;">In de collectie</h2>
-            <p class="muted" style="font-size:12px;margin:0 0 12px;">${state.products.length} product${state.products.length === 1 ? "" : "en"}</p>
+            <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 6px;">
+              ${state.products.length} product${state.products.length === 1 ? "" : "en"}${
+                state.products.filter(verborgen).length
+                  ? ` — waarvan ${state.products.filter(verborgen).length} verborgen` : ``}
+            </p>
+            <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 12px;">
+              ${ic("eye-slash")} Met het oogje haal je een product uit de collectie zonder het te verwijderen:
+              foto's, kleuren en het 3D-model blijven staan, klanten zien het alleen niet meer.
+              Eén klik en het staat er weer.
+            </p>
             ${productRows || `<p class="muted" style="font-size:13px;">Nog geen producten.</p>`}
           </div>
         </div>
@@ -6129,7 +6843,7 @@ function viewAdmin(){
           <p>Wat nog werk vraagt staat bovenaan. Zet de status door zodra je verder bent —
              de klant krijgt er vanzelf bericht van.</p>
         </div>
-        <div class="row" style="gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <div class="row beheer-zoek" style="gap:9px;margin-bottom:14px;flex-wrap:wrap;">
           <input id="ordZoek" placeholder="Zoek op naam, nummer of product…"
                  value="${esc(state.__ordZoek || "")}" style="margin:0;flex:1;min-width:190px;" />
           <select class="field" id="ordStatus" style="margin:0;width:auto;">
@@ -6366,8 +7080,7 @@ function viewBeheerOverzicht(openstaand){
   const teHalen = state.orders.filter(o => o.pickupAt && o.status !== "Geleverd").length;
   const maand = Date.now() - 30 * 864e5;
   const omzet = state.orders.filter(o => o.createdAt > maand).reduce((s, o) => s + (o.total || 0), 0);
-  const opRaken = (state.products || []).filter(p => !sizingOf(p) && (p.stock ?? 0) > 0 && (p.stock ?? 0) <= 3);
-  const uitverkocht = (state.products || []).filter(p => !sizingOf(p) && (p.stock ?? 0) <= 0);
+  const verstopt = (state.products || []).filter(verborgen);
   const kaart = (cijfer, naam, let_) => `
     <div class="kpi${let_ ? " let" : ""}"><div class="cijfer">${cijfer}</div><div class="naam">${esc(naam)}</div></div>`;
   return `
@@ -6395,14 +7108,15 @@ function viewBeheerOverzicht(openstaand){
         <p style="font-size:13px;margin:0;">${ic("circle-check")} Niets dat op je wacht.</p>
       </div>`}
 
-    ${(opRaken.length || uitverkocht.length) ? `
+    ${verstopt.length ? `
       <div class="cart-item" style="margin-bottom:12px;">
-        <p style="font-size:13px;font-weight:600;margin:0 0 6px;">${ic("boxes-stacked")} Voorraad</p>
-        ${uitverkocht.map(p => `<p style="font-size:13px;margin:0 0 3px;">
-          <span class="stock-dot" style="background:var(--muted);"></span>${esc(p.name)} — uitverkocht</p>`).join("")}
-        ${opRaken.map(p => `<p style="font-size:13px;margin:0 0 3px;">
-          <span class="stock-dot" style="background:var(--accent);"></span>${esc(p.name)} — nog ${p.stock}</p>`).join("")}
-        <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="window.__setAdminTab('products')">Voorraad bijwerken</button>
+        <p style="font-size:13px;font-weight:600;margin:0 0 4px;">${ic("eye-slash")} Niet in de collectie</p>
+        <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 8px;">
+          Deze staan op verborgen. Ze bestaan nog volledig — klanten zien ze alleen niet.
+        </p>
+        ${verstopt.map(p => `<p style="font-size:13px;line-height:1.6;margin:0 0 3px;">
+          <span class="stock-dot" style="background:var(--muted);"></span>${esc(p.name)}</p>`).join("")}
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="window.__setAdminTab('products')">Naar de producten</button>
       </div>` : ``}
 
     <div class="cart-item">
@@ -7102,7 +7816,7 @@ function sizingFromForm(){
 
 /* Het productformulier wordt opnieuw getekend zodra je een kleurvak toevoegt
    of een model kiest. Zonder dit was je dan kwijt wat je al ingetypt had. */
-const PRODUCT_VELDEN = ['pName','pPrice','pStock','pDesc','pCategory','pColor','pMaterial',
+const PRODUCT_VELDEN = ['pName','pPrice','pDesc','pCategory','pColor','pMaterial',
   'pInfill','pLayer','pDim','pTime','pWeight','pDiscount','pDiscountUntil',
   'pSolidity','pSizeInfill','pSizeLayer'];
 function herstelProductFormulier(){
@@ -7237,9 +7951,12 @@ function attachAdminHandlers(){
     const stand = document.getElementById('modelStand');
     if (stand) stand.textContent = "inlezen…";
     try{
-      state.__draftModel = voorbeeldUitDelen(await analyzeFile(f));
+      const delen = await analyzeFile(f);
+      state.__draftModel = voorbeeldUitDelen(delen);
       render();
-      notify(`Model ingelezen — ${state.__draftModel.parts.length} ${state.__draftModel.parts.length > 1 ? "onderdelen" : "onderdeel"}`);
+      notify(delen[0]?.__alsStl
+        ? `Het 3mf wilde niet, maar ${delen[0].__alsStl} — als STL ingelezen`
+        : `Model ingelezen — ${state.__draftModel.parts.length} ${state.__draftModel.parts.length > 1 ? "onderdelen" : "onderdeel"}`);
     }catch(err){
       state.__draftModel = undefined;
       render();
@@ -7273,7 +7990,7 @@ function attachAdminHandlers(){
     const data = {
       name, price,
       description: val('pDesc'),
-      stock: parseInt(val('pStock'),10) || 0,
+      hidden: !!document.getElementById('pHidden')?.checked,
       discountPct: Math.min(90, Math.max(0, parseInt(val('pDiscount'),10) || 0)),
       discountUntil: val('pDiscountUntil') ? new Date(val('pDiscountUntil') + "T23:59:59").getTime() : null,
       colorSlots: (state.__draftSlots || [])
