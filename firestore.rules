@@ -35,6 +35,14 @@ service cloud.firestore {
     match /products/{id} {
       allow read: if true;
       allow write: if beheerder();
+
+      // Het printbestand dat jij bij een product zet: de echte STL of 3mf,
+      // klaar om te printen als er een bestelling binnenkomt. Dit is wat je
+      // verkoopt, dus alleen jij mag het lezen — een klant koopt het geprinte
+      // voorwerp, niet het bestand.
+      match /files/{stuk} {
+        allow read, write: if beheerder();
+      }
     }
 
     // --- 3D-voorbeelden bij een product ----------------------------

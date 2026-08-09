@@ -838,7 +838,9 @@ async function fileHash(bytes){
 
 /* Schrijft één bestand als een reeks documenten onder de opdracht.
    Bewust ongewijzigd: de bytes gaan er precies zo in als ze binnenkwamen. */
-async function storeFileInFirestore(jobId, index, file, onProgress){
+/* `hok` is de collectie waar het bij hoort: "uploads" voor het model van een
+   klant, "products" voor het printbestand dat jij zelf bij een product zet. */
+async function storeFileInFirestore(jobId, index, file, onProgress, hok = "uploads"){
   const raw = new Uint8Array(await file.arrayBuffer());
   if (raw.length > MAX_FIRESTORE_BYTES){
     throw new Error(`"${file.name}" is ${(raw.length/1024/1024).toFixed(1)}MB — dat is te groot om zonder aparte opslag te bewaren (max ${MAX_FIRESTORE_BYTES/1024/1024}MB)`);
@@ -847,17 +849,17 @@ async function storeFileInFirestore(jobId, index, file, onProgress){
   const chunks = Math.ceil(raw.length / CHUNK_BYTES);
   for (let c = 0; c < chunks; c++){
     const slice = raw.subarray(c * CHUNK_BYTES, (c + 1) * CHUNK_BYTES);
-    await setDoc(doc(db, "uploads", jobId, "files", `${index}_${c}`), { b: Bytes.fromUint8Array(slice) });
+    await setDoc(doc(db, hok, jobId, "files", `${index}_${c}`), { b: Bytes.fromUint8Array(slice) });
     if (onProgress) onProgress(Math.min(file.size, (c + 1) / chunks * file.size));
   }
   return { kind: "firestore", chunks, bytes: raw.length, sha };
 }
 
 /* Haalt zo'n bestand weer op, controleert het en biedt het aan als download. */
-async function downloadStoredFile(jobId, index, desc, fileName){
+async function downloadStoredFile(jobId, index, desc, fileName, hok = "uploads"){
   const parts = [];
   for (let c = 0; c < desc.chunks; c++){
-    const snap = await getDoc(doc(db, "uploads", jobId, "files", `${index}_${c}`));
+    const snap = await getDoc(doc(db, hok, jobId, "files", `${index}_${c}`));
     if (!snap.exists()) throw new Error("een stuk van het bestand ontbreekt");
     parts.push(snap.data().b.toUint8Array());
   }
@@ -3691,10 +3693,52 @@ async function deleteProduct(id){
     + "Alles gaat weg: foto's, kleuren, het 3D-model en de instellingen.\n\n"
     + "Wil je het alleen even niet verkopen, klik dan op annuleren en gebruik "
     + "het oogje ernaast — dan verdwijnt het uit de collectie maar blijft alles bewaard.")) return;
+  await wisPrintBestanden(id, printBestanden(p));   // eerst de stukken eronder
   await deleteDoc(doc(db,"products",id));
   await wisVoorbeeld(id);            // het 3D-voorbeeld hoort er niet los te blijven
   voorbeeldCache.delete(id);
   notify("Product verwijderd");
+}
+
+/* =====================================================================
+   Het printbestand bij een product
+   Het 3D-voorbeeld op de productpagina is uitgedund: mooi om naar te kijken,
+   niet om te printen. Hier zet je het échte bestand bij — de STL of de 3mf
+   zoals hij uit je ontwerpprogramma komt. Komt er een bestelling binnen, dan
+   staat hij bij die bestelling klaar om te downloaden en gaat hij zo je slicer
+   in.
+
+   Het staat in stukken onder het product zelf (products/{id}/files/…), net als
+   het model van een klant onder zijn opdracht. Alleen jij kunt erbij: dit is
+   wat je verkoopt, dus het mag niet zomaar te downloaden zijn.
+   ===================================================================== */
+const MAX_PRINTBESTANDEN = 6;
+
+function printBestanden(p){
+  return Array.isArray(p?.printFiles) ? p.printFiles : [];
+}
+
+/* Schrijft de gekozen bestanden weg en geeft terug wat er bij het product moet
+   komen te staan. Meldt onderweg hoe ver het staat. */
+async function bewaarPrintBestanden(productId, files, melden){
+  const uit = [];
+  for (let i = 0; i < files.length; i++){
+    const f = files[i];
+    if (melden) melden(`${ic("spinner")} Bestand ${i + 1} van ${files.length}…`);
+    const desc = await storeFileInFirestore(productId, i, f, null, "products");
+    uit.push({ name: f.name, size: f.size, ...desc });
+  }
+  return uit;
+}
+
+/* Alle stukken van de vorige bestanden weghalen. Blijven er brokstukken staan,
+   dan zou een later, korter bestand de staart van het oude erachter krijgen. */
+async function wisPrintBestanden(productId, oude){
+  for (let i = 0; i < oude.length; i++){
+    for (let c = 0; c < (oude[i].chunks || 0); c++){
+      try{ await deleteDoc(doc(db, "products", productId, "files", `${i}_${c}`)); }catch(e){}
+    }
+  }
 }
 
 /* Verbergen: het product blijft volledig bestaan, maar staat niet meer in de
@@ -6280,6 +6324,58 @@ function viewAccount(){
     </div>`;
 }
 
+/* Het printbestand bij een product instellen. undefined = laten staan wat er
+   staat, een lijst = vervangen, null = weghalen bij het opslaan. */
+function printAdminBlock(ed){
+  const bestaand = printBestanden(ed);
+  const nieuw = state.__draftPrint;                  // undefined | File[] | null
+  const toont = nieuw === undefined ? bestaand
+    : nieuw === null ? []
+    : nieuw.map(f => ({ name: f.name, size: f.size }));
+  const weg = nieuw === null && bestaand.length;
+  return `
+    <details class="vak"${toont.length || weg ? " open" : ""}>
+      <summary>
+        ${ic("file-arrow-down")} Printbestand${toont.length ? ` <span class="badge">${toont.length}</span>` : ""}
+      </summary>
+      <div class="vak-body">
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
+          Het échte bestand om te printen — de STL of de 3mf zoals hij uit je ontwerpprogramma
+          komt. Komt er een bestelling binnen, dan staat hij daar klaar om te downloaden.
+          Alleen jij kunt erbij; klanten kunnen hem niet ophalen.
+        </p>
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
+          Dit staat los van het 3D-voorbeeld hierboven: dat is uitgedund om snel te tonen,
+          dit is het bestand op ware grootte. Meerdere mag — bijvoorbeeld een stuk per kleur.
+          Maximaal ${MAX_PRINTBESTANDEN} bestanden van ${MAX_FIRESTORE_BYTES/1024/1024}MB.
+        </p>
+        <input type="file" id="pPrintFiles" accept=".stl,.3mf,.obj,.gcode,.zip" multiple style="display:none;" />
+        ${toont.length ? `
+          <div style="margin-bottom:10px;">
+            ${toont.map((f, i) => `
+              <div class="between" style="gap:10px;padding:8px 0;border-top:${i ? "1px solid var(--line)" : "none"};">
+                <span style="min-width:0;font-size:13px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                  ${ic("file")} ${esc(f.name)}
+                </span>
+                <span class="muted font-mono" style="font-size:11px;flex-shrink:0;">${fmtBytes(f.bytes || f.size)}</span>
+              </div>`).join("")}
+          </div>` : ``}
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" id="pickPrintBtn">${ic("arrow-up-from-bracket")} Bestand kiezen</button>
+          <span class="muted font-mono" style="font-size:11px;" id="printStand">${
+            nieuw !== undefined && nieuw !== null ? "klaar om te bewaren"
+            : weg ? "wordt verwijderd bij opslaan"
+            : bestaand.length ? "staat er al"
+            : "nog geen bestand"
+          }</span>
+          ${(toont.length || weg) ? `` : ``}
+          ${(nieuw !== null && (bestaand.length || (nieuw && nieuw.length))) ? `
+            <button class="btn btn-ghost btn-sm" id="wisPrintBtn" style="margin-left:auto;">${ic("trash")}</button>` : ``}
+        </div>
+      </div>
+    </details>`;
+}
+
 /* Kleurvakken instellen: benoemde stukken die de klant apart kan kleuren.
    Wat je hier invult, ziet de klant terug als een eigen keuzemenu. */
 function slotAdminBlock(ed){
@@ -6465,7 +6561,12 @@ function viewAdmin(){
           <div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
             ${esc(p.name)}${verborgen(p) ? ` <span class="sale-flag">VERBORGEN</span>` : ``}
           </div>
-          <div class="muted font-mono" style="font-size:11px;">${fmtEUR(p.price)}${p.category ? " · " + esc(p.category) : ""}</div>
+          <div class="muted font-mono" style="font-size:11px;">
+            ${fmtEUR(p.price)}${p.category ? " · " + esc(p.category) : ""}
+            ${printBestanden(p).length
+              ? ` · <span title="Er hangt een printbestand aan dit product">${ic("file-arrow-down")} ${printBestanden(p).length}</span>`
+              : ``}
+          </div>
         </div>
       </div>
       <div class="row" style="flex-shrink:0;gap:6px;">
@@ -6707,6 +6808,8 @@ function viewAdmin(){
 
               </div>
             </details>
+
+            ${printAdminBlock(ed)}
 
             <details class="vak"${(state.__draftSlots || []).length ? " open" : ""}>
               <summary>${ic("palette")} Kleuren per onderdeel${(state.__draftSlots || []).length ? ` <span class="badge">${(state.__draftSlots || []).length}</span>` : ""}</summary>
@@ -7001,6 +7104,49 @@ function kleurRegel(f, kop){
       </span>
     </div>`;
 }
+/* "0.0 MB" bij een bestand van een halve megabyte leest als leeg. */
+function fmtBytes(n){
+  const b = Number(n) || 0;
+  return b >= 1048576 ? (b / 1048576).toFixed(1) + " MB"
+    : b >= 1024 ? Math.round(b / 1024) + " KB"
+    : b + " B";
+}
+
+/* Het printbestand dat bij dit besteld ding hoort, klaar om te downloaden.
+   Dat is het bestand van het product zelf — bij een eigen opdracht van een
+   klant staan de bestanden al bij "Onderdelen" hieronder. */
+function printRegel(i){
+  if (i.kind === "custom") return ``;
+  const p = state.products.find(x => x.id === (i.productId || i.id));
+  if (!p){
+    return `<div class="detail-regel"><span class="sleutel">Bestand</span>
+      <span class="waarde muted">Dit product staat niet meer in de collectie</span></div>`;
+  }
+  const files = printBestanden(p);
+  if (!files.length){
+    return `<div class="detail-regel"><span class="sleutel">Bestand</span>
+      <span class="waarde muted" style="flex-direction:column;align-items:flex-start;gap:4px;">
+        <span>Er hangt nog geen printbestand aan dit product.</span>
+        <button class="detail-toggle" onclick="window.__editProduct('${esc(p.id)}')">Zet er een bij</button>
+      </span></div>`;
+  }
+  return `
+    <div class="detail-regel" style="align-items:flex-start;">
+      <span class="sleutel">Bestand</span>
+      <span class="waarde" style="flex-direction:column;align-items:stretch;gap:6px;">
+        ${files.map((f, n) => `
+          <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;"
+                  data-file="${esc(p.id)}" data-hok="products" data-index="${n}"
+                  data-chunks="${f.chunks}" data-gz="0" data-bytes="${f.bytes || 0}"
+                  data-sha="${esc(f.sha || '')}" data-name="${esc(f.name || 'model.stl')}"
+                  title="${esc(f.name || '')}${f.sha ? ' · SHA-256 ' + f.sha.slice(0,12) : ''}">
+            ${ic("download")} ${esc(f.name)}
+            <span class="muted font-mono" style="font-size:10px;margin-left:auto;">${fmtBytes(f.bytes || f.size)}</span>
+          </button>`).join("")}
+      </span>
+    </div>`;
+}
+
 function bestelRegel(o, i, idx){
   const sleutel = o.id + "|" + idx;
   const open = state.__openRegel === sleutel;
@@ -7034,6 +7180,7 @@ function bestelRegel(o, i, idx){
           ${i.discountPct ? `<div class="detail-regel"><span class="sleutel">Korting</span><span class="waarde">${i.discountPct}% — was ${fmtEUR(i.listPrice ?? 0)}</span></div>` : ``}
           ${i.grams && toonTechniek() ? `
             <div class="detail-regel"><span class="sleutel">Verbruik</span><span class="waarde">≈ ${esc(i.grams)} g · ${esc(fmtDuration(i.printTime || 0))}</span></div>` : ``}
+          ${beheer ? printRegel(i) : ``}
           ${beheer ? `
             <button class="btn ${geprint ? "btn-ghost" : "btn-accent"} btn-sm" style="width:100%;justify-content:center;margin-top:10px;"
                     data-geprint="${esc(sleutel)}">
@@ -7299,7 +7446,7 @@ function attachFileHandlers(){
           gz: btn.dataset.gz === "1",
           bytes: +btn.dataset.bytes || 0,
           sha: btn.dataset.sha || null,
-        }, btn.dataset.name);
+        }, btn.dataset.name, btn.dataset.hok || "uploads");
       }catch(err){ notify("Ophalen mislukt: " + err.message); }
       finally{ btn.disabled = false; btn.innerHTML = was; }
     };
@@ -7773,6 +7920,7 @@ window.__editProduct = (id) => {
   state.__draftImages = productImages(p).slice();
   state.__draftSlots = colorSlots(p).map(sl => ({ ...sl }));
   state.__draftModel = undefined;          // wat er al staat, blijft staan
+  state.__draftPrint = undefined;
   state.__draftProduct = null;
   state.__adminTab = "products";
   render();
@@ -7780,7 +7928,7 @@ window.__editProduct = (id) => {
 };
 window.__cancelEdit = () => {
   state.__editing = null; state.__draftImages = []; state.__draftSlots = null;
-  state.__draftModel = undefined; state.__draftProduct = null;
+  state.__draftModel = undefined; state.__draftPrint = undefined; state.__draftProduct = null;
   render();
 };
 window.__removeDraftImage = (i) => { state.__draftImages.splice(i,1); renderImageTray(); };
@@ -7966,6 +8114,27 @@ function attachAdminHandlers(){
   const modelWis = document.getElementById('wisModelBtn');
   if (modelWis) modelWis.onclick = () => { state.__draftModel = null; render(); };
 
+  // Printbestand: hier alleen onthouden welk bestand je koos. Wegschrijven
+  // gebeurt bij het opslaan, want pas dan bestaat het product zeker.
+  const printKies = document.getElementById('pickPrintBtn');
+  if (printKies) printKies.onclick = () => document.getElementById('pPrintFiles').click();
+  const printInput = document.getElementById('pPrintFiles');
+  if (printInput) printInput.onchange = (e) => {
+    const gekozen = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!gekozen.length) return;
+    const teGroot = gekozen.find(f => f.size > MAX_FIRESTORE_BYTES);
+    if (teGroot){
+      notify(`"${teGroot.name}" is ${(teGroot.size/1024/1024).toFixed(1)}MB — dat past niet (max ${MAX_FIRESTORE_BYTES/1024/1024}MB)`);
+      return;
+    }
+    state.__draftPrint = gekozen.slice(0, MAX_PRINTBESTANDEN);
+    if (gekozen.length > MAX_PRINTBESTANDEN) notify(`Maximaal ${MAX_PRINTBESTANDEN} bestanden — de rest is weggelaten`);
+    render();
+  };
+  const printWis = document.getElementById('wisPrintBtn');
+  if (printWis) printWis.onclick = () => { state.__draftPrint = null; render(); };
+
   const urlBtn = document.getElementById('addImgUrlBtn');
   if (urlBtn) urlBtn.onclick = () => {
     const input = document.getElementById('pImgUrl');
@@ -8042,13 +8211,39 @@ function attachAdminHandlers(){
           notify("Het product is bewaard, maar het 3D-model niet: " + firestoreHint(err));
           state.__draftImages = []; state.__draftSlots = null;
           state.__draftModel = undefined; state.__draftProduct = null;
+          state.__draftPrint = undefined;
           render();
           return;
         }
       }
+
+      // Het printbestand. Ook hier: undefined = laten staan, een lijst =
+      // vervangen, null = weghalen. De oude stukken gaan er eerst af, anders
+      // blijft de staart van een langer bestand achter.
+      const printNieuw = state.__draftPrint;
+      if (printNieuw !== undefined){
+        const oude = printBestanden(state.products.find(p => p.id === id));
+        try{
+          await wisPrintBestanden(id, oude);
+          const lijst = printNieuw ? await bewaarPrintBestanden(id, printNieuw, t => { btn.innerHTML = t; }) : [];
+          await updateProduct(id, { printFiles: lijst });
+        }catch(err){
+          // Het product staat er wel; alleen het bestand niet. Dat moet je
+          // weten, anders denk je dat je het kunt downloaden bij een bestelling.
+          await updateProduct(id, { printFiles: [] }).catch(()=>{});
+          notify("Het product is bewaard, maar het printbestand niet: " + firestoreHint(err));
+          state.__draftImages = []; state.__draftSlots = null;
+          state.__draftModel = undefined; state.__draftProduct = null;
+          state.__draftPrint = undefined;
+          render();
+          return;
+        }
+      }
+
       state.__draftImages = [];
       state.__draftSlots = null;
       state.__draftModel = undefined;
+      state.__draftPrint = undefined;
       state.__draftProduct = null;
       render();
       window.scrollTo(0,0);

@@ -54,7 +54,8 @@ Die datum is jouw vervaldatum. Dát is wat we vervangen.
 
 > **Doe dit ook opnieuw als de shop iets nieuws heeft gekregen.** De regels
 > noemen elke soort gegevens apart op. Komt er iets bij — 3D-voorbeelden bij
-> een product, kortingscodes — dan staat dat nog niet in jouw regels en weigert
+> een product, kortingscodes, printbestanden — dan staat dat nog niet in jouw
+> regels en weigert
 > Firestore het. Merk je dat aan een melding die begint met *"Firestore weigert
 > dit"*, plak de regels dan gewoon opnieuw. Het kan geen kwaad om dat te doen
 > als het niet nodig is.
@@ -87,6 +88,7 @@ Loop deze vier dingen af. Elk duurt een halve minuut.
 | Log in als `jelle@mattan.be` → Shopbeheer | Producten, bestellingen, prijzen: alles opent |
 | Verander iets kleins aan een product en sla op | "Product bijgewerkt" |
 | Zet bij een product een 3D-model en sla op | Op de productpagina kun je het draaien |
+| Zet bij een product een printbestand en sla op | Bij een bestelling van dat product kun je het downloaden |
 | Maak een kortingscode aan bij Prijzen → Kortingscodes | Hij verschijnt in de lijst |
 | Log in met een ander account en bestel iets | De bestelling komt aan en staat bij *Mijn bestellingen* |
 
