@@ -4785,7 +4785,18 @@ const MAAT_REFS = [
   { id: "blikje",   naam: "Blikje",    b: 66,    d: 66,    h: 115,   maak: blikjeDelen },
 ];
 
+/* De maat van dit product, met het 3D-model als beste bron.
+   Belangrijk dat iedereen hier langskomt: eerder haalde de weergave zijn maat
+   uit het geladen model en de knoppenrij eronder uit het productdocument. Stond
+   daar niets bruikbaar in — geen bewaarde modelmaat, en bij afmetingen iets wat
+   we niet kunnen uitlezen — dan zag je het model wél staan maar verdween de
+   keuze wat ernaast moest komen. */
+function voorbeeldVan(p){
+  return state.__voorbeeld?.id === p?.id ? state.__voorbeeld.data : null;
+}
 function productMaat(p){
+  const v = voorbeeldVan(p);
+  if (v && Array.isArray(v.size) && v.size.length === 3) return v.size.map(Number);
   if (Array.isArray(p?.modelSize) && p.modelSize.length === 3) return p.modelSize.map(Number);
   const s = sizingOf(p);
   if (s) return currentDims(p);
@@ -4857,6 +4868,7 @@ function maatScene(min, size, ref){
 function maatBlokVak(p){
   const maat = productMaat(p);
   if (!maat || !maat.every(v => isFinite(v) && v > 0)) return ``;
+  const echt = !!voorbeeldVan(p);
   return `
     <div class="cart-item maatvak">
       <p class="maatvak-kop">${ic("ruler-combined")} Hoe groot is het?</p>
@@ -4866,8 +4878,10 @@ function maatBlokVak(p){
       </div>
       ${maatKiezer(p, true)}
       <p class="muted" style="font-size:12px;line-height:1.65;margin:8px 0 0;">
-        Op ware grootte naast elkaar. Het blok heeft de afmetingen van dit product,
-        niet zijn vorm &mdash; ${p.has3d ? "het echte model laadt zo" : "er hoort nog geen 3D-model bij dit product"}.
+        ${echt
+          ? `Op ware grootte naast elkaar &mdash; dit is het echte model.`
+          : `Op ware grootte naast elkaar. Het blok heeft de afmetingen van dit product,
+             niet zijn vorm: er hoort nog geen 3D-model bij dit product.`}
       </p>
     </div>`;
 }
@@ -5064,11 +5078,16 @@ async function toon3dVoorbeeld(){
   if (!v || !cv) return;
 
   const meshes = v.__meshes || (v.__meshes = voorbeeldNaarMeshes(v));
+  tekenMaatScene(cv, v.min, v.size, meshes, productKleuren(p), huidigeReferentie(v.size, false));
+}
+
+/* Onderdeel 1 krijgt de kleur van vak 1, onderdeel 2 die van vak 2; bij een
+   model in één kleur krijgt alles dezelfde. */
+function productKleuren(p){
   const vakken = colorSlots(p);
-  const kleuren = vakken.length
+  return vakken.length
     ? vakken.map((_, i) => slotFilament(p, i) || currentFilament(p) || {})
     : [currentFilament(p) || { hex: "#B8BCC2", finish: "basic" }];
-  tekenMaatScene(cv, v.min, v.size, meshes, kleuren, huidigeReferentie(v.size, false));
 }
 
 /* Tekent het model met — als je dat wil — een bekend voorwerp ernaast, en
@@ -5109,6 +5128,13 @@ function tekenMaatBlok(){
   if (!cv || !p) return;
   const maat = productMaat(p);
   if (!maat) return;
+  const v = voorbeeldVan(p);
+  if (v){
+    // het echte model hebben we al ingeladen; dan is een blok onnodig
+    const meshes = v.__meshes || (v.__meshes = voorbeeldNaarMeshes(v));
+    tekenMaatScene(cv, v.min, v.size, meshes, productKleuren(p), huidigeReferentie(maat, true));
+    return;
+  }
   const [x, y, z] = maat;
   const f = currentFilament(p) || { hex: "#B8BCC2", finish: "basic" };
   tekenMaatScene(cv, [0, 0, 0], [x, y, z],
