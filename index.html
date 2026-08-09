@@ -506,6 +506,42 @@
     .detail-regel{flex-direction:column;align-items:flex-start;gap:1px;}
     .detail-regel .sleutel{flex:none;padding-top:0;}
   }
+  /* een bestelling als uitklapper, met vakken erin */
+  .bestelvak{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    margin-bottom:10px;overflow:hidden;
+    animation:opkomen .24s cubic-bezier(.22,.7,.3,1) both;
+  }
+  .bestelvak[open]{border-color:var(--line-strong);}
+  .bestelvak-kop{
+    display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer;list-style:none;min-height:56px;
+  }
+  .bestelvak-kop::-webkit-details-marker{display:none;}
+  .bestelvak-kop:hover{background:var(--surface2);}
+  .bestelvak-wie{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
+  .bestelvak-mail{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bestelvak-stand{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .bestelvak-pijl{color:var(--muted);font-size:15px;line-height:1;flex-shrink:0;transition:transform .2s;}
+  .bestelvak[open] > .bestelvak-kop .bestelvak-pijl,
+  .deelvak[open] > summary .bestelvak-pijl{transform:rotate(180deg);}
+  .bestelvak-body{padding:0 15px 15px;animation:uitvouwen .22s cubic-bezier(.22,.7,.3,1) both;}
+  .deelvak{border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden;background:var(--surface);}
+  .deelvak > summary{
+    display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer;list-style:none;
+    font-size:13px;font-weight:600;min-height:44px;
+  }
+  .deelvak > summary::-webkit-details-marker{display:none;}
+  .deelvak > summary:hover{background:var(--surface2);}
+  .deelvak > summary > i{color:var(--muted);width:15px;text-align:center;flex-shrink:0;}
+  .deelvak > summary > span:first-of-type{flex:1;min-width:0;}
+  .deelvak-stand{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:var(--muted);flex-shrink:0;
+  }
+  .deelvak-body{padding:0 12px 12px;animation:uitvouwen .22s cubic-bezier(.22,.7,.3,1) both;}
+  @media(max-width:420px){
+    .bestelvak-kop{flex-wrap:wrap;gap:8px;}
+    .bestelvak-stand{width:100%;justify-content:space-between;}
+  }
   .dagkop{
     font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--muted);margin:18px 0 8px;
@@ -2734,6 +2770,7 @@ function volgLink(){
     return;
   }
   state.__openOrder = o.id;
+  state.__openBestelling = o.id;      // in het beheer klapt hij meteen open
   state.view = vanMij ? "account" : "admin";
   if (!vanMij) state.__adminTab = "orders";
   const actie = state.linkActie;
@@ -5742,54 +5779,90 @@ function viewAdmin(){
         <button class="btn btn-ghost btn-sm" onclick="window.__deleteProduct('${p.id}')" title="Verwijderen"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
       </div>
     </div>`).join("");
-  const orderRow = (o)=>`
-    <div class="admin-row" data-order="${esc(o.id)}" style="margin-bottom:10px;${o.receivedAt ? 'border-left:3px solid var(--accent);' : ''}">
-      <div class="order-head">
-        <div class="order-meta">
-          <div style="font-size:13px;font-weight:600;word-break:break-word;">${esc(o.userEmail)}</div>
-          <div class="muted font-mono" style="font-size:11px;">
-            ${esc(orderNumber(o))} · ${esc(hoeLang(o.createdAt))}
-          </div>
-        </div>
-        <div class="row" style="gap:6px;flex:0 0 auto;">
-          <select class="field" style="width:auto;max-width:100%;margin:0;padding:6px 9px;font-size:12px;"
+  /* Een bestelling is één uitklapper. Dicht zie je van wie hij is, hoe ver hij
+     staat en wat hij opbrengt; open staan de stappen, de onderdelen en de
+     gegevens elk in hun eigen vak. Met zeven dingen per bestelling wordt een
+     lijst anders onleesbaar. */
+  const orderRow = (o) => {
+    const open = state.__openBestelling === o.id;
+    const g = itemsGeprint(o);
+    const st = stappenTeller(o);
+    const a = o.shippingAddress || {};
+    return `
+    <details class="bestelvak" data-order="${esc(o.id)}"${open ? " open" : ""}
+             ${o.receivedAt ? 'style="border-left:3px solid var(--accent);"' : ''}>
+      <summary class="bestelvak-kop">
+        <span class="bestelvak-wie">
+          <span class="bestelvak-mail">${esc(o.userEmail)}</span>
+          <span class="muted font-mono" style="font-size:11px;">
+            ${esc(orderNumber(o))} · ${esc(hoeLang(o.createdAt))} · ${o.items.length} ${o.items.length === 1 ? "ding" : "dingen"}
+          </span>
+        </span>
+        <span class="bestelvak-stand">
+          <span class="badge${o.receivedAt ? " badge-accent" : ""}">${o.receivedAt ? "Ontvangen" : esc(o.status)}</span>
+          <span class="price" style="font-size:14px;">${fmtEUR(o.total)}</span>
+        </span>
+        <span class="bestelvak-pijl">⌄</span>
+      </summary>
+
+      <div class="bestelvak-body">
+        <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <select class="field" style="width:auto;max-width:100%;margin:0;padding:8px 10px;font-size:13px;"
                   onchange="window.__setStatus('${o.id}',this.value)">
-            ${ORDER_STEPS.map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join("")}
+            ${ORDER_STEPS.map(x=>`<option ${x===o.status?'selected':''}>${esc(x)}</option>`).join("")}
           </select>
           ${o.status === "Geleverd" ? `
             <button class="btn btn-ghost btn-sm" onclick="window.__hideOrder('${o.id}','shop')"
-                    title="Opbergen: uit dit overzicht, blijft in het archief">${ic("box-archive")}</button>` : ``}
+                    title="Opbergen: uit dit overzicht, blijft in het archief">${ic("box-archive")} Opbergen</button>` : ``}
         </div>
+
+        ${o.pickupAt ? `<p style="font-size:13px;margin:0 0 8px;font-weight:600;">
+          ${ic("shop")} Wordt afgehaald — ${esc(fmtMoment(o.pickupAt))}
+        </p>` : ``}
+        ${o.receivedAt ? `<p style="font-size:12px;margin:0 0 8px;color:var(--accent);font-weight:600;">
+          ${ic("circle-check")} Klant bevestigde de ontvangst op ${esc(new Date(o.receivedAt).toLocaleString('nl-BE'))}
+        </p>` : ``}
+
+        ${stappenBlok(o)}
+
+        <details class="deelvak"${state.__openDeel === o.id + "|items" ? " open" : ""} data-deelvak="${esc(o.id)}|items">
+          <summary>
+            ${ic("cube")} <span>Wat er geprint moet worden</span>
+            <span class="deelvak-stand">${g.klaar}/${g.totaal} geprint</span>
+            <span class="bestelvak-pijl">⌄</span>
+          </summary>
+          <div class="deelvak-body">
+            <p class="muted font-mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px;">
+              Tik een stuk aan voor details
+            </p>
+            ${o.items.map((i, idx) => bestelRegel(o, i, idx)).join("")}
+          </div>
+        </details>
+
+        <details class="deelvak"${state.__openDeel === o.id + "|adres" ? " open" : ""} data-deelvak="${esc(o.id)}|adres">
+          <summary>
+            ${ic(o.pickupAt ? "shop" : "truck")} <span>${o.pickupAt ? "Afhalen en betaling" : "Adres en betaling"}</span>
+            <span class="bestelvak-pijl">⌄</span>
+          </summary>
+          <div class="deelvak-body">
+            ${o.pickupAt
+              ? `<div class="detail-regel"><span class="sleutel">Afhalen</span><span class="waarde">${esc(fmtMoment(o.pickupAt))}</span></div>
+                 ${o.pickupAddress ? `<div class="detail-regel"><span class="sleutel">Waar</span><span class="waarde">${esc(o.pickupAddress)}</span></div>` : ``}`
+              : `<div class="detail-regel"><span class="sleutel">Bezorgen</span><span class="waarde">
+                   ${esc(a.street || "")}, ${esc(a.zip || "")} ${esc(a.city || "")}, ${esc(o.shippingCountry || "")}
+                 </span></div>`}
+            <div class="detail-regel"><span class="sleutel">Klant</span><span class="waarde">${esc(o.userEmail)}</span></div>
+            <div class="detail-regel"><span class="sleutel">Subtotaal</span><span class="waarde">${fmtEUR(o.subtotal ?? 0)}</span></div>
+            ${o.discountCode ? `<div class="detail-regel"><span class="sleutel">Korting</span><span class="waarde" style="color:var(--accent);">${esc(o.discountCode)} &minus;${fmtEUR(o.discountAmount || 0)}</span></div>` : ``}
+            <div class="detail-regel"><span class="sleutel">${o.pickupAt ? "Afhalen" : "Verzending"}</span><span class="waarde">${(o.shippingCost ?? 0) === 0 ? "gratis" : fmtEUR(o.shippingCost)}</span></div>
+            <div class="detail-regel"><span class="sleutel">Totaal</span><span class="waarde" style="font-weight:600;">${fmtEUR(o.total)}</span></div>
+            ${o.paymentMethod ? `<div class="detail-regel"><span class="sleutel">Betaald met</span><span class="waarde font-mono" style="font-size:12px;">${esc(o.paymentMethod)}${o.paymentRef ? " · " + esc(o.paymentRef) : ""}${o.demoPayment ? " · TESTGELD" : ""}</span></div>` : ``}
+            <div class="detail-regel"><span class="sleutel">Besteld op</span><span class="waarde">${esc(new Date(o.createdAt).toLocaleString('nl-BE'))}</span></div>
+          </div>
+        </details>
       </div>
-      ${o.pickupAt ? `<p style="font-size:12px;margin:-2px 0 8px;font-weight:600;">
-        ${ic("shop")} Wordt afgehaald — ${esc(fmtMoment(o.pickupAt))}
-      </p>` : ``}
-      ${o.discountCode ? `<p class="muted font-mono" style="font-size:11px;margin:-2px 0 8px;">
-        CODE ${esc(o.discountCode)} · &minus;${fmtEUR(o.discountAmount || 0)}
-      </p>` : ``}
-      ${o.receivedAt ? `<p style="font-size:11px;margin:-2px 0 8px;color:var(--accent);font-weight:600;">
-        ${ic("circle-check")} Klant bevestigde de ontvangst op ${esc(new Date(o.receivedAt).toLocaleString('nl-BE'))}
-      </p>` : ``}
-      ${stappenBlok(o)}
-      ${(() => {
-        const t = itemsGeprint(o);
-        if (t.totaal < 2) return ``;
-        return `<div class="between" style="margin:10px 0 4px;">
-          <span class="muted font-mono" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;">
-            ${t.totaal} dingen · tik aan voor details
-          </span>
-          <span class="font-mono" style="font-size:11px;color:${t.klaar === t.totaal ? "var(--accent)" : "var(--muted)"};">
-            ${t.klaar}/${t.totaal} geprint
-          </span>
-        </div>`;
-      })()}
-      ${o.items.map((i, idx) => bestelRegel(o, i, idx)).join("")}
-      <div class="order-foot font-mono" style="font-size:11px;">
-        <span class="muted addr">${esc(o.shippingAddress?.street||'')}, ${esc(o.shippingAddress?.zip||'')} ${esc(o.shippingAddress?.city||'')}, ${esc(o.shippingCountry||'')}</span>
-        <span class="price" style="font-size:14px;">${fmtEUR(o.total)}</span>
-      </div>
-      ${o.paymentMethod ? `<div class="muted font-mono" style="font-size:10px;margin-top:6px;word-break:break-word;">${esc(o.paymentMethod)}${o.paymentRef ? " · " + esc(o.paymentRef) : ""}${o.demoPayment ? " · TESTGELD" : ""}</div>` : ``}
-    </div>`;
+    </details>`;
+  };
 
   // Wat nog werk vraagt bovenaan; afgeronde bestellingen zakken naar onder, en
   // wat je opgeruimd hebt is hier weg maar staat nog in het archief.
@@ -5810,6 +5883,7 @@ function viewAdmin(){
   const klaar  = zichtbaar.filter(o => o.status === "Geleverd");
   const weg = state.orders.length - openstaand.length;
   const gefilterd = openstaand.length - zichtbaar.length;
+
   /* Per dag gegroepeerd: zo zie je meteen wat er vandaag binnenkwam. */
   const perDag = (lijst) => {
     let vorige = null;
@@ -7076,6 +7150,16 @@ function attachAdminHandlers(){
       const o = state.orders.find(x => x.id === orderId);
       window.__zetGeprint(orderId, +idx, !itemGeprint(o, +idx));
     };
+  });
+  document.querySelectorAll('.bestelvak[data-order]').forEach(d => {
+    d.addEventListener('toggle', () => {
+      state.__openBestelling = d.open ? d.dataset.order : null;
+    });
+  });
+  document.querySelectorAll('[data-deelvak]').forEach(d => {
+    d.addEventListener('toggle', () => {
+      state.__openDeel = d.open ? d.dataset.deelvak : null;
+    });
   });
   document.querySelectorAll('[data-stapvak]').forEach(d => {
     d.addEventListener('toggle', () => {
