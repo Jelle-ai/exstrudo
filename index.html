@@ -320,12 +320,13 @@
     position:relative;width:100%;aspect-ratio:16/10;background:var(--plate);
     border:1px solid var(--line);border-radius:12px;overflow:hidden;
   }
-  .maatkiezer{
-    display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin:10px 0 0;
-  }
+  /* Het bijschrift op zijn eigen regel: met vijf knopjes ernaast brak de rij
+     anders af en stond er eentje verweesd onderaan. */
+  .maatkiezer{ display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 0; }
   .maatkiezer-kop{
+    flex-basis:100%;
     font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.05em;
-    text-transform:uppercase;color:var(--muted);white-space:nowrap;
+    text-transform:uppercase;color:var(--muted);
   }
 
   /* ---------- zoeken en filteren in de collectie ---------- */
@@ -4643,34 +4644,146 @@ function blokMesh(bx, by, bz, ox, oy, oz){
   for (const t of f) for (const i of t){ m[w++] = v[i][0]; m[w++] = v[i][1]; m[w++] = v[i][2]; }
   return m;
 }
-/* Een staande cilinder. De zijkant krijgt vanzelf zachte normalen omdat de
-   vlakjes maar negen graden verschillen; de rand naar het deksel staat er
-   haaks op en blijft dus scherp. */
-function cilinderMesh(r, h, ox, oy, oz, kanten = 44){
-  const tri = [];
-  const p = (i, z) => [ox + r*Math.cos(i/kanten*2*Math.PI), oy + r*Math.sin(i/kanten*2*Math.PI), z];
-  for (let i = 0; i < kanten; i++){
-    const a = p(i, oz), b = p(i+1, oz), c = p(i+1, oz+h), d = p(i, oz+h);
-    tri.push([a,b,c], [a,c,d]);
-    tri.push([[ox,oy,oz], b, a]);
-    tri.push([[ox,oy,oz+h], d, c]);
-  }
+function naarMesh(tri){
   const m = new Float32Array(tri.length * 9);
   let w = 0;
   for (const t of tri) for (const q of t){ m[w++] = q[0]; m[w++] = q[1]; m[w++] = q[2]; }
   return m;
 }
 
+/* Een omwentelingslichaam: je geeft de omtreklijn van opzij als [straal, hoogte]
+   en dit draait ze rond. Een blikje, een fles, een muntstuk — dat zijn allemaal
+   vormen die zó gemaakt worden, en zo krijg je ze op de millimeter juist.
+   De zijkant krijgt vanzelf zachte normalen omdat de vlakjes maar een paar
+   graden verschillen; een echte knik in de omtreklijn blijft scherp. */
+function draaiMesh(profiel, ox, oy, oz, kanten = 48){
+  const tri = [];
+  const punt = (r, z, i) => {
+    const a = i / kanten * 2 * Math.PI;
+    return [ox + r * Math.cos(a), oy + r * Math.sin(a), oz + z];
+  };
+  for (let s = 0; s < profiel.length - 1; s++){
+    const [r0, z0] = profiel[s], [r1, z1] = profiel[s + 1];
+    if (r0 === 0 && r1 === 0) continue;
+    for (let i = 0; i < kanten; i++){
+      const a = punt(r0, z0, i), b = punt(r0, z0, i + 1);
+      const c = punt(r1, z1, i + 1), d = punt(r1, z1, i);
+      // raakt de omtreklijn de as, dan wordt het vierkantje een driehoek
+      if (r0 === 0) tri.push([a, c, d]);
+      else if (r1 === 0) tri.push([a, b, c]);
+      else tri.push([a, b, c], [a, c, d]);
+    }
+  }
+  return naarMesh(tri);
+}
+
+/* Een doos met afgeronde hoeken: een bankkaart en een telefoon hebben die, en
+   zonder die ronding herken je ze niet als zodanig. */
+function afgerondeDoosMesh(bx, by, bz, straal, ox, oy, oz, boog = 5){
+  const r = Math.max(0.01, Math.min(straal, bx/2 - 0.01, by/2 - 0.01));
+  const hx = bx/2 - r, hy = by/2 - r;
+  const omtrek = [];
+  for (const [cx, cy, a0] of [[hx,hy,0],[-hx,hy,Math.PI/2],[-hx,-hy,Math.PI],[hx,-hy,1.5*Math.PI]]){
+    for (let i = 0; i <= boog; i++){
+      const a = a0 + i / boog * (Math.PI/2);
+      omtrek.push([ox + cx + r*Math.cos(a), oy + cy + r*Math.sin(a)]);
+    }
+  }
+  const z0 = oz, z1 = oz + bz, n = omtrek.length, tri = [];
+  for (let i = 0; i < n; i++){
+    const p = omtrek[i], q = omtrek[(i + 1) % n];
+    tri.push([[p[0],p[1],z0],[q[0],q[1],z0],[q[0],q[1],z1]]);
+    tri.push([[p[0],p[1],z0],[q[0],q[1],z1],[p[0],p[1],z1]]);
+    tri.push([[ox,oy,z1],[p[0],p[1],z1],[q[0],q[1],z1]]);
+    tri.push([[ox,oy,z0],[q[0],q[1],z0],[p[0],p[1],z0]]);
+  }
+  return naarMesh(tri);
+}
+
+/* =====================================================================
+   De voorwerpen ter vergelijking
+   Bewust zelf opgebouwd in plaats van een model van het internet te halen.
+   Twee redenen. De eerste is de licentie: bijna alles op Thingiverse en
+   Printables mag je niet zomaar in je eigen winkel meeleveren. De tweede is
+   dat deze hele shop één bestand is; een gedownloade STL zou er tientallen
+   kilobytes bij doen, terwijl de vorm van een blikje in twintig regels
+   omtreklijn past — op de millimeter juist, want dat ís hoe een blikje
+   gemaakt wordt.
+
+   Elk voorwerp bestaat uit meerdere stukken met een eigen kleur. Één grijze
+   cilinder is geen blikje; een aluminium romp met een gekleurd etiket en een
+   ingedeukt lipje wél. Daar was het je om te doen.
+   ===================================================================== */
+
+/* 33 cl, 66 mm doorsnede, 115 mm hoog: de standaardmaat van een frisdrankblik.
+   Onderaan de standrand met de holle bodem, bovenaan de schouder die naar de
+   smallere hals loopt en de omgeslagen rand van het deksel. */
+const BLIK_PROFIEL = [
+  [0,    4.2],    // de bodem is hol: het midden zit hoger dan de rand
+  [17,   2.4],
+  [26,   0],      // hierop staat hij
+  [30.5, 2.2],
+  [33,   7],
+  [33,   95],     // recht lichaam
+  [32.3, 99],
+  [29,   106],    // schouder
+  [27,   111.5],  // hals
+  [27.9, 113],    // de omgeslagen rand
+  [26,   114.2],
+  [23,   115],
+  [0,    114.3],  // het deksel, licht verdiept
+];
+const BLIK_LIP = [           // het treklipje, een plat ovaaltje op het deksel
+  [0, 0], [7.5, 0], [7.5, 0.6], [0, 0.6],
+];
+
+function blikjeDelen(x, y, z){
+  return [
+    { mesh: draaiMesh(BLIK_PROFIEL, x, y, z), hex: "#C4C9D0", finish: "silk" },
+    // het etiket: een strook net iets wijder dan de romp, zodat hij er niet
+    // doorheen flikkert
+    { mesh: draaiMesh([[33.2, 22], [33.2, 84]], x, y, z), hex: "#B5342B", finish: "matte" },
+    { mesh: draaiMesh([[33.2, 62], [33.2, 70]], x, y, z), hex: "#EFE3C8", finish: "matte" },
+    { mesh: draaiMesh(BLIK_LIP, x, y, z + 114.4), hex: "#9AA0A8", finish: "silk" },
+  ];
+}
+
+/* Een muntstuk van twee kleuren, zoals een euro of twee euro: een ring rond een
+   kern. Dat is meteen te herkennen; een grijs schijfje niet. */
+function muntDelen(x, y, z){
+  return [
+    { mesh: draaiMesh([[8.4, -0.1], [12.4, -0.1], [12.875, 0.6], [12.875, 1.6],
+                       [12.4, 2.3], [8.4, 2.3]], x, y, z), hex: "#C9A35E", finish: "silk" },
+    { mesh: draaiMesh([[0, 0], [8.5, 0], [8.6, 0.5], [8.6, 1.7], [8.5, 2.2], [0, 2.2]],
+                      x, y, z), hex: "#BFC4C9", finish: "silk" },
+  ];
+}
+
+/* Een bankkaart met de chip erop: zonder die chip is het gewoon een plaatje. */
+function kaartDelen(x, y, z){
+  return [
+    { mesh: afgerondeDoosMesh(85.6, 54, 0.76, 3.2, x, y, z), hex: "#DCDFE3", finish: "matte" },
+    { mesh: afgerondeDoosMesh(12, 9.5, 0.12, 1.2, x - 24, y + 7, z + 0.72), hex: "#C9A227", finish: "silk" },
+    { mesh: afgerondeDoosMesh(60, 3.2, 0.1, 0.6, x + 6, y - 17, z + 0.72), hex: "#4A5058", finish: "matte" },
+  ];
+}
+
+/* Een telefoon: een goede maat om je aan vast te houden, en met een zwart
+   scherm erop is er geen twijfel over wat het is. */
+function telefoonDelen(x, y, z){
+  return [
+    { mesh: afgerondeDoosMesh(146.7, 71.5, 7.8, 9.5, x, y, z), hex: "#4A5058", finish: "silk" },
+    { mesh: afgerondeDoosMesh(139, 64, 0.3, 7.5, x, y, z + 7.7), hex: "#14171B", finish: "silk" },
+  ];
+}
+
 /* Wat iedereen in huis heeft, met de maten die overal gelden. */
 const MAAT_REFS = [
-  { id: "kaart",  naam: "Bankkaart", b: 85.6, d: 54,    h: 0.76,
-    maak: (x,y,z) => blokMesh(85.6, 54, 0.76, x, y, z) },
-  { id: "munt",   naam: "Muntstuk",  b: 25.75, d: 25.75, h: 2.2,
-    maak: (x,y,z) => cilinderMesh(12.875, 2.2, x, y, z) },
-  { id: "blikje", naam: "Blikje",    b: 66,   d: 66,    h: 115,
-    maak: (x,y,z) => cilinderMesh(33, 115, x, y, z) },
+  { id: "munt",     naam: "Muntstuk",  b: 25.75, d: 25.75, h: 2.3,   maak: muntDelen },
+  { id: "kaart",    naam: "Bankkaart", b: 85.6,  d: 54,    h: 0.86,  maak: kaartDelen },
+  { id: "telefoon", naam: "Telefoon",  b: 146.7, d: 71.5,  h: 7.8,   maak: telefoonDelen },
+  { id: "blikje",   naam: "Blikje",    b: 66,    d: 66,    h: 115,   maak: blikjeDelen },
 ];
-const REF_KLEUR = { hex: "#8E949C", finish: "matte" };
 
 function productMaat(p){
   if (Array.isArray(p?.modelSize) && p.modelSize.length === 3) return p.modelSize.map(Number);
@@ -4683,7 +4796,9 @@ function productMaat(p){
 function autoReferentie(maat){
   const grootste = Math.max(...maat);
   if (grootste <= 45) return "munt";
-  if (grootste <= 170) return "kaart";
+  if (grootste <= 130) return "kaart";
+  // groter dan een bankkaart: dan een blikje, want dat staat rechtop en laat
+  // dus ook de hoogte zien
   return "blikje";
 }
 /* standaardAan: in het aparte maatvak hoort er meteen iets naast te staan —
@@ -4699,6 +4814,17 @@ function huidigeReferentie(maat, standaardAan){
 
 /* Zet het referentievoorwerp naast het model en levert de gezamenlijke doos,
    zodat allebei in beeld passen en ze op dezelfde vloer staan. */
+/* De stukken van een voorwerp opnieuw uitrekenen bij elke tekenbeurt zou het
+   slepen laten haperen — de zachte normalen moeten er dan telkens overnieuw
+   bij. Ze hangen alleen af van welk voorwerp het is en waar het staat, dus dat
+   onthouden we. */
+let refCache = null;
+function refDelen(ref, ox, oy, oz){
+  const sleutel = `${ref.id}|${ox.toFixed(2)}|${oy.toFixed(2)}|${oz.toFixed(2)}`;
+  if (refCache?.sleutel !== sleutel) refCache = { sleutel, delen: ref.maak(ox, oy, oz) };
+  return refCache.delen;
+}
+
 function maatScene(min, size, ref){
   if (!ref){
     return {
@@ -4712,12 +4838,11 @@ function maatScene(min, size, ref){
   const ox = min[0] + size[0] + gat + ref.b/2;
   const oy = min[1] + size[1]/2;
   const oz = min[2];
-  const mesh = ref.maak(ox, oy, oz);
-  const minX = min[0],                    maxX = ox + ref.b/2;
+  const minX = min[0],                         maxX = ox + ref.b/2;
   const minY = Math.min(min[1], oy - ref.d/2), maxY = Math.max(min[1] + size[1], oy + ref.d/2);
-  const minZ = min[2],                    maxZ = Math.max(min[2] + size[2], oz + ref.h);
+  const minZ = min[2],                         maxZ = Math.max(min[2] + size[2], oz + ref.h);
   return {
-    delen: [mesh],
+    delen: refDelen(ref, ox, oy, oz),
     doos: {
       center: [(minX + maxX)/2, (minY + maxY)/2, 0],
       size: [maxX - minX, maxY - minY, maxZ - minZ],
@@ -4755,7 +4880,7 @@ function maatKiezer(p, standaardAan){
   return `
     <div class="maatkiezer">
       <span class="maatkiezer-kop">${ic("ruler-combined")} ${maat.map(v => Math.round(v)).join(" × ")} mm &mdash; ernaast:</span>
-      <div class="fil-types" style="margin:0;flex:1;min-width:180px;">
+      <div class="fil-types" style="margin:0;width:100%;">
         ${MAAT_REFS.map(r => `
           <button class="fil-type ${nu?.id === r.id ? "active" : ""}" data-maatref="${esc(r.id)}">${esc(r.naam)}</button>`).join("")}
         <button class="fil-type ${nu ? "" : "active"}" data-maatref="geen">Niets</button>
@@ -4953,8 +5078,8 @@ async function toon3dVoorbeeld(){
 function tekenMaatScene(cv, min, size, meshes, kleuren, ref){
   if (!state.__meshView) state.__meshView = { yaw: 0.7, pitch: 0.42 };
   const scene = maatScene(min, size, ref);
-  const alle = [...meshes, ...scene.delen];
-  const kleur = [...kleuren, ...scene.delen.map(() => REF_KLEUR)];
+  const alle = [...meshes, ...scene.delen.map(d => d.mesh)];
+  const kleur = [...kleuren, ...scene.delen.map(d => ({ hex: d.hex, finish: d.finish }))];
 
   const teken = () => drawModel(cv, alle, kleur, {
     ...scene.doos,
