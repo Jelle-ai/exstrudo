@@ -308,13 +308,28 @@
   }
   .voet-links button:hover{color:var(--ink);background:var(--surface2);}
   .voet-klein{color:var(--muted);font-size:12px;line-height:1.6;margin-left:auto;}
-  .voet-talen{display:flex;gap:2px;flex-basis:100%;}
-  .voet-talen button{
-    background:none;border:none;color:var(--muted);font-size:12px;line-height:1.6;
-    padding:4px 8px;border-radius:8px;transition:color .16s, background .16s;
+  /* ---------- instellingen ---------- */
+  .inst-rij{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+  .inst-label{font-size:13px;font-weight:600;color:var(--ink);}
+
+  /* ---------- bewaard: het hartje ---------- */
+  .hart, .hart-knop{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border-radius:999px;border:none;cursor:pointer;
+    color:var(--muted);font-size:15px;
+    background:color-mix(in srgb, var(--surface) 82%, transparent);
+    transition:color .16s, transform .16s, background .16s;
   }
-  .voet-talen button:hover{color:var(--ink);background:var(--surface2);}
-  .voet-talen button.aan{color:var(--ink);font-weight:600;background:var(--surface2);}
+  .hart{position:absolute;top:8px;right:8px;z-index:2;}
+  .hart:hover, .hart-knop:hover{color:var(--accent);background:var(--surface);}
+  .hart.aan, .hart-knop.aan{color:var(--accent);}
+  .hart:active, .hart-knop:active{transform:scale(.88);}
+  .hart-knop{flex-shrink:0;background:var(--surface2);}
+  /* Even opspringen als je iets opzij legt, zodat je ziet dat het aankwam. */
+  .hart.aan i, .hart-knop.aan i{animation:hartje .32s ease-out;}
+  @keyframes hartje{ 0%{transform:scale(.6);} 60%{transform:scale(1.25);} 100%{transform:scale(1);} }
+  .grid-klein{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+  @media(prefers-reduced-motion:reduce){ .hart.aan i, .hart-knop.aan i{animation:none;} }
   @media(max-width:640px){ .voet-klein{margin-left:0;flex-basis:100%;} }
 
   /* ---------- materiaalgids ---------- */
@@ -944,7 +959,6 @@
       <button data-info-ga="privacy">Privacy</button>
     </nav>
     <span class="voet-klein" id="voetGegevens"></span>
-    <div class="voet-talen" id="voetTalen"></div>
   </div>
 </footer>
 
@@ -1080,604 +1094,618 @@ const SHIPPING_RATES = [
 
 /* =====================================================================
    Talen
-   De winkel spreekt Engels, Nederlands of Frans. Jij zet in Shopbeheer welke
-   taal een bezoeker als eerste te zien krijgt; wie liever iets anders leest
-   klikt onderaan op een andere en dat wordt onthouden in zijn eigen browser.
+   De winkel spreekt Engels en Nederlands. Jij zet in Shopbeheer welke taal een
+   bezoeker als eerste te zien krijgt; wie liever iets anders leest, kiest zijn
+   taal bij Instellingen. Ben je ingelogd, dan gaat die keuze mee naar elk
+   toestel waarop je inlogt; anders blijft ze in deze browser staan.
 
-   Alle teksten staan hieronder bij elkaar, met de drie talen naast elkaar.
-   Dat leest onhandiger dan drie aparte lijsten, maar je ziet in één oogopslag
+   Alle teksten staan hieronder bij elkaar, met de twee talen naast elkaar.
+   Dat leest onhandiger dan twee aparte lijsten, maar je ziet in één oogopslag
    of er ergens een vertaling ontbreekt — en dat is precies wat er misgaat als
    je ze uit elkaar houdt.
 
    Shopbeheer blijft Nederlands. Dat gebruik jij alleen, en meevertalen zou het
-   werk verdrievoudigen zonder dat een klant er iets van merkt.
+   werk verdubbelen zonder dat een klant er iets van merkt.
    ===================================================================== */
 /* ---------------------------------------------------------------------
    Alle teksten die een klant te zien krijgt.
    --------------------------------------------------------------------- */
 const TEKST = {
   // --- de vaste onderdelen ---
-  "nav.collectie":   { en: "Collection",        nl: "Collectie",         fr: "Collection" },
-  "nav.upload":      { en: "Upload your model", nl: "Upload je model",   fr: "Envoie ton modèle" },
-  "nav.wagen":       { en: "Cart",              nl: "Winkelwagen",       fr: "Panier" },
-  "nav.bestellingen":{ en: "My orders",         nl: "Mijn bestellingen", fr: "Mes commandes" },
-  "nav.inloggen":    { en: "Log in",            nl: "Inloggen",          fr: "Se connecter" },
-  "nav.uitloggen":   { en: "Log out",           nl: "Uitloggen",         fr: "Se déconnecter" },
-  "nav.beheer":      { en: "Shop admin",        nl: "Shopbeheer",        fr: "Gestion" },
-  "nav.archief":     { en: "Archive",           nl: "Archief",           fr: "Archives" },
-  "nav.menu":        { en: "Menu",              nl: "Menu",              fr: "Menu" },
-  "nav.winkel":      { en: "Shop",              nl: "Winkel",            fr: "Boutique" },
-  "nav.eigenModel":  { en: "Print your own model", nl: "Eigen model laten printen", fr: "Faire imprimer ton modèle" },
-  "nav.account":     { en: "Account",           nl: "Account",           fr: "Compte" },
-  "nav.inlogRegistreer":{ en: "Log in or sign up", nl: "Inloggen of registreren", fr: "Se connecter ou s'inscrire" },
-  "nav.licht":       { en: "Light theme",       nl: "Licht thema",       fr: "Thème clair" },
-  "nav.donker":      { en: "Dark theme",        nl: "Donker thema",      fr: "Thème sombre" },
-  "nav.naarCollectie":{ en: "To the collection", nl: "Naar de collectie", fr: "Vers la collection" },
+  "nav.collectie":   { en: "Collection",        nl: "Collectie" },
+  "nav.upload":      { en: "Upload your model", nl: "Upload je model" },
+  "nav.wagen":       { en: "Cart",              nl: "Winkelwagen" },
+  "nav.bestellingen":{ en: "My orders",         nl: "Mijn bestellingen" },
+  "nav.inloggen":    { en: "Log in",            nl: "Inloggen" },
+  "nav.uitloggen":   { en: "Log out",           nl: "Uitloggen" },
+  "nav.beheer":      { en: "Shop admin",        nl: "Shopbeheer" },
+  "nav.archief":     { en: "Archive",           nl: "Archief" },
+  "nav.menu":        { en: "Menu",              nl: "Menu" },
+  "nav.winkel":      { en: "Shop",              nl: "Winkel" },
+  "nav.eigenModel":  { en: "Print your own model", nl: "Eigen model laten printen" },
+  "nav.account":     { en: "Account",           nl: "Account" },
+  "nav.inlogRegistreer":{ en: "Log in or sign up", nl: "Inloggen of registreren" },
+  "nav.licht":       { en: "Light theme",       nl: "Licht thema" },
+  "nav.donker":      { en: "Dark theme",        nl: "Donker thema" },
+  "nav.naarCollectie":{ en: "To the collection", nl: "Naar de collectie" },
 
-  "info.contact":     { en: "Contact",     nl: "Contact",      fr: "Contact" },
-  "info.materialen":  { en: "Materials",   nl: "Materialen",   fr: "Matériaux" },
-  "info.voorwaarden": { en: "Terms",       nl: "Voorwaarden",  fr: "Conditions" },
-  "info.retour":      { en: "Returns",     nl: "Retour",       fr: "Retours" },
-  "info.privacy":     { en: "Privacy",     nl: "Privacy",      fr: "Confidentialité" },
+  "info.contact":     { en: "Contact",     nl: "Contact" },
+  "info.materialen":  { en: "Materials",   nl: "Materialen" },
+  "info.voorwaarden": { en: "Terms",       nl: "Voorwaarden" },
+  "info.retour":      { en: "Returns",     nl: "Retour" },
+  "info.privacy":     { en: "Privacy",     nl: "Privacy" },
 
-  "alg.terug":       { en: "Back",                  nl: "Terug",                  fr: "Retour" },
-  "alg.terugCollectie":{ en: "Back to the collection", nl: "Terug naar collectie", fr: "Retour à la collection" },
-  "alg.verder":      { en: "Keep shopping",         nl: "Verder winkelen",        fr: "Continuer mes achats" },
-  "alg.totaal":      { en: "Total",                 nl: "Totaal",                 fr: "Total" },
-  "alg.subtotaal":   { en: "Subtotal",              nl: "Subtotaal",              fr: "Sous-total" },
-  "alg.verzending":  { en: "Shipping",              nl: "Verzending",             fr: "Livraison" },
-  "alg.afhalen":     { en: "Pick-up",               nl: "Afhalen",                fr: "Retrait" },
-  "alg.gratis":      { en: "free",                  nl: "gratis",                 fr: "gratuit" },
-  "alg.perStuk":     { en: "each",                  nl: "per stuk",               fr: "pièce" },
-  "alg.kleur":       { en: "Colour",                nl: "Kleur",                  fr: "Couleur" },
-  "alg.materiaal":   { en: "Material",              nl: "Materiaal",              fr: "Matériau" },
-  "alg.maat":        { en: "Size",                  nl: "Maat",                   fr: "Taille" },
-  "alg.aantal":      { en: "Quantity",              nl: "Aantal",                 fr: "Quantité" },
-  "alg.tekst":       { en: "Text",                  nl: "Tekst",                  fr: "Texte" },
-  "alg.onderdelen":  { en: "Parts",                 nl: "Onderdelen",             fr: "Pièces" },
-  "alg.levering":    { en: "Delivery",              nl: "Levering",               fr: "Livraison" },
-  "alg.korting":     { en: "Discount",              nl: "Korting",                fr: "Remise" },
-  "alg.sleep":       { en: "Drag to rotate",        nl: "Sleep om te draaien",    fr: "Fais glisser pour tourner" },
-  "alg.opAanvraag":  { en: "price on request",      nl: "prijs op aanvraag",      fr: "prix sur demande" },
-  "alg.inElkaar":    { en: "Assembled",             nl: "In elkaar gezet",        fr: "Assemblé" },
-  "alg.los":         { en: "Loose, per part",       nl: "Los, per onderdeel",     fr: "Séparé, par pièce" },
-  "alg.werkdagen":   { en: "{n} working days",      nl: "{n} werkdagen",          fr: "{n} jours ouvrables" },
-  "alg.werkdagenVan":{ en: "{a} to {b} working days", nl: "{a} tot {b} werkdagen", fr: "{a} à {b} jours ouvrables" },
+  "alg.terug":       { en: "Back",                  nl: "Terug" },
+  "alg.terugCollectie":{ en: "Back to the collection", nl: "Terug naar collectie" },
+  "alg.verder":      { en: "Keep shopping",         nl: "Verder winkelen" },
+  "alg.totaal":      { en: "Total",                 nl: "Totaal" },
+  "alg.subtotaal":   { en: "Subtotal",              nl: "Subtotaal" },
+  "alg.verzending":  { en: "Shipping",              nl: "Verzending" },
+  "alg.afhalen":     { en: "Pick-up",               nl: "Afhalen" },
+  "alg.gratis":      { en: "free",                  nl: "gratis" },
+  "alg.perStuk":     { en: "each",                  nl: "per stuk" },
+  "alg.kleur":       { en: "Colour",                nl: "Kleur" },
+  "alg.materiaal":   { en: "Material",              nl: "Materiaal" },
+  "alg.maat":        { en: "Size",                  nl: "Maat" },
+  "alg.aantal":      { en: "Quantity",              nl: "Aantal" },
+  "alg.tekst":       { en: "Text",                  nl: "Tekst" },
+  "alg.onderdelen":  { en: "Parts",                 nl: "Onderdelen" },
+  "alg.levering":    { en: "Delivery",              nl: "Levering" },
+  "alg.korting":     { en: "Discount",              nl: "Korting" },
+  "alg.sleep":       { en: "Drag to rotate",        nl: "Sleep om te draaien" },
+  "alg.opAanvraag":  { en: "price on request",      nl: "prijs op aanvraag" },
+  "alg.inElkaar":    { en: "Assembled",             nl: "In elkaar gezet" },
+  "alg.los":         { en: "Loose, per part",       nl: "Los, per onderdeel" },
+  "alg.werkdagen":   { en: "{n} working days",      nl: "{n} werkdagen" },
+  "alg.werkdagenVan":{ en: "{a} to {b} working days", nl: "{a} tot {b} werkdagen" },
 
   // --- de winkelpagina ---
-  "shop.kop":        { en: "Your design, layer by layer.", nl: "Jouw ontwerp, laag voor laag.", fr: "Ton design, couche par couche." },
-  "shop.label":      { en: "01 — Print on demand", nl: "01 — Print on demand", fr: "01 — Impression à la demande" },
+  "shop.kop":        { en: "Your design, layer by layer.", nl: "Jouw ontwerp, laag voor laag." },
+  "shop.label":      { en: "01 — Print on demand", nl: "01 — Print on demand" },
   "shop.sub":        { en: "Order from the collection or send us your own model. We print it in Bambu Lab filament and ship it to your door.",
-                       nl: "Bestel uit de collectie of stuur je eigen model door. Wij printen het in Bambu Lab-filament en sturen het naar je adres.",
-                       fr: "Commande dans la collection ou envoie-nous ton propre modèle. Nous l'imprimons en filament Bambu Lab et te l'expédions." },
-  "shop.bekijk":     { en: "See the collection",  nl: "Bekijk de collectie",  fr: "Voir la collection" },
-  "shop.printer":    { en: "Printer",             nl: "Printer",              fr: "Imprimante" },
-  "shop.volume":     { en: "Build volume",        nl: "Bouwvolume",           fr: "Volume" },
-  "shop.levering":   { en: "Delivery",            nl: "Levering",             fr: "Livraison" },
-  "shop.dagen":      { en: "3–5 days",            nl: "3–5 dgn",              fr: "3–5 j" },
-  "shop.sectie":     { en: "02 — Collection",     nl: "02 — Collectie",       fr: "02 — Collection" },
-  "shop.klaar":      { en: "Ready to print",      nl: "Klaar om te printen",  fr: "Prêt à imprimer" },
-  "shop.artikel":    { en: "{n} item",            nl: "{n} artikel",          fr: "{n} article" },
-  "shop.artikelen":  { en: "{n} items",           nl: "{n} artikelen",        fr: "{n} articles" },
-  "shop.vanTotaal":  { en: "{n} of {t}",          nl: "{n} van {t}",          fr: "{n} sur {t}" },
-  "shop.zoek":       { en: "Search the collection…", nl: "Zoek in de collectie…", fr: "Rechercher…" },
-  "shop.wisZoek":    { en: "Clear search",        nl: "Zoekterm wissen",      fr: "Effacer" },
-  "shop.alles":      { en: "All",                 nl: "Alles",                fr: "Tout" },
-  "shop.sorteer":    { en: "Sort",                nl: "Sorteren",             fr: "Trier" },
-  "sort.populair":   { en: "Popular",             nl: "Populair",             fr: "Populaire" },
-  "sort.nieuw":      { en: "Newest",              nl: "Nieuwste",             fr: "Plus récent" },
-  "sort.laag":       { en: "Price low to high",   nl: "Prijs oplopend",       fr: "Prix croissant" },
-  "sort.hoog":       { en: "Price high to low",   nl: "Prijs aflopend",       fr: "Prix décroissant" },
-  "shop.nietsGevonden":{ en: "Nothing found",     nl: "Niets gevonden",       fr: "Rien trouvé" },
+                       nl: "Bestel uit de collectie of stuur je eigen model door. Wij printen het in Bambu Lab-filament en sturen het naar je adres." },
+  "shop.bekijk":     { en: "See the collection",  nl: "Bekijk de collectie" },
+  "shop.printer":    { en: "Printer",             nl: "Printer" },
+  "shop.volume":     { en: "Build volume",        nl: "Bouwvolume" },
+  "shop.levering":   { en: "Delivery",            nl: "Levering" },
+  "shop.dagen":      { en: "3–5 days",            nl: "3–5 dgn" },
+  "shop.sectie":     { en: "02 — Collection",     nl: "02 — Collectie" },
+  "shop.klaar":      { en: "Ready to print",      nl: "Klaar om te printen" },
+  "shop.artikel":    { en: "{n} item",            nl: "{n} artikel" },
+  "shop.artikelen":  { en: "{n} items",           nl: "{n} artikelen" },
+  "shop.vanTotaal":  { en: "{n} of {t}",          nl: "{n} van {t}" },
+  "shop.zoek":       { en: "Search the collection…", nl: "Zoek in de collectie…" },
+  "shop.wisZoek":    { en: "Clear search",        nl: "Zoekterm wissen" },
+  "shop.alles":      { en: "All",                 nl: "Alles" },
+  "shop.sorteer":    { en: "Sort",                nl: "Sorteren" },
+  "sort.populair":   { en: "Popular",             nl: "Populair" },
+  "sort.nieuw":      { en: "Newest",              nl: "Nieuwste" },
+  "sort.laag":       { en: "Price low to high",   nl: "Prijs oplopend" },
+  "sort.hoog":       { en: "Price high to low",   nl: "Prijs aflopend" },
+  "shop.nietsGevonden":{ en: "Nothing found",     nl: "Niets gevonden" },
   "shop.nietsUitleg":{ en: "We have nothing matching {wat}. You can also send us your own model — then we print exactly what you want.",
-                       nl: "We hebben niets dat past bij {wat}. Je kunt je model ook zelf doorsturen — dan printen we precies wat je wil.",
-                       fr: "Nous n'avons rien qui corresponde à {wat}. Tu peux aussi nous envoyer ton propre modèle — nous imprimons exactement ce que tu veux." },
-  "shop.ditFilter":  { en: "this filter",         nl: "dit filter",           fr: "ce filtre" },
-  "shop.toonAlles":  { en: "Show everything",     nl: "Toon alles",           fr: "Tout afficher" },
-  "shop.uitgelicht": { en: "Featured",            nl: "Uitgelicht",           fr: "En vedette" },
-  "shop.verborgen":  { en: "Hidden",              nl: "Verborgen",            fr: "Masqué" },
-  "shop.opMaat":     { en: "Made to size",        nl: "Op maat",              fr: "Sur mesure" },
-  "shop.vanaf":      { en: "from {prijs}",        nl: "vanaf {prijs}",        fr: "dès {prijs}" },
-  "shop.kleuren":    { en: "{n} colours",         nl: "{n} kleuren",          fr: "{n} couleurs" },
+                       nl: "We hebben niets dat past bij {wat}. Je kunt je model ook zelf doorsturen — dan printen we precies wat je wil." },
+  "shop.ditFilter":  { en: "this filter",         nl: "dit filter" },
+  "shop.toonAlles":  { en: "Show everything",     nl: "Toon alles" },
+  "shop.uitgelicht": { en: "Featured",            nl: "Uitgelicht" },
+  "shop.verborgen":  { en: "Hidden",              nl: "Verborgen" },
+  "shop.opMaat":     { en: "Made to size",        nl: "Op maat" },
+  "shop.vanaf":      { en: "from {prijs}",        nl: "vanaf {prijs}" },
+  "shop.kleuren":    { en: "{n} colours",         nl: "{n} kleuren" },
 
   // --- de winkel op pauze ---
-  "pauze.kop":       { en: "{winkel} is closed for a moment", nl: "{winkel} is even gesloten", fr: "{winkel} est fermé un instant" },
-  "pauze.vanaf":     { en: "We are back from {datum}.", nl: "Vanaf {datum} zijn we er weer.", fr: "Nous revenons le {datum}." },
+  "pauze.kop":       { en: "{winkel} is closed for a moment", nl: "{winkel} is even gesloten" },
+  "pauze.vanaf":     { en: "We are back from {datum}.", nl: "Vanaf {datum} zijn we er weer." },
   "pauze.magWel":    { en: "You can still order — your parcel leaves as soon as we are back.",
-                       nl: "Bestellen kan gewoon — je pakje vertrekt zodra we terug zijn.",
-                       fr: "Tu peux commander — ton colis partira dès notre retour." },
+                       nl: "Bestellen kan gewoon — je pakje vertrekt zodra we terug zijn." },
   "pauze.magNiet":   { en: "Ordering is paused for now. You are welcome to look around.",
-                       nl: "Bestellen kan even niet. Je kunt wel alvast rondkijken.",
-                       fr: "Les commandes sont suspendues. Tu peux quand même regarder." },
-  "pauze.knop":      { en: "Closed for now",      nl: "Even gesloten",        fr: "Fermé pour l'instant" },
-  "pauze.melding":   { en: "The shop is paused for a moment", nl: "De winkel staat even op pauze", fr: "La boutique est en pause" },
-  "pauze.standaard": { en: "We're away for a moment.", nl: "We zijn er even niet.", fr: "Nous sommes absents un instant." },
+                       nl: "Bestellen kan even niet. Je kunt wel alvast rondkijken." },
+  "pauze.knop":      { en: "Closed for now",      nl: "Even gesloten" },
+  "pauze.melding":   { en: "The shop is paused for a moment", nl: "De winkel staat even op pauze" },
+  "pauze.standaard": { en: "We're away for a moment.", nl: "We zijn er even niet." },
 
   // --- een lege of onbereikbare collectie ---
-  "leeg.laden":      { en: "Loading the collection…", nl: "Collectie laden…", fr: "Chargement de la collection…" },
-  "leeg.kop":        { en: "There is nothing in the collection yet.", nl: "Er staan nog geen producten in de collectie.", fr: "La collection est encore vide." },
-  "leeg.klant":      { en: "You can still have your own model printed.", nl: "Je kunt intussen wel je eigen model laten printen.", fr: "Tu peux quand même faire imprimer ton propre modèle." },
-  "leeg.fout":       { en: "The collection cannot be loaded", nl: "De collectie kan niet geladen worden", fr: "La collection ne peut pas être chargée" },
+  "leeg.laden":      { en: "Loading the collection…", nl: "Collectie laden…" },
+  "leeg.kop":        { en: "There is nothing in the collection yet.", nl: "Er staan nog geen producten in de collectie." },
+  "leeg.klant":      { en: "You can still have your own model printed.", nl: "Je kunt intussen wel je eigen model laten printen." },
+  "leeg.fout":       { en: "The collection cannot be loaded", nl: "De collectie kan niet geladen worden" },
 
   // --- de productpagina ---
-  "prod.weg":        { en: "This product no longer exists.", nl: "Dit product bestaat niet meer.", fr: "Ce produit n'existe plus." },
-  "prod.laden":      { en: "Fetching your product…", nl: "Even je product ophalen…", fr: "Chargement du produit…" },
-  "prod.uitCollectie":{ en: "This product is not in the collection right now.", nl: "Dit product staat op dit moment niet in de collectie.", fr: "Ce produit n'est pas dans la collection pour le moment." },
-  "prod.geenBeeld":  { en: "No photo or 3D model yet", nl: "Nog geen foto of 3D-model", fr: "Pas encore de photo ni de modèle 3D" },
-  "prod.fotos":      { en: "Photos",                nl: "Foto's",                 fr: "Photos" },
-  "prod.afbeelding": { en: "Image {n}",             nl: "Afbeelding {n}",         fr: "Image {n}" },
-  "prod.infill":     { en: "Infill",                nl: "Infill",                 fr: "Remplissage" },
-  "prod.laaghoogte": { en: "Layer height",          nl: "Laaghoogte",             fr: "Hauteur de couche" },
-  "prod.afmetingen": { en: "Dimensions",            nl: "Afmetingen",             fr: "Dimensions" },
-  "prod.printtijd":  { en: "Print time",            nl: "Printtijd",              fr: "Temps d'impression" },
-  "prod.gewicht":    { en: "Weight",                nl: "Gewicht",                fr: "Poids" },
-  "prod.toeslagUit": { en: "{basis} + {toeslag} for the chosen filament", nl: "{basis} + {toeslag} voor het gekozen filament", fr: "{basis} + {toeslag} pour le filament choisi" },
-  "prod.korting":    { en: "{pct}% off for a while.", nl: "Tijdelijk {pct}% korting.", fr: "{pct}% de remise, pour un temps." },
-  "prod.kortingTot": { en: "{pct}% off — until {datum}.", nl: "Tijdelijk {pct}% korting — nog tot {datum}.", fr: "{pct}% de remise — jusqu'au {datum}." },
-  "prod.opMaatGeprint":{ en: "Printed to your size", nl: "Op maat geprint",       fr: "Imprimé à ta taille" },
-  "prod.opBestelling":{ en: "Printed for you — nothing sits on a shelf", nl: "Wordt voor jou geprint — niets ligt op voorraad", fr: "Imprimé pour toi — rien n'est en stock" },
-  "prod.kiesKleur":  { en: "Choose {n} more colour", nl: "Kies nog {n} kleur",    fr: "Choisis encore {n} couleur" },
-  "prod.kiesKleuren":{ en: "Choose {n} more colours", nl: "Kies nog {n} kleuren", fr: "Choisis encore {n} couleurs" },
-  "prod.vulIn":      { en: "Fill in {wat} first",   nl: "Vul eerst {wat} in",     fr: "Remplis d'abord {wat}" },
-  "prod.toevoegen":  { en: "Add to cart",           nl: "Toevoegen",              fr: "Ajouter" },
-  "prod.voetnoot":   { en: "Printed to order — ships within {tijd}.", nl: "Wordt op bestelling geprint — verzending binnen {tijd}.", fr: "Imprimé sur commande — expédié sous {tijd}." },
-  "prod.teveel":     { en: "More than {n} pieces? Just send us a message.", nl: "Meer dan {n} stuks? Stuur even een berichtje.", fr: "Plus de {n} pièces ? Envoie-nous un message." },
-  "prod.toegevoegd": { en: "{naam} added",          nl: "{naam} toegevoegd",      fr: "{naam} ajouté" },
-  "prod.naarWagen":  { en: "To the cart",           nl: "Naar winkelwagen",       fr: "Vers le panier" },
+  "prod.weg":        { en: "This product no longer exists.", nl: "Dit product bestaat niet meer." },
+  "prod.laden":      { en: "Fetching your product…", nl: "Even je product ophalen…" },
+  "prod.uitCollectie":{ en: "This product is not in the collection right now.", nl: "Dit product staat op dit moment niet in de collectie." },
+  "prod.geenBeeld":  { en: "No photo or 3D model yet", nl: "Nog geen foto of 3D-model" },
+  "prod.fotos":      { en: "Photos",                nl: "Foto's" },
+  "prod.afbeelding": { en: "Image {n}",             nl: "Afbeelding {n}" },
+  "prod.infill":     { en: "Infill",                nl: "Infill" },
+  "prod.laaghoogte": { en: "Layer height",          nl: "Laaghoogte" },
+  "prod.afmetingen": { en: "Dimensions",            nl: "Afmetingen" },
+  "prod.printtijd":  { en: "Print time",            nl: "Printtijd" },
+  "prod.gewicht":    { en: "Weight",                nl: "Gewicht" },
+  "prod.toeslagUit": { en: "{basis} + {toeslag} for the chosen filament", nl: "{basis} + {toeslag} voor het gekozen filament" },
+  "prod.korting":    { en: "{pct}% off for a while.", nl: "Tijdelijk {pct}% korting." },
+  "prod.kortingTot": { en: "{pct}% off — until {datum}.", nl: "Tijdelijk {pct}% korting — nog tot {datum}." },
+  "prod.opMaatGeprint":{ en: "Printed to your size", nl: "Op maat geprint" },
+  "prod.opBestelling":{ en: "Printed for you — nothing sits on a shelf", nl: "Wordt voor jou geprint — niets ligt op voorraad" },
+  "prod.kiesKleur":  { en: "Choose {n} more colour", nl: "Kies nog {n} kleur" },
+  "prod.kiesKleuren":{ en: "Choose {n} more colours", nl: "Kies nog {n} kleuren" },
+  "prod.vulIn":      { en: "Fill in {wat} first",   nl: "Vul eerst {wat} in" },
+  "prod.toevoegen":  { en: "Add to cart",           nl: "Toevoegen" },
+  "prod.voetnoot":   { en: "Printed to order — ships within {tijd}.", nl: "Wordt op bestelling geprint — verzending binnen {tijd}." },
+  "prod.teveel":     { en: "More than {n} pieces? Just send us a message.", nl: "Meer dan {n} stuks? Stuur even een berichtje." },
+  "prod.toegevoegd": { en: "{naam} added",          nl: "{naam} toegevoegd" },
+  "prod.naarWagen":  { en: "To the cart",           nl: "Naar winkelwagen" },
 
   // --- hoe groot is het ---
-  "maat.kop":        { en: "How big is it?",        nl: "Hoe groot is het?",      fr: "Quelle taille fait-il ?" },
-  "maat.ernaast":    { en: "next to:",              nl: "ernaast:",               fr: "à côté :" },
-  "maat.niets":      { en: "Nothing",               nl: "Niets",                  fr: "Rien" },
-  "maat.echt":       { en: "Side by side at real size — this is the actual model.", nl: "Op ware grootte naast elkaar — dit is het echte model.", fr: "Côte à côte à taille réelle — c'est le vrai modèle." },
+  "maat.kop":        { en: "How big is it?",        nl: "Hoe groot is het?" },
+  "maat.ernaast":    { en: "next to:",              nl: "ernaast:" },
+  "maat.niets":      { en: "Nothing",               nl: "Niets" },
+  "maat.echt":       { en: "Side by side at real size — this is the actual model.", nl: "Op ware grootte naast elkaar — dit is het echte model." },
   "maat.blok":       { en: "Side by side at real size. The block has this product's dimensions, not its shape: there is no 3D model for this product yet.",
-                       nl: "Op ware grootte naast elkaar. Het blok heeft de afmetingen van dit product, niet zijn vorm: er hoort nog geen 3D-model bij dit product.",
-                       fr: "Côte à côte à taille réelle. Le bloc a les dimensions de ce produit, pas sa forme : il n'y a pas encore de modèle 3D." },
-  "ref.munt":        { en: "Coin",                  nl: "Muntstuk",               fr: "Pièce" },
-  "ref.kaart":       { en: "Bank card",             nl: "Bankkaart",              fr: "Carte bancaire" },
-  "ref.telefoon":    { en: "Phone",                 nl: "Telefoon",               fr: "Téléphone" },
-  "ref.blikje":      { en: "Drinks can",            nl: "Blikje",                 fr: "Canette" },
+                       nl: "Op ware grootte naast elkaar. Het blok heeft de afmetingen van dit product, niet zijn vorm: er hoort nog geen 3D-model bij dit product." },
+  "ref.munt":        { en: "Coin",                  nl: "Muntstuk" },
+  "ref.kaart":       { en: "Bank card",             nl: "Bankkaart" },
+  "ref.telefoon":    { en: "Phone",                 nl: "Telefoon" },
+  "ref.blikje":      { en: "Drinks can",            nl: "Blikje" },
 
   // --- naam op je print ---
-  "pers.magLeeg":    { en: "(optional)",            nl: "(mag leeg)",             fr: "(facultatif)" },
-  "pers.hint":       { en: "Type your text here",   nl: "Typ hier je tekst",      fr: "Écris ton texte ici" },
-  "pers.kost":       { en: "Costs {prijs} extra.",  nl: "Kost {prijs} extra.",    fr: "Coûte {prijs} en plus." },
-  "pers.gratis":     { en: "Included in the price.", nl: "Zit bij de prijs in.",  fr: "Compris dans le prix." },
-  "pers.meegeprint": { en: "We print this into the model.", nl: "Dit printen we mee in het model.", fr: "Nous l'imprimons dans le modèle." },
+  "pers.magLeeg":    { en: "(optional)",            nl: "(mag leeg)" },
+  "pers.hint":       { en: "Type your text here",   nl: "Typ hier je tekst" },
+  "pers.kost":       { en: "Costs {prijs} extra.",  nl: "Kost {prijs} extra." },
+  "pers.gratis":     { en: "Included in the price.", nl: "Zit bij de prijs in." },
+  "pers.meegeprint": { en: "We print this into the model.", nl: "Dit printen we mee in het model." },
 
   // --- setjes ---
-  "bundel.kop":      { en: "This set contains",     nl: "Dit setje bestaat uit",  fr: "Ce lot contient" },
-  "bundel.los":      { en: "Separately that would be {prijs}", nl: "Los zou dat {prijs} zijn", fr: "Séparément cela ferait {prijs}" },
-  "bundel.bespaart": { en: "you save {bedrag}",     nl: "je bespaart {bedrag}",   fr: "tu économises {bedrag}" },
-  "bundel.samen":    { en: "together {prijs}",      nl: "samen {prijs}",          fr: "ensemble {prijs}" },
-  "bundel.kleuren":  { en: "You pick a colour for each piece below.", nl: "Je kiest hieronder voor elk stuk apart een kleur.", fr: "Tu choisis une couleur pour chaque pièce ci-dessous." },
+  "bundel.kop":      { en: "This set contains",     nl: "Dit setje bestaat uit" },
+  "bundel.los":      { en: "Separately that would be {prijs}", nl: "Los zou dat {prijs} zijn" },
+  "bundel.bespaart": { en: "you save {bedrag}",     nl: "je bespaart {bedrag}" },
+  "bundel.samen":    { en: "together {prijs}",      nl: "samen {prijs}" },
+  "bundel.kleuren":  { en: "You pick a colour for each piece below.", nl: "Je kiest hieronder voor elk stuk apart een kleur." },
 
   // --- materiaalgids ---
-  "gids.knop":       { en: "Which material?",       nl: "Welk materiaal?",        fr: "Quel matériau ?" },
-  "gids.titel":      { en: "Which material do you pick for what?", nl: "Welk materiaal kies je waarvoor?", fr: "Quel matériau choisir pour quoi ?" },
+  "gids.knop":       { en: "Which material?",       nl: "Welk materiaal?" },
+  "gids.titel":      { en: "Which material do you pick for what?", nl: "Welk materiaal kies je waarvoor?" },
   "gids.intro":      { en: "We print every type just as neatly; the difference is what you use it for. In doubt? PLA Basic is the right choice for almost anything indoors.",
-                       nl: "Alle soorten printen we even netjes; het verschil zit in waar je het voor gebruikt. Twijfel je? PLA Basic is voor bijna alles binnenshuis de juiste keuze.",
-                       fr: "Nous imprimons tous les types aussi soigneusement ; la différence est l'usage. Un doute ? PLA Basic convient à presque tout à l'intérieur." },
-  "gids.goed":       { en: "Good for",              nl: "Goed voor",              fr: "Bon pour" },
-  "gids.let":        { en: "Watch out",             nl: "Let op",                 fr: "Attention" },
-  "gids.sterkte":    { en: "Strength",              nl: "Sterkte",                fr: "Résistance" },
-  "gids.uitzicht":   { en: "Look",                  nl: "Uitzicht",               fr: "Aspect" },
+                       nl: "Alle soorten printen we even netjes; het verschil zit in waar je het voor gebruikt. Twijfel je? PLA Basic is voor bijna alles binnenshuis de juiste keuze." },
+  "gids.goed":       { en: "Good for",              nl: "Goed voor" },
+  "gids.let":        { en: "Watch out",             nl: "Let op" },
+  "gids.sterkte":    { en: "Strength",              nl: "Sterkte" },
+  "gids.uitzicht":   { en: "Look",                  nl: "Uitzicht" },
 
   // --- filament ---
-  "fil.kop":         { en: "Filament",              nl: "Filament",               fr: "Filament" },
-  "fil.geen":        { en: "No filaments are switched on yet.", nl: "Er zijn nog geen filamenten ingeschakeld.", fr: "Aucun filament n'est encore activé." },
-  "fil.startprijs":  { en: "base price",            nl: "startprijs",             fr: "prix de base" },
-  "afw.basic":       { en: "Standard",              nl: "Standaard",              fr: "Standard" },
-  "afw.matte":       { en: "Matte",                 nl: "Mat",                    fr: "Mat" },
-  "afw.silk":        { en: "Silk",                  nl: "Zijdeglans",             fr: "Soyeux" },
+  "fil.kop":         { en: "Filament",              nl: "Filament" },
+  "fil.geen":        { en: "No filaments are switched on yet.", nl: "Er zijn nog geen filamenten ingeschakeld." },
+  "fil.startprijs":  { en: "base price",            nl: "startprijs" },
+  "afw.basic":       { en: "Standard",              nl: "Standaard" },
+  "afw.matte":       { en: "Matte",                 nl: "Mat" },
+  "afw.silk":        { en: "Silk",                  nl: "Zijdeglans" },
   "fil.toeslagUitleg":{ en: "The price above is for the base type. Pick a dearer type and the amount shown on it is added.",
-                       nl: "De prijs hierboven geldt voor de startprijs. Kies je een duurder soort, dan komt het bedrag erbij dat erop staat.",
-                       fr: "Le prix ci-dessus vaut pour le type de base. Si tu choisis un type plus cher, le montant indiqué s'ajoute." },
-  "pers.label":      { en: "Name or text",          nl: "Naam of tekst",          fr: "Nom ou texte" },
+                       nl: "De prijs hierboven geldt voor de startprijs. Kies je een duurder soort, dan komt het bedrag erbij dat erop staat." },
+  "pers.label":      { en: "Name or text",          nl: "Naam of tekst" },
 
   // --- kleurvakken ---
-  "slot.kop":        { en: "Pick your colours",     nl: "Kies je kleuren",        fr: "Choisis tes couleurs" },
-  "slot.uitleg":     { en: "This model has {n} pieces. Pick a colour for each one.", nl: "Dit model bestaat uit {n} stukken. Kies voor elk stuk een kleur.", fr: "Ce modèle a {n} pièces. Choisis une couleur pour chacune." },
-  "slot.kies":       { en: "Pick a colour",         nl: "Kies een kleur",         fr: "Choisis une couleur" },
-  "slot.kiesVoor":   { en: "Still pick a colour for {naam}", nl: "Kies nog een kleur voor {naam}", fr: "Choisis encore une couleur pour {naam}" },
+  "slot.kop":        { en: "Pick your colours",     nl: "Kies je kleuren" },
+  "slot.uitleg":     { en: "This model has {n} pieces. Pick a colour for each one.", nl: "Dit model bestaat uit {n} stukken. Kies voor elk stuk een kleur." },
+  "slot.kies":       { en: "Pick a colour",         nl: "Kies een kleur" },
+  "slot.kiesVoor":   { en: "Still pick a colour for {naam}", nl: "Kies nog een kleur voor {naam}" },
 
   // --- maat op bestelling ---
-  "maat.jouwAfmetingen":{ en: "Your dimensions",    nl: "Jouw afmetingen",        fr: "Tes dimensions" },
-  "maat.inMm":       { en: "IN MM",                 nl: "IN MM",                  fr: "EN MM" },
-  "maat.lengte":     { en: "Length",                nl: "Lengte",                 fr: "Longueur" },
-  "maat.breedte":    { en: "Width",                 nl: "Breedte",                fr: "Largeur" },
-  "maat.hoogte":     { en: "Height",                nl: "Hoogte",                 fr: "Hauteur" },
+  "maat.jouwAfmetingen":{ en: "Your dimensions",    nl: "Jouw afmetingen" },
+  "maat.inMm":       { en: "IN MM",                 nl: "IN MM" },
+  "maat.lengte":     { en: "Length",                nl: "Lengte" },
+  "maat.breedte":    { en: "Width",                 nl: "Breedte" },
+  "maat.hoogte":     { en: "Height",                nl: "Hoogte" },
   "maat.prijsVolgt": { en: "The price follows your dimensions: more material and more print time means a higher price.",
-                       nl: "De prijs volgt je maten: meer materiaal en meer printtijd betekent een hogere prijs.",
-                       fr: "Le prix suit tes dimensions : plus de matière et plus de temps d'impression, prix plus élevé." },
-  "maat.opDePlaat":  { en: "This is how big it is on the plate", nl: "Zo groot is het op de plaat", fr: "Voici sa taille sur le plateau" },
+                       nl: "De prijs volgt je maten: meer materiaal en meer printtijd betekent een hogere prijs." },
+  "maat.opDePlaat":  { en: "This is how big it is on the plate", nl: "Zo groot is het op de plaat" },
 
   // --- prijsopbouw ---
-  "prijs.berekend":  { en: "Calculated price",      nl: "Berekende prijs",        fr: "Prix calculé" },
-  "prijs.voorbereiding":{ en: "Preparation",        nl: "Voorbereiding",          fr: "Préparation" },
+  "prijs.berekend":  { en: "Calculated price",      nl: "Berekende prijs" },
+  "prijs.voorbereiding":{ en: "Preparation",        nl: "Voorbereiding" },
   // --- winkelwagen ---
-  "wagen.leeg":      { en: "Your cart is empty.",   nl: "Je winkelwagen is leeg.", fr: "Ton panier est vide." },
-  "wagen.klik":      { en: "Click a product to see which colour goes where.", nl: "Klik op een product om te zien welke kleur waar komt.", fr: "Clique sur un produit pour voir quelle couleur va où." },
-  "wagen.details":   { en: "Details",               nl: "Details",                fr: "Détails" },
-  "wagen.onderdelen":{ en: "{n} parts",             nl: "{n} onderdelen",         fr: "{n} pièces" },
-  "wagen.eenMinder": { en: "One fewer",             nl: "Eén minder",             fr: "Un de moins" },
-  "wagen.eenMeer":   { en: "One more",              nl: "Eén meer",               fr: "Un de plus" },
-  "wagen.eruit":     { en: "Remove from the cart",  nl: "Uit de winkelwagen",     fr: "Retirer du panier" },
-  "wagen.nogTotGratis":{ en: "{bedrag} more and shipping is free.", nl: "Nog {bedrag} en de verzending is gratis.", fr: "Encore {bedrag} et la livraison est offerte." },
-  "wagen.gratisVerzending":{ en: "Your shipping is free", nl: "Je verzending is gratis", fr: "Ta livraison est offerte" },
-  "wagen.afrekenen": { en: "Check out",             nl: "Afrekenen",              fr: "Payer" },
+  "wagen.leeg":      { en: "Your cart is empty.",   nl: "Je winkelwagen is leeg." },
+  "wagen.klik":      { en: "Click a product to see which colour goes where.", nl: "Klik op een product om te zien welke kleur waar komt." },
+  "wagen.details":   { en: "Details",               nl: "Details" },
+  "wagen.onderdelen":{ en: "{n} parts",             nl: "{n} onderdelen" },
+  "wagen.eenMinder": { en: "One fewer",             nl: "Eén minder" },
+  "wagen.eenMeer":   { en: "One more",              nl: "Eén meer" },
+  "wagen.eruit":     { en: "Remove from the cart",  nl: "Uit de winkelwagen" },
+  "wagen.nogTotGratis":{ en: "{bedrag} more and shipping is free.", nl: "Nog {bedrag} en de verzending is gratis." },
+  "wagen.gratisVerzending":{ en: "Your shipping is free", nl: "Je verzending is gratis" },
+  "wagen.afrekenen": { en: "Check out",             nl: "Afrekenen" },
 
   // --- landen en bestelstatussen; in de databank staan de Nederlandse namen ---
-  "land.België":           { en: "Belgium",         nl: "België",           fr: "Belgique" },
-  "land.Nederland":        { en: "Netherlands",     nl: "Nederland",        fr: "Pays-Bas" },
-  "land.Duitsland":        { en: "Germany",         nl: "Duitsland",        fr: "Allemagne" },
-  "land.Frankrijk":        { en: "France",          nl: "Frankrijk",        fr: "France" },
-  "land.Andere EU-landen": { en: "Other EU countries", nl: "Andere EU-landen", fr: "Autres pays de l'UE" },
-  "land.Buiten de EU":     { en: "Outside the EU",  nl: "Buiten de EU",     fr: "Hors UE" },
-  "status.In verwerking":  { en: "Being processed", nl: "In verwerking",    fr: "En traitement" },
-  "status.Wordt geprint":  { en: "Printing",        nl: "Wordt geprint",    fr: "En impression" },
-  "status.Verzonden":      { en: "Shipped",         nl: "Verzonden",        fr: "Expédié" },
-  "status.Geleverd":       { en: "Delivered",       nl: "Geleverd",         fr: "Livré" },
+  "land.België":           { en: "Belgium",         nl: "België" },
+  "land.Nederland":        { en: "Netherlands",     nl: "Nederland" },
+  "land.Duitsland":        { en: "Germany",         nl: "Duitsland" },
+  "land.Frankrijk":        { en: "France",          nl: "Frankrijk" },
+  "land.Andere EU-landen": { en: "Other EU countries", nl: "Andere EU-landen" },
+  "land.Buiten de EU":     { en: "Outside the EU",  nl: "Buiten de EU" },
+  "status.In verwerking":  { en: "Being processed", nl: "In verwerking" },
+  "status.Wordt geprint":  { en: "Printing",        nl: "Wordt geprint" },
+  "status.Verzonden":      { en: "Shipped",         nl: "Verzonden" },
+  "status.Geleverd":       { en: "Delivered",       nl: "Geleverd" },
 
   // --- afrekenen ---
-  "ck.terug":        { en: "Back to the cart",      nl: "Terug naar winkelwagen", fr: "Retour au panier" },
-  "ck.kop":          { en: "Check out",             nl: "Afrekenen",              fr: "Paiement" },
-  "ck.verzenden":    { en: "Ship it",               nl: "Verzenden",              fr: "Livraison" },
-  "ck.afhalen":      { en: "Pick it up",            nl: "Afhalen",                fr: "Retrait" },
+  "ck.terug":        { en: "Back to the cart",      nl: "Terug naar winkelwagen" },
+  "ck.kop":          { en: "Check out",             nl: "Afrekenen" },
+  "ck.verzenden":    { en: "Ship it",               nl: "Verzenden" },
+  "ck.afhalen":      { en: "Pick it up",            nl: "Afhalen" },
   "ck.onthouden":    { en: "We filled in your address from last time. No longer right? Just type over it.",
-                       nl: "We hebben je adres van de vorige keer al ingevuld. Klopt het niet meer? Typ het gewoon over.",
-                       fr: "Nous avons repris ton adresse de la dernière fois. Elle a changé ? Réécris-la simplement." },
-  "ck.bezorgadres":  { en: "Delivery address",      nl: "Bezorgadres",            fr: "Adresse de livraison" },
-  "ck.straat":       { en: "Street + number",       nl: "Straat + nr",            fr: "Rue + numéro" },
-  "ck.postcode":     { en: "Postcode",              nl: "Postcode",               fr: "Code postal" },
-  "ck.gemeente":     { en: "Town",                  nl: "Gemeente",               fr: "Commune" },
-  "ck.land":         { en: "Country",               nl: "Land",                   fr: "Pays" },
-  "ck.nietGevonden": { en: "We can't find this address", nl: "Dit adres vinden we niet terug", fr: "Nous ne trouvons pas cette adresse" },
+                       nl: "We hebben je adres van de vorige keer al ingevuld. Klopt het niet meer? Typ het gewoon over." },
+  "ck.bezorgadres":  { en: "Delivery address",      nl: "Bezorgadres" },
+  "ck.straat":       { en: "Street + number",       nl: "Straat + nr" },
+  "ck.postcode":     { en: "Postcode",              nl: "Postcode" },
+  "ck.gemeente":     { en: "Town",                  nl: "Gemeente" },
+  "ck.land":         { en: "Country",               nl: "Land" },
+  "ck.nietGevonden": { en: "We can't find this address", nl: "Dit adres vinden we niet terug" },
   "ck.nietGevondenUit":{ en: "Check the street, the house number and the town. All correct? Then it may be a new street that isn't on the map yet.",
-                       nl: "Kijk de straat, het huisnummer en de gemeente nog even na. Klopt alles? Dan kan het een nieuwe straat zijn die nog niet op de kaart staat.",
-                       fr: "Vérifie la rue, le numéro et la commune. Tout est bon ? C'est peut-être une rue récente, pas encore sur la carte." },
-  "ck.tochDoor":     { en: "It's right, carry on",  nl: "Het klopt, ga door",     fr: "C'est correct, continue" },
-  "ck.bedoelJe":     { en: "Do you mean this address?", nl: "Bedoel je dit adres?", fr: "Tu veux dire cette adresse ?" },
-  "ck.neemOver":     { en: "Yes, use that",         nl: "Ja, neem over",          fr: "Oui, utilise-la" },
-  "ck.houdMijn":     { en: "No, keep what I typed", nl: "Nee, hou wat ik typte",  fr: "Non, garde ce que j'ai écrit" },
-  "ck.code":         { en: "Discount code",         nl: "Kortingscode",           fr: "Code de réduction" },
-  "ck.codeWeg":      { en: "Remove",                nl: "Weghalen",               fr: "Retirer" },
-  "ck.codeToepassen":{ en: "Apply",                 nl: "Toepassen",              fr: "Appliquer" },
-  "ck.codeToegepast":{ en: "Code {code} applied — {uitleg}", nl: "Code {code} toegepast — {uitleg}", fr: "Code {code} appliqué — {uitleg}" },
-  "ck.gratisVerzending":{ en: "Free shipping",      nl: "Gratis verzending",      fr: "Livraison offerte" },
-  "ck.kortingRegel": { en: "Discount {code}",       nl: "Korting {code}",         fr: "Remise {code}" },
-  "ck.nakijken":     { en: "Checking the address…", nl: "Adres nakijken…",        fr: "Vérification de l'adresse…" },
-  "ck.naarBetaling": { en: "To payment",            nl: "Naar betaling",          fr: "Vers le paiement" },
-  "ck.demo":         { en: "Demo environment: no real payment is processed.", nl: "Demo-omgeving: er wordt geen echte betaling verwerkt.", fr: "Environnement de démonstration : aucun paiement réel n'est traité." },
-  "ck.kiesMoment":   { en: "Pick a time to collect it", nl: "Kies een moment om af te halen", fr: "Choisis un moment pour venir le chercher" },
-  "ck.momentWeg":    { en: "That time is gone — pick another", nl: "Dat moment kan niet meer — kies een ander", fr: "Ce moment n'est plus possible — choisis-en un autre" },
-  "ck.wanneerHalen": { en: "When will you collect it?", nl: "Wanneer kom je het halen?", fr: "Quand viens-tu le chercher ?" },
-  "ck.geenMomenten": { en: "There are no collection times open right now.", nl: "Er staan op dit moment geen afhaalmomenten open.", fr: "Aucun créneau de retrait n'est ouvert pour le moment." },
-  "ck.laatOpsturen": { en: "Have it shipped",       nl: "Laat het opsturen",      fr: "Fais-le expédier" },
-  "adres.volledig":  { en: "Fill in your address completely", nl: "Vul je adres volledig in", fr: "Complète ton adresse" },
-  "adres.huisnummer":{ en: "Add the house number to the street", nl: "Zet het huisnummer bij de straat", fr: "Ajoute le numéro à la rue" },
-  "adres.postcode":  { en: "A {land} postcode is {uitleg}", nl: "De postcode van {land} bestaat uit {uitleg}", fr: "Un code postal de {land} est {uitleg}" },
-  "adres.vorm.be":   { en: "four digits, for example 9280", nl: "vier cijfers, bijvoorbeeld 9280", fr: "quatre chiffres, par exemple 9280" },
-  "adres.vorm.nl":   { en: "four digits and two letters, for example 1012 AB", nl: "vier cijfers en twee letters, bijvoorbeeld 1012 AB", fr: "quatre chiffres et deux lettres, par exemple 1012 AB" },
-  "adres.vorm.de":   { en: "five digits, for example 50667", nl: "vijf cijfers, bijvoorbeeld 50667", fr: "cinq chiffres, par exemple 50667" },
-  "adres.vorm.fr":   { en: "five digits, for example 75001", nl: "vijf cijfers, bijvoorbeeld 75001", fr: "cinq chiffres, par exemple 75001" },
+                       nl: "Kijk de straat, het huisnummer en de gemeente nog even na. Klopt alles? Dan kan het een nieuwe straat zijn die nog niet op de kaart staat." },
+  "ck.tochDoor":     { en: "It's right, carry on",  nl: "Het klopt, ga door" },
+  "ck.bedoelJe":     { en: "Do you mean this address?", nl: "Bedoel je dit adres?" },
+  "ck.neemOver":     { en: "Yes, use that",         nl: "Ja, neem over" },
+  "ck.houdMijn":     { en: "No, keep what I typed", nl: "Nee, hou wat ik typte" },
+  "ck.code":         { en: "Discount code",         nl: "Kortingscode" },
+  "ck.codeWeg":      { en: "Remove",                nl: "Weghalen" },
+  "ck.codeToepassen":{ en: "Apply",                 nl: "Toepassen" },
+  "ck.codeToegepast":{ en: "Code {code} applied — {uitleg}", nl: "Code {code} toegepast — {uitleg}" },
+  "ck.gratisVerzending":{ en: "Free shipping",      nl: "Gratis verzending" },
+  "ck.kortingRegel": { en: "Discount {code}",       nl: "Korting {code}" },
+  "ck.nakijken":     { en: "Checking the address…", nl: "Adres nakijken…" },
+  "ck.naarBetaling": { en: "To payment",            nl: "Naar betaling" },
+  "ck.demo":         { en: "Demo environment: no real payment is processed.", nl: "Demo-omgeving: er wordt geen echte betaling verwerkt." },
+  "ck.kiesMoment":   { en: "Pick a time to collect it", nl: "Kies een moment om af te halen" },
+  "ck.momentWeg":    { en: "That time is gone — pick another", nl: "Dat moment kan niet meer — kies een ander" },
+  "ck.wanneerHalen": { en: "When will you collect it?", nl: "Wanneer kom je het halen?" },
+  "ck.geenMomenten": { en: "There are no collection times open right now.", nl: "Er staan op dit moment geen afhaalmomenten open." },
+  "ck.laatOpsturen": { en: "Have it shipped",       nl: "Laat het opsturen" },
+  "adres.volledig":  { en: "Fill in your address completely", nl: "Vul je adres volledig in" },
+  "adres.huisnummer":{ en: "Add the house number to the street", nl: "Zet het huisnummer bij de straat" },
+  "adres.postcode":  { en: "A {land} postcode is {uitleg}", nl: "De postcode van {land} bestaat uit {uitleg}" },
+  "adres.vorm.be":   { en: "four digits, for example 9280", nl: "vier cijfers, bijvoorbeeld 9280" },
+  "adres.vorm.nl":   { en: "four digits and two letters, for example 1012 AB", nl: "vier cijfers en twee letters, bijvoorbeeld 1012 AB" },
+  "adres.vorm.de":   { en: "five digits, for example 50667", nl: "vijf cijfers, bijvoorbeeld 50667" },
+  "adres.vorm.fr":   { en: "five digits, for example 75001", nl: "vijf cijfers, bijvoorbeeld 75001" },
 
   // --- betalen ---
-  "pay.geenBestelling":{ en: "No order in progress.", nl: "Geen bestelling in behandeling.", fr: "Aucune commande en cours." },
-  "pay.naarWagen":   { en: "To the cart",           nl: "Naar winkelwagen",       fr: "Vers le panier" },
-  "pay.terug":       { en: "Back to your details",  nl: "Terug naar gegevens",    fr: "Retour aux coordonnées" },
-  "pay.kop":         { en: "Payment",               nl: "Betalen",                fr: "Paiement" },
-  "pay.testKop":     { en: "Test mode — you pay with play money.", nl: "Testmodus — je betaalt met nepgeld.", fr: "Mode test — tu paies avec de l'argent fictif." },
+  "pay.geenBestelling":{ en: "No order in progress.", nl: "Geen bestelling in behandeling." },
+  "pay.naarWagen":   { en: "To the cart",           nl: "Naar winkelwagen" },
+  "pay.terug":       { en: "Back to your details",  nl: "Terug naar gegevens" },
+  "pay.kop":         { en: "Payment",               nl: "Betalen" },
+  "pay.testKop":     { en: "Test mode — you pay with play money.", nl: "Testmodus — je betaalt met nepgeld." },
   "pay.testUit":     { en: "No real payment is processed and no card is needed. The order is still created, so you can try the whole flow.",
-                       nl: "Er wordt geen echte betaling verwerkt en er is geen kaart nodig. De bestelling wordt wel gewoon aangemaakt, zodat je de hele flow kunt uittesten.",
-                       fr: "Aucun paiement réel n'est traité et aucune carte n'est requise. La commande est bien créée, pour que tu puisses tester tout le parcours." },
-  "pay.testkaart":   { en: "TEST CARD",             nl: "TESTKAART",              fr: "CARTE TEST" },
-  "pay.testgebruiker":{ en: "TEST USER",            nl: "TESTGEBRUIKER",          fr: "UTILISATEUR TEST" },
-  "pay.zelfOphalen": { en: "You collect it yourself", nl: "Je haalt het zelf op", fr: "Tu viens le chercher" },
-  "pay.methode":     { en: "Payment method",        nl: "Betaalmethode",          fr: "Moyen de paiement" },
-  "pay.kaart":       { en: "Credit card",           nl: "Kredietkaart",           fr: "Carte de crédit" },
-  "pay.overschrijving":{ en: "Bank transfer",       nl: "Overschrijving",         fr: "Virement" },
-  "pay.naar":        { en: "Shipping to {land}",    nl: "Verzending naar {land}", fr: "Livraison vers {land}" },
-  "pay.teBetalen":   { en: "To pay",                nl: "Te betalen",             fr: "À payer" },
-  "pay.knop":        { en: "Pay {bedrag} with play money", nl: "Betaal {bedrag} met testgeld", fr: "Payer {bedrag} en argent fictif" },
+                       nl: "Er wordt geen echte betaling verwerkt en er is geen kaart nodig. De bestelling wordt wel gewoon aangemaakt, zodat je de hele flow kunt uittesten." },
+  "pay.testkaart":   { en: "TEST CARD",             nl: "TESTKAART" },
+  "pay.testgebruiker":{ en: "TEST USER",            nl: "TESTGEBRUIKER" },
+  "pay.zelfOphalen": { en: "You collect it yourself", nl: "Je haalt het zelf op" },
+  "pay.methode":     { en: "Payment method",        nl: "Betaalmethode" },
+  "pay.kaart":       { en: "Credit card",           nl: "Kredietkaart" },
+  "pay.overschrijving":{ en: "Bank transfer",       nl: "Overschrijving" },
+  "pay.naar":        { en: "Shipping to {land}",    nl: "Verzending naar {land}" },
+  "pay.teBetalen":   { en: "To pay",                nl: "Te betalen" },
+  "pay.knop":        { en: "Pay {bedrag} with play money", nl: "Betaal {bedrag} met testgeld" },
   "pay.voetnoot":    { en: "As soon as you really want to sell, we replace this step with a real payment provider.",
-                       nl: "Zodra je echt wilt verkopen, vervangen we deze stap door een echte betaalprovider.",
-                       fr: "Dès que tu voudras vendre pour de vrai, nous remplacerons cette étape par un vrai prestataire de paiement." },
-  "pay.bezig":       { en: "Processing payment…",   nl: "Betaling verwerken…",    fr: "Paiement en cours…" },
-  "pay.testgeld":    { en: " (play money)",         nl: " (testgeld)",            fr: " (argent fictif)" },
+                       nl: "Zodra je echt wilt verkopen, vervangen we deze stap door een echte betaalprovider." },
+  "pay.bezig":       { en: "Processing payment…",   nl: "Betaling verwerken…" },
+  "pay.testgeld":    { en: " (play money)",         nl: " (testgeld)" },
 
   // --- inloggen en registreren ---
-  "auth.inloggen":   { en: "Log in",                nl: "Inloggen",               fr: "Se connecter" },
-  "auth.maken":      { en: "Create an account",     nl: "Account aanmaken",       fr: "Créer un compte" },
-  "auth.inlogSub":   { en: "Log in to order.",      nl: "Log in om te bestellen.", fr: "Connecte-toi pour commander." },
-  "auth.maakSub":    { en: "Create an account to order.", nl: "Maak een account om te bestellen.", fr: "Crée un compte pour commander." },
-  "auth.naam":       { en: "Name",                  nl: "Naam",                   fr: "Nom" },
-  "auth.email":      { en: "Email address",         nl: "E-mailadres",            fr: "Adresse e-mail" },
-  "auth.wachtwoord": { en: "Password (min. 6 characters)", nl: "Wachtwoord (min. 6 tekens)", fr: "Mot de passe (min. 6 caractères)" },
-  "auth.naarRegister":{ en: "No account yet? Sign up", nl: "Nog geen account? Registreer", fr: "Pas encore de compte ? Inscris-toi" },
-  "auth.naarLogin":  { en: "Already have an account? Log in", nl: "Al een account? Log in", fr: "Déjà un compte ? Connecte-toi" },
-  "auth.gemaakt":    { en: "Account created — welcome {naam}", nl: "Account aangemaakt — welkom {naam}", fr: "Compte créé — bienvenue {naam}" },
-  "auth.ingelogd":   { en: "Logged in",             nl: "Ingelogd",               fr: "Connecté" },
-  "auth.uitgelogd":  { en: "Logged out",            nl: "Uitgelogd",              fr: "Déconnecté" },
-  "alg.fout":        { en: "Error:",                nl: "Fout:",                  fr: "Erreur :" },
-  "link.nietVanJou": { en: "This order does not belong to this account", nl: "Deze bestelling hoort niet bij dit account", fr: "Cette commande n'appartient pas à ce compte" },
-  "link.klikOntvangen":{ en: "Click Received to confirm that your parcel has arrived", nl: "Klik op Ontvangen om te bevestigen dat je pakket aangekomen is", fr: "Clique sur Reçu pour confirmer que ton colis est arrivé" },
-  "ck.logIn":        { en: "Log in to order",       nl: "Log in om te bestellen", fr: "Connecte-toi pour commander" },
-  "ck.codeVervallen":{ en: "The code {code} is no longer valid: {waarom}", nl: "De code {code} geldt niet meer: {waarom}", fr: "Le code {code} n'est plus valable : {waarom}" },
-  "ck.bestellenMislukt":{ en: "Ordering failed:",   nl: "Bestellen mislukt:",     fr: "Échec de la commande :" },
-  "code.bestaatNiet":{ en: "This code does not exist", nl: "Deze code bestaat niet", fr: "Ce code n'existe pas" },
-  "code.staatUit":   { en: "This code is switched off", nl: "Deze code staat uit", fr: "Ce code est désactivé" },
-  "code.verlopen":   { en: "This code has expired", nl: "Deze code is verlopen",  fr: "Ce code a expiré" },
-  "code.opgebruikt": { en: "This code has already been used up", nl: "Deze code is al opgebruikt", fr: "Ce code a déjà été utilisé" },
-  "code.vanaf":      { en: "This code applies from {bedrag}", nl: "Deze code geldt vanaf {bedrag}", fr: "Ce code s'applique à partir de {bedrag}" },
-  "code.nietsOp":    { en: "This code gains you nothing here", nl: "Deze code levert hier niets op", fr: "Ce code n'apporte rien ici" },
-  "code.pct":        { en: "{pct}% off",            nl: "{pct}% korting",         fr: "{pct} % de remise" },
-  "code.euro":       { en: "{bedrag} off",          nl: "{bedrag} korting",       fr: "{bedrag} de remise" },
-  "code.vulIn":      { en: "Enter a code",          nl: "Vul een code in",        fr: "Saisis un code" },
-  "code.nietNakijken":{ en: "Could not check the code", nl: "Kon de code niet nakijken", fr: "Impossible de vérifier le code" },
-  "code.nietGeteld": { en: "Note: use of code {code} was not counted —", nl: "Let op: het gebruik van code {code} is niet geteld —", fr: "Attention : l'utilisation du code {code} n'a pas été comptée —" },
-  "order.opgeborgen":{ en: "Taken out of the overview — you'll find it in the archive", nl: "Uit het overzicht gehaald — je vindt hem terug in het archief", fr: "Retiré de l'aperçu — tu le retrouveras dans les archives" },
-  "order.teruggezet":{ en: "Back in the overview",  nl: "Weer in het overzicht gezet", fr: "Remis dans l'aperçu" },
+  "auth.inloggen":   { en: "Log in",                nl: "Inloggen" },
+  "auth.maken":      { en: "Create an account",     nl: "Account aanmaken" },
+  "auth.inlogSub":   { en: "Log in to order.",      nl: "Log in om te bestellen." },
+  "auth.maakSub":    { en: "Create an account to order.", nl: "Maak een account om te bestellen." },
+  "auth.naam":       { en: "Name",                  nl: "Naam" },
+  "auth.email":      { en: "Email address",         nl: "E-mailadres" },
+  "auth.wachtwoord": { en: "Password (min. 6 characters)", nl: "Wachtwoord (min. 6 tekens)" },
+  "auth.naarRegister":{ en: "No account yet? Sign up", nl: "Nog geen account? Registreer" },
+  "auth.naarLogin":  { en: "Already have an account? Log in", nl: "Al een account? Log in" },
+  "auth.gemaakt":    { en: "Account created — welcome {naam}", nl: "Account aangemaakt — welkom {naam}" },
+  "auth.ingelogd":   { en: "Logged in",             nl: "Ingelogd" },
+  "auth.uitgelogd":  { en: "Logged out",            nl: "Uitgelogd" },
+  "alg.fout":        { en: "Error:",                nl: "Fout:" },
+  "link.nietVanJou": { en: "This order does not belong to this account", nl: "Deze bestelling hoort niet bij dit account" },
+  "link.klikOntvangen":{ en: "Click Received to confirm that your parcel has arrived", nl: "Klik op Ontvangen om te bevestigen dat je pakket aangekomen is" },
+  "ck.logIn":        { en: "Log in to order",       nl: "Log in om te bestellen" },
+  "ck.codeVervallen":{ en: "The code {code} is no longer valid: {waarom}", nl: "De code {code} geldt niet meer: {waarom}" },
+  "ck.bestellenMislukt":{ en: "Ordering failed:",   nl: "Bestellen mislukt:" },
+  "code.bestaatNiet":{ en: "This code does not exist", nl: "Deze code bestaat niet" },
+  "code.staatUit":   { en: "This code is switched off", nl: "Deze code staat uit" },
+  "code.verlopen":   { en: "This code has expired", nl: "Deze code is verlopen" },
+  "code.opgebruikt": { en: "This code has already been used up", nl: "Deze code is al opgebruikt" },
+  "code.vanaf":      { en: "This code applies from {bedrag}", nl: "Deze code geldt vanaf {bedrag}" },
+  "code.nietsOp":    { en: "This code gains you nothing here", nl: "Deze code levert hier niets op" },
+  "code.pct":        { en: "{pct}% off",            nl: "{pct}% korting" },
+  "code.euro":       { en: "{bedrag} off",          nl: "{bedrag} korting" },
+  "code.vulIn":      { en: "Enter a code",          nl: "Vul een code in" },
+  "code.nietNakijken":{ en: "Could not check the code", nl: "Kon de code niet nakijken" },
+  "code.nietGeteld": { en: "Note: use of code {code} was not counted —", nl: "Let op: het gebruik van code {code} is niet geteld —" },
+  "order.opgeborgen":{ en: "Taken out of the overview — you'll find it in the archive", nl: "Uit het overzicht gehaald — je vindt hem terug in het archief" },
+  "order.teruggezet":{ en: "Back in the overview",  nl: "Weer in het overzicht gezet" },
 
   // --- de berichten die per e-mail vertrekken ---
-  "mail.dankKop":    { en: "Thank you for your order", nl: "Bedankt voor je bestelling", fr: "Merci pour ta commande" },
+  "mail.dankKop":    { en: "Thank you for your order", nl: "Bedankt voor je bestelling" },
   "mail.dankIntro":  { en: "We have received your order and are getting started. Below is what you ordered.",
-                       nl: "We hebben je bestelling goed ontvangen en gaan ermee aan de slag. Hieronder staat wat je besteld hebt.",
-                       fr: "Nous avons bien reçu ta commande et nous nous y mettons. Voici ce que tu as commandé." },
-  "mail.bekijk":     { en: "View your order",       nl: "Bekijk je bestelling",   fr: "Voir ta commande" },
-  "mail.onderwegKop":{ en: "Your order is on its way", nl: "Je bestelling is onderweg", fr: "Ta commande est en route" },
+                       nl: "We hebben je bestelling goed ontvangen en gaan ermee aan de slag. Hieronder staat wat je besteld hebt." },
+  "mail.bekijk":     { en: "View your order",       nl: "Bekijk je bestelling" },
+  "mail.onderwegKop":{ en: "Your order is on its way", nl: "Je bestelling is onderweg" },
   "mail.onderwegIntro":{ en: "Your parcel has left. We expect it with you between {van} and {tot}.",
-                       nl: "Je pakket is vertrokken. We verwachten het tussen {van} en {tot} bij je.",
-                       fr: "Ton colis est parti. Nous l'attendons chez toi entre le {van} et le {tot}." },
-  "mail.volg":       { en: "Track your order",      nl: "Volg je bestelling",     fr: "Suivre ta commande" },
-  "mail.aangekomenKop":{ en: "Has your parcel arrived?", nl: "Is je pakket aangekomen?", fr: "Ton colis est-il arrivé ?" },
+                       nl: "Je pakket is vertrokken. We verwachten het tussen {van} en {tot} bij je." },
+  "mail.volg":       { en: "Track your order",      nl: "Volg je bestelling" },
+  "mail.aangekomenKop":{ en: "Has your parcel arrived?", nl: "Is je pakket aangekomen?" },
   "mail.aangekomenIntro":{ en: "As far as we know your order has been delivered. Is that right? Let us know with the button below, then we know it got there safely.",
-                       nl: "Volgens ons is je bestelling geleverd. Klopt dat? Laat het ons even weten met de knop hieronder, dan weten wij dat het goed is aangekomen.",
-                       fr: "D'après nous, ta commande a été livrée. C'est bien le cas ? Fais-le nous savoir avec le bouton ci-dessous, nous saurons qu'elle est bien arrivée." },
-  "mail.jaOntvangen":{ en: "Yes, received",         nl: "Ja, ontvangen",          fr: "Oui, reçu" },
+                       nl: "Volgens ons is je bestelling geleverd. Klopt dat? Laat het ons even weten met de knop hieronder, dan weten wij dat het goed is aangekomen." },
+  "mail.jaOntvangen":{ en: "Yes, received",         nl: "Ja, ontvangen" },
 
   // --- je bestelling volgen ---
-  "eta.ontvangen":   { en: "Received.",             nl: "Ontvangen.",             fr: "Reçu." },
-  "eta.bevestigdOp": { en: "You confirmed this on {datum}.", nl: "Je hebt dit bevestigd op {datum}.", fr: "Tu l'as confirmé le {datum}." },
-  "eta.geleverd":    { en: "Delivered.",            nl: "Geleverd.",              fr: "Livré." },
+  "eta.ontvangen":   { en: "Received.",             nl: "Ontvangen." },
+  "eta.bevestigdOp": { en: "You confirmed this on {datum}.", nl: "Je hebt dit bevestigd op {datum}." },
+  "eta.geleverd":    { en: "Delivered.",            nl: "Geleverd." },
   "eta.aangekomen":  { en: "Has your parcel arrived? Let us know, then we know it got there safely.",
-                       nl: "Is je pakket aangekomen? Laat het ons weten, dan weten wij dat het goed is aangekomen.",
-                       fr: "Ton colis est arrivé ? Fais-le nous savoir, nous saurons qu'il est bien arrivé." },
-  "eta.bevestig":    { en: "Received",              nl: "Ontvangen",              fr: "Reçu" },
-  "eta.onderweg":    { en: "On its way — expected between {van} and {tot}", nl: "Onderweg — verwacht tussen {van} en {tot}", fr: "En route — attendu entre le {van} et le {tot}" },
-  "eta.verwacht":    { en: "Expected delivery between {van} and {tot}", nl: "Verwachte levering tussen {van} en {tot}", fr: "Livraison attendue entre le {van} et le {tot}" },
-  "eta.bedankt":     { en: "Thank you — receipt confirmed", nl: "Bedankt — ontvangst bevestigd", fr: "Merci — réception confirmée" },
+                       nl: "Is je pakket aangekomen? Laat het ons weten, dan weten wij dat het goed is aangekomen." },
+  "eta.bevestig":    { en: "Received",              nl: "Ontvangen" },
+  "eta.onderweg":    { en: "On its way — expected between {van} and {tot}", nl: "Onderweg — verwacht tussen {van} en {tot}" },
+  "eta.verwacht":    { en: "Expected delivery between {van} and {tot}", nl: "Verwachte levering tussen {van} en {tot}" },
+  "eta.bedankt":     { en: "Thank you — receipt confirmed", nl: "Bedankt — ontvangst bevestigd" },
 
   // --- een bestelling in je overzicht ---
-  "order.besteldOp": { en: "Ordered on {datum}",    nl: "Besteld op {datum}",     fr: "Commandé le {datum}" },
-  "order.ontvangen": { en: "Received",              nl: "Ontvangen",              fr: "Reçu" },
-  "order.minder":    { en: "Fewer details",         nl: "Minder details",         fr: "Moins de détails" },
-  "order.meer":      { en: "More details",          nl: "Meer details",           fr: "Plus de détails" },
-  "order.verbergen": { en: "Hide",                  nl: "Verbergen",              fr: "Masquer" },
-  "order.verbergUit":{ en: "Take it out of your overview; it stays in the archive", nl: "Uit je overzicht halen; hij blijft in het archief staan", fr: "Le retirer de ton aperçu ; il reste dans les archives" },
-  "order.betaalwijze":{ en: "Payment method",       nl: "Betaalwijze",            fr: "Moyen de paiement" },
-  "order.referentie":{ en: "Reference",             nl: "Referentie",             fr: "Référence" },
-  "order.afhalenBij":{ en: "Collect at",            nl: "Afhalen bij",            fr: "Retrait à" },
-  "order.bezorgadres":{ en: "Delivery address",     nl: "Bezorgadres",            fr: "Adresse de livraison" },
+  "order.besteldOp": { en: "Ordered on {datum}",    nl: "Besteld op {datum}" },
+  "order.ontvangen": { en: "Received",              nl: "Ontvangen" },
+  "order.minder":    { en: "Fewer details",         nl: "Minder details" },
+  "order.meer":      { en: "More details",          nl: "Meer details" },
+  "order.verbergen": { en: "Hide",                  nl: "Verbergen" },
+  "order.verbergUit":{ en: "Take it out of your overview; it stays in the archive", nl: "Uit je overzicht halen; hij blijft in het archief staan" },
+  "order.betaalwijze":{ en: "Payment method",       nl: "Betaalwijze" },
+  "order.referentie":{ en: "Reference",             nl: "Referentie" },
+  "order.afhalenBij":{ en: "Collect at",            nl: "Afhalen bij" },
+  "order.bezorgadres":{ en: "Delivery address",     nl: "Bezorgadres" },
 
   // --- bedankpagina ---
-  "dank.kop":        { en: "Thank you!",            nl: "Bedankt!",               fr: "Merci !" },
-  "dank.kort":       { en: "Your order has been placed. You'll find it under your orders.", nl: "Je bestelling is geplaatst. Je vindt hem terug bij je bestellingen.", fr: "Ta commande est passée. Tu la retrouveras dans tes commandes." },
-  "dank.mijnBestellingen":{ en: "My orders",        nl: "Mijn bestellingen",      fr: "Mes commandes" },
-  "dank.sub":        { en: "Your order is with us. We'll get started right away.", nl: "Je bestelling staat bij ons. We gaan er meteen mee aan de slag.", fr: "Ta commande est chez nous. Nous nous y mettons tout de suite." },
-  "dank.bestelnummer":{ en: "ORDER NUMBER",         nl: "BESTELNUMMER",           fr: "NUMÉRO DE COMMANDE" },
-  "dank.betaald":    { en: "PAID",                  nl: "BETAALD",                fr: "PAYÉ" },
-  "dank.watNu":      { en: "What happens next",     nl: "Wat er nu gebeurt",      fr: "Ce qui se passe maintenant" },
-  "dank.perMail":    { en: "You get an email at <strong>{mail}</strong> at every step.", nl: "Elke stap krijg je per mail op <strong>{mail}</strong>.", fr: "Tu reçois un e-mail à <strong>{mail}</strong> à chaque étape." },
-  "dank.volgen":     { en: "You can always follow the order under your orders.", nl: "Je kunt de bestelling altijd volgen bij je bestellingen.", fr: "Tu peux suivre la commande dans tes commandes." },
-  "dank.stapPrint":  { en: "We print it",           nl: "Wij printen het",        fr: "Nous l'imprimons" },
-  "dank.stapPrintUit":{ en: "You get a message as soon as we start.", nl: "Je krijgt bericht zodra we eraan beginnen.", fr: "Tu reçois un message dès que nous commençons." },
-  "dank.stapKlaar":  { en: "Set aside for collection", nl: "Klaarzetten om af te halen", fr: "Mis de côté pour le retrait" },
-  "dank.stapKlaarUit":{ en: "You get a note when it's ready.", nl: "Je krijgt een seintje wanneer het klaarstaat.", fr: "Tu reçois un signe quand c'est prêt." },
-  "dank.stapHalen":  { en: "You come and get it",   nl: "Jij komt het halen",     fr: "Tu viens le chercher" },
-  "dank.stapPak":    { en: "Packed and shipped",    nl: "Inpakken en verzenden",  fr: "Emballage et expédition" },
-  "dank.stapPakUit": { en: "With an email when the parcel leaves.", nl: "Met een mail als het pakje vertrekt.", fr: "Avec un e-mail au départ du colis." },
-  "dank.stapBus":    { en: "In your letterbox",     nl: "Bij jou in de bus",      fr: "Dans ta boîte aux lettres" },
-  "dank.stapBusUit": { en: "Around {van} — {tot}",  nl: "Rond {van} — {tot}",     fr: "Vers le {van} — {tot}" },
-  "dank.enkeleDagen":{ en: "Within a few working days.", nl: "Binnen enkele werkdagen.", fr: "Sous quelques jours ouvrables." },
-  "dank.afhalenBij": { en: "COLLECT AT",            nl: "AFHALEN BIJ",            fr: "RETRAIT À" },
-  "dank.gaatNaar":   { en: "GOING TO",              nl: "GAAT NAAR",              fr: "DESTINATION" },
-  "dank.vraag":      { en: "Something unclear?",    nl: "Iets niet duidelijk?",   fr: "Quelque chose n'est pas clair ?" },
-  "dank.mailOns":    { en: "Email us at",           nl: "Mail ons op",            fr: "Écris-nous à" },
-  "dank.gegevensOnder":{ en: "You'll find our details at the bottom of the page.", nl: "Je vindt onze gegevens onderaan de pagina.", fr: "Tu trouveras nos coordonnées en bas de page." },
+  "dank.kop":        { en: "Thank you!",            nl: "Bedankt!" },
+  "dank.kort":       { en: "Your order has been placed. You'll find it under your orders.", nl: "Je bestelling is geplaatst. Je vindt hem terug bij je bestellingen." },
+  "dank.mijnBestellingen":{ en: "My orders",        nl: "Mijn bestellingen" },
+  "dank.sub":        { en: "Your order is with us. We'll get started right away.", nl: "Je bestelling staat bij ons. We gaan er meteen mee aan de slag." },
+  "dank.bestelnummer":{ en: "ORDER NUMBER",         nl: "BESTELNUMMER" },
+  "dank.betaald":    { en: "PAID",                  nl: "BETAALD" },
+  "dank.watNu":      { en: "What happens next",     nl: "Wat er nu gebeurt" },
+  "dank.perMail":    { en: "You get an email at <strong>{mail}</strong> at every step.", nl: "Elke stap krijg je per mail op <strong>{mail}</strong>." },
+  "dank.volgen":     { en: "You can always follow the order under your orders.", nl: "Je kunt de bestelling altijd volgen bij je bestellingen." },
+  "dank.stapPrint":  { en: "We print it",           nl: "Wij printen het" },
+  "dank.stapPrintUit":{ en: "You get a message as soon as we start.", nl: "Je krijgt bericht zodra we eraan beginnen." },
+  "dank.stapKlaar":  { en: "Set aside for collection", nl: "Klaarzetten om af te halen" },
+  "dank.stapKlaarUit":{ en: "You get a note when it's ready.", nl: "Je krijgt een seintje wanneer het klaarstaat." },
+  "dank.stapHalen":  { en: "You come and get it",   nl: "Jij komt het halen" },
+  "dank.stapPak":    { en: "Packed and shipped",    nl: "Inpakken en verzenden" },
+  "dank.stapPakUit": { en: "With an email when the parcel leaves.", nl: "Met een mail als het pakje vertrekt." },
+  "dank.stapBus":    { en: "In your letterbox",     nl: "Bij jou in de bus" },
+  "dank.stapBusUit": { en: "Around {van} — {tot}",  nl: "Rond {van} — {tot}" },
+  "dank.enkeleDagen":{ en: "Within a few working days.", nl: "Binnen enkele werkdagen." },
+  "dank.afhalenBij": { en: "COLLECT AT",            nl: "AFHALEN BIJ" },
+  "dank.gaatNaar":   { en: "GOING TO",              nl: "GAAT NAAR" },
+  "dank.vraag":      { en: "Something unclear?",    nl: "Iets niet duidelijk?" },
+  "dank.mailOns":    { en: "Email us at",           nl: "Mail ons op" },
+  "dank.gegevensOnder":{ en: "You'll find our details at the bottom of the page.", nl: "Je vindt onze gegevens onderaan de pagina." },
 
   // --- account ---
-  "acc.nietIngelogd":{ en: "You are not logged in.", nl: "Je bent niet ingelogd.", fr: "Tu n'es pas connecté." },
-  "acc.hallo":       { en: "Hello, {naam}",         nl: "Hallo, {naam}",          fr: "Bonjour, {naam}" },
-  "acc.beheerder":   { en: "Admin",                 nl: "Beheerder",              fr: "Administrateur" },
-  "acc.profielFout": { en: "Your profile could not be loaded — you stay logged in.", nl: "Je profielgegevens konden niet geladen worden — je blijft wel ingelogd.", fr: "Ton profil n'a pas pu être chargé — tu restes connecté." },
-  "acc.bestelFout":  { en: "Your orders could not be loaded", nl: "Je bestellingen konden niet geladen worden", fr: "Tes commandes n'ont pas pu être chargées" },
-  "acc.lopende":     { en: "Orders in progress",    nl: "Lopende bestellingen",   fr: "Commandes en cours" },
-  "acc.geenLopende": { en: "You have no orders in progress right now.", nl: "Je hebt momenteel geen lopende bestellingen.", fr: "Tu n'as aucune commande en cours." },
-  "acc.geschiedenis":{ en: "History",               nl: "Geschiedenis",           fr: "Historique" },
+  "acc.nietIngelogd":{ en: "You are not logged in.", nl: "Je bent niet ingelogd." },
+  "acc.hallo":       { en: "Hello, {naam}",         nl: "Hallo, {naam}" },
+  "acc.beheerder":   { en: "Admin",                 nl: "Beheerder" },
+  "acc.profielFout": { en: "Your profile could not be loaded — you stay logged in.", nl: "Je profielgegevens konden niet geladen worden — je blijft wel ingelogd." },
+  "acc.bestelFout":  { en: "Your orders could not be loaded", nl: "Je bestellingen konden niet geladen worden" },
+  "acc.lopende":     { en: "Orders in progress",    nl: "Lopende bestellingen" },
+  "acc.geenLopende": { en: "You have no orders in progress right now.", nl: "Je hebt momenteel geen lopende bestellingen." },
+  "acc.geschiedenis":{ en: "History",               nl: "Geschiedenis" },
   "acc.geschiedenisUit":{ en: "Completed orders. They stay here, but no longer count towards what is still coming.",
-                       nl: "Afgeronde bestellingen. Ze blijven hier staan, maar tellen niet meer mee bij wat er nog moet komen.",
-                       fr: "Commandes terminées. Elles restent ici, mais ne comptent plus dans ce qui doit encore arriver." },
-  "acc.verborgen":   { en: "{n} order taken out of your overview.", nl: "{n} bestelling uit je overzicht gehaald.", fr: "{n} commande retirée de ton aperçu." },
-  "acc.verborgenMeer":{ en: "{n} orders taken out of your overview.", nl: "{n} bestellingen uit je overzicht gehaald.", fr: "{n} commandes retirées de ton aperçu." },
-  "acc.naarArchief": { en: "See the archive",       nl: "Bekijk het archief",     fr: "Voir les archives" },
-  "acc.naarShop":    { en: "Back to the shop",      nl: "Terug naar de shop",     fr: "Retour à la boutique" },
+                       nl: "Afgeronde bestellingen. Ze blijven hier staan, maar tellen niet meer mee bij wat er nog moet komen." },
+  "acc.verborgen":   { en: "{n} order taken out of your overview.", nl: "{n} bestelling uit je overzicht gehaald." },
+  "acc.verborgenMeer":{ en: "{n} orders taken out of your overview.", nl: "{n} bestellingen uit je overzicht gehaald." },
+  "acc.naarArchief": { en: "See the archive",       nl: "Bekijk het archief" },
+  "acc.naarShop":    { en: "Back to the shop",      nl: "Terug naar de shop" },
+  "acc.instellingen":{ en: "Settings",              nl: "Instellingen" },
+
+  // --- instellingen ---
+  "inst.kop":        { en: "Settings",              nl: "Instellingen" },
+  "inst.sub":        { en: "Your language, how the shop looks, and what we know about you.",
+                       nl: "Je taal, hoe de winkel eruitziet, en wat wij van je weten." },
+  "inst.taal":       { en: "Language",              nl: "Taal" },
+  "inst.thema":      { en: "Appearance",            nl: "Weergave" },
+  "thema.licht":     { en: "Light",                 nl: "Licht" },
+  "thema.donker":    { en: "Dark",                  nl: "Donker" },
+  "thema.auto":      { en: "Follow my device",      nl: "Volg mijn toestel" },
+  "inst.bijAccount": { en: "Saved with your account, so it follows you to your phone.",
+                       nl: "Bewaard bij je account, dus het gaat mee naar je telefoon." },
+  "inst.bijBrowser": { en: "Saved in this browser. Log in and it follows you to your phone as well.",
+                       nl: "Bewaard in deze browser. Log in en het gaat ook mee naar je telefoon." },
+  "inst.gegevens":   { en: "Your details",          nl: "Je gegevens" },
+  "inst.adresUitleg":{ en: "This is what we fill in for you at checkout. You can always change it there.",
+                       nl: "Dit vullen we voor je in bij het afrekenen. Je kunt het daar altijd nog aanpassen." },
+  "inst.bewaren":    { en: "Save",                  nl: "Bewaren" },
+  "inst.bewaard":    { en: "Your details are saved", nl: "Je gegevens zijn bewaard" },
+  "inst.mislukt":    { en: "Saving failed:",        nl: "Opslaan mislukt:" },
+  "inst.berichten":  { en: "Messages",              nl: "Berichten" },
+  "inst.mailVerzonden":{ en: "Email me when my parcel leaves", nl: "Mail me als mijn pakje vertrekt" },
+  "inst.mailGeleverd":{ en: "Email me to ask whether it arrived", nl: "Mail me met de vraag of het aangekomen is" },
+  "inst.mailUitleg": { en: "The order confirmation always comes — that's your receipt.",
+                       nl: "De bevestiging van je bestelling komt altijd — dat is je bewijs." },
+  "inst.logInVoorMeer":{ en: "Log in to keep your details and your saved items across devices.",
+                       nl: "Log in om je gegevens en je bewaarde producten op elk toestel bij je te hebben." },
+
+  // --- bewaarde producten ---
+  "bewaar.kop":      { en: "Saved",                 nl: "Bewaard" },
+  "bewaar.leeg":     { en: "Nothing saved yet. Tap the heart on a product to put it aside for later.",
+                       nl: "Nog niets bewaard. Tik op het hartje bij een product om het opzij te leggen." },
+  "bewaar.leggen":   { en: "Save for later",        nl: "Bewaar voor later" },
+  "bewaar.weghalen": { en: "Remove from saved",     nl: "Uit je bewaarde halen" },
+  "bewaar.erbij":    { en: "{naam} saved",          nl: "{naam} bewaard" },
+  "bewaar.eraf":     { en: "{naam} removed from saved", nl: "{naam} uit je bewaarde gehaald" },
 
   // --- de informatiepagina's ---
-  "info.ontbreekt":  { en: "{wat} is still missing", nl: "{wat} ontbreekt nog",   fr: "{wat} manque encore" },
-  "info.deNaam":     { en: "The name",              nl: "De naam",                fr: "Le nom" },
-  "info.hetAdres":   { en: "The address",           nl: "Het adres",              fr: "L'adresse" },
-  "info.eenMail":    { en: "An email address",      nl: "Een e-mailadres",        fr: "Une adresse e-mail" },
-  "info.hetNummer":  { en: "The number",            nl: "Het nummer",             fr: "Le numéro" },
+  "info.ontbreekt":  { en: "{wat} is still missing", nl: "{wat} ontbreekt nog" },
+  "info.deNaam":     { en: "The name",              nl: "De naam" },
+  "info.hetAdres":   { en: "The address",           nl: "Het adres" },
+  "info.eenMail":    { en: "An email address",      nl: "Een e-mailadres" },
+  "info.hetNummer":  { en: "The number",            nl: "Het nummer" },
   "info.contactIntro":{ en: "Behind {winkel} there is one printer and one person. A question about an order, or something you'd like printed that isn't in the collection? Send a message.",
-                       nl: "Achter {winkel} zit één printer en één persoon. Heb je een vraag over een bestelling, of wil je iets laten printen dat niet in de collectie staat? Stuur gerust een bericht.",
-                       fr: "Derrière {winkel} il y a une imprimante et une personne. Une question sur une commande, ou envie d'imprimer quelque chose qui n'est pas dans la collection ? Écris-nous." },
-  "info.winkel":     { en: "Shop",                  nl: "Winkel",                 fr: "Boutique" },
-  "info.wie":        { en: "Who",                   nl: "Wie",                    fr: "Qui" },
-  "info.adres":      { en: "Address",               nl: "Adres",                  fr: "Adresse" },
-  "info.email":      { en: "Email",                 nl: "E-mail",                 fr: "E-mail" },
-  "info.telefoon":   { en: "Phone",                 nl: "Telefoon",               fr: "Téléphone" },
-  "info.ondernemingsnummer":{ en: "Company number", nl: "Ondernemingsnummer",     fr: "Numéro d'entreprise" },
-  "info.btw":        { en: "VAT number",            nl: "Btw-nummer",             fr: "Numéro de TVA" },
+                       nl: "Achter {winkel} zit één printer en één persoon. Heb je een vraag over een bestelling, of wil je iets laten printen dat niet in de collectie staat? Stuur gerust een bericht." },
+  "info.winkel":     { en: "Shop",                  nl: "Winkel" },
+  "info.wie":        { en: "Who",                   nl: "Wie" },
+  "info.adres":      { en: "Address",               nl: "Adres" },
+  "info.email":      { en: "Email",                 nl: "E-mail" },
+  "info.telefoon":   { en: "Phone",                 nl: "Telefoon" },
+  "info.ondernemingsnummer":{ en: "Company number", nl: "Ondernemingsnummer" },
+  "info.btw":        { en: "VAT number",            nl: "Btw-nummer" },
   "info.gewoneTaal": { en: "This text is written in plain language and has not been checked by a lawyer.",
-                       nl: "Deze tekst is in gewone taal geschreven en niet door een jurist nagekeken.",
-                       fr: "Ce texte est écrit en langage courant et n'a pas été relu par un juriste." },
+                       nl: "Deze tekst is in gewone taal geschreven en niet door een jurist nagekeken." },
 
-  "vw.vanWie":       { en: "Who you buy from",      nl: "Wie je koopt van",       fr: "À qui tu achètes" },
-  "vw.ondernemingsnummer":{ en: "Company number {nr}.", nl: "Ondernemingsnummer {nr}.", fr: "Numéro d'entreprise {nr}." },
-  "vw.watJeKoopt":   { en: "What you buy",          nl: "Wat je koopt",           fr: "Ce que tu achètes" },
+  "vw.vanWie":       { en: "Who you buy from",      nl: "Wie je koopt van" },
+  "vw.ondernemingsnummer":{ en: "Company number {nr}.", nl: "Ondernemingsnummer {nr}." },
+  "vw.watJeKoopt":   { en: "What you buy",          nl: "Wat je koopt" },
   "vw.watJeKooptTekst":{ en: "Everything is printed to order. Nothing sits on a shelf: your order is only made after you place it. Colours on your screen can differ slightly from the real filament, and on a printed object faint layer lines are normal — that belongs to the technique and is not a fault.",
-                       nl: "Alles wordt op bestelling geprint. Er ligt niets op voorraad: jouw bestelling wordt pas gemaakt nadat je hem geplaatst hebt. Kleuren op je scherm kunnen licht afwijken van het echte filament, en bij een geprint voorwerp zijn kleine laaglijnen normaal — dat hoort bij de techniek en is geen gebrek.",
-                       fr: "Tout est imprimé sur commande. Rien n'est en stock : ta commande n'est fabriquée qu'après l'avoir passée. Les couleurs à l'écran peuvent différer légèrement du filament réel, et de fines lignes de couches sont normales sur un objet imprimé — cela fait partie de la technique et n'est pas un défaut." },
-  "vw.prijzen":      { en: "Prices",                nl: "Prijzen",                fr: "Prix" },
+                       nl: "Alles wordt op bestelling geprint. Er ligt niets op voorraad: jouw bestelling wordt pas gemaakt nadat je hem geplaatst hebt. Kleuren op je scherm kunnen licht afwijken van het echte filament, en bij een geprint voorwerp zijn kleine laaglijnen normaal — dat hoort bij de techniek en is geen gebrek." },
+  "vw.prijzen":      { en: "Prices",                nl: "Prijzen" },
   "vw.prijzenTekst": { en: "All prices are in euro. The price shown with a product is for the cheapest filament; pick a dearer type and the button says what is added. You see the shipping cost before you pay.",
-                       nl: "Alle prijzen staan in euro. De prijs bij een product geldt voor het goedkoopste filament; kies je een duurdere soort, dan staat op het knopje wat erbij komt. Verzendkosten zie je vóór je betaalt.",
-                       fr: "Tous les prix sont en euros. Le prix affiché vaut pour le filament le moins cher ; si tu choisis un type plus cher, le bouton indique le supplément. Les frais de livraison sont visibles avant le paiement." },
-  "vw.betalen":      { en: "Paying",                nl: "Betalen",                fr: "Paiement" },
+                       nl: "Alle prijzen staan in euro. De prijs bij een product geldt voor het goedkoopste filament; kies je een duurdere soort, dan staat op het knopje wat erbij komt. Verzendkosten zie je vóór je betaalt." },
+  "vw.betalen":      { en: "Paying",                nl: "Betalen" },
   "vw.betalenTekst": { en: "Your order is only printed once the payment has gone through.",
-                       nl: "Je bestelling wordt pas geprint nadat de betaling rond is.",
-                       fr: "Ta commande n'est imprimée qu'une fois le paiement effectué." },
-  "vw.levering":     { en: "Delivery",              nl: "Levering",               fr: "Livraison" },
+                       nl: "Je bestelling wordt pas geprint nadat de betaling rond is." },
+  "vw.levering":     { en: "Delivery",              nl: "Levering" },
   "vw.leveringTekst":{ en: "We print and ship within {tijd} of your order. That is an estimate, not a promise: a large print takes longer, and sometimes one fails and we start again. If it runs late, we let you know. Collection is possible when it is switched on in the shop; you then pick a time yourself.",
-                       nl: "We printen en versturen binnen {tijd} na je bestelling. Dat is een schatting, geen belofte: een grote print duurt langer, en soms mislukt er een en beginnen we opnieuw. Loopt het uit, dan laten we het weten. Afhalen kan als dat in de winkel aanstaat; je kiest dan zelf een moment.",
-                       fr: "Nous imprimons et expédions sous {tijd} après ta commande. C'est une estimation, pas une promesse : une grande impression prend plus de temps, et parfois une impression rate et nous recommençons. Si cela traîne, nous te prévenons. Le retrait est possible s'il est activé dans la boutique ; tu choisis alors un créneau." },
-  "vw.misgaat":      { en: "If something is wrong", nl: "Als er iets mis is",      fr: "Si quelque chose ne va pas" },
-  "vw.viaMail":      { en: " at {mail}",            nl: " via {mail}",            fr: " à {mail}" },
+                       nl: "We printen en versturen binnen {tijd} na je bestelling. Dat is een schatting, geen belofte: een grote print duurt langer, en soms mislukt er een en beginnen we opnieuw. Loopt het uit, dan laten we het weten. Afhalen kan als dat in de winkel aanstaat; je kiest dan zelf een moment." },
+  "vw.misgaat":      { en: "If something is wrong", nl: "Als er iets mis is" },
+  "vw.viaMail":      { en: " at {mail}",            nl: " via {mail}" },
   "vw.misgaatTekst": { en: "Did your order arrive damaged, or is something not right with what you received? Let us know within fourteen days{via}. We make it again or refund you. You also have the statutory two-year guarantee.",
-                       nl: "Is je bestelling beschadigd aangekomen, of klopt er iets niet met wat je gekregen hebt, laat het binnen veertien dagen weten{via}. We maken het opnieuw of betalen terug. Je hebt daarnaast de wettelijke garantie van twee jaar.",
-                       fr: "Ta commande est arrivée abîmée, ou quelque chose ne correspond pas ? Fais-le nous savoir dans les quatorze jours{via}. Nous le refaisons ou nous te remboursons. Tu bénéficies en outre de la garantie légale de deux ans." },
+                       nl: "Is je bestelling beschadigd aangekomen, of klopt er iets niet met wat je gekregen hebt, laat het binnen veertien dagen weten{via}. We maken het opnieuw of betalen terug. Je hebt daarnaast de wettelijke garantie van twee jaar." },
 
-  "ret.bedenktijd":  { en: "{dagen} days to change your mind", nl: "Bedenktijd van {dagen} dagen", fr: "{dagen} jours pour changer d'avis" },
+  "ret.bedenktijd":  { en: "{dagen} days to change your mind", nl: "Bedenktijd van {dagen} dagen" },
   "ret.bedenktijdTekst":{ en: "For ordinary items from the collection you have {dagen} days to change your mind, from the moment you receive the parcel. Let us know within that period{via}, send it back unused, and you get your money back — the return postage is yours to pay.",
-                       nl: "Voor gewone artikelen uit de collectie heb je {dagen} dagen bedenktijd vanaf het moment dat je het pakje krijgt. Laat het binnen die termijn weten{via}, stuur het ongebruikt terug, en je krijgt je geld terug — de verzendkosten om het terug te sturen zijn voor jou.",
-                       fr: "Pour les articles ordinaires de la collection, tu disposes de {dagen} jours pour changer d'avis à partir de la réception du colis. Préviens-nous dans ce délai{via}, renvoie l'article inutilisé, et tu es remboursé — les frais de retour sont à ta charge." },
-  "ret.behalve":     { en: "Except for made-to-order", nl: "Behalve bij maatwerk", fr: "Sauf pour le sur-mesure" },
+                       nl: "Voor gewone artikelen uit de collectie heb je {dagen} dagen bedenktijd vanaf het moment dat je het pakje krijgt. Laat het binnen die termijn weten{via}, stuur het ongebruikt terug, en je krijgt je geld terug — de verzendkosten om het terug te sturen zijn voor jou." },
+  "ret.behalve":     { en: "Except for made-to-order", nl: "Behalve bij maatwerk" },
   "ret.behalveTekst":{ en: "If you have something printed to your size, in your colour combination or from a file you send us yourself, that cooling-off period does <strong>not</strong> apply. That is not a house rule but what the law says about goods made specially for you: they are of no use to anyone else. So check carefully what you order before you pay.",
-                       nl: "Laat je iets printen naar jouw maat, met jouw kleurencombinatie of vanuit een bestand dat je zelf doorstuurt, dan geldt die bedenktijd <strong>niet</strong>. Dat is geen huisregel maar wat de wet zegt over spullen die speciaal voor jou gemaakt worden: ze zijn voor niemand anders bruikbaar. Kijk dus goed na wat je bestelt voor je afrekent.",
-                       fr: "Si tu fais imprimer quelque chose à ta taille, avec ta combinaison de couleurs ou à partir d'un fichier que tu envoies toi-même, ce délai de rétractation ne s'applique <strong>pas</strong>. Ce n'est pas une règle maison mais ce que dit la loi sur les biens faits spécialement pour toi : ils ne servent à personne d'autre. Vérifie donc bien ta commande avant de payer." },
-  "ret.misPrint":    { en: "Something wrong with your print?", nl: "Iets mis met je print?", fr: "Un problème avec ton impression ?" },
+                       nl: "Laat je iets printen naar jouw maat, met jouw kleurencombinatie of vanuit een bestand dat je zelf doorstuurt, dan geldt die bedenktijd <strong>niet</strong>. Dat is geen huisregel maar wat de wet zegt over spullen die speciaal voor jou gemaakt worden: ze zijn voor niemand anders bruikbaar. Kijk dus goed na wat je bestelt voor je afrekent." },
+  "ret.misPrint":    { en: "Something wrong with your print?", nl: "Iets mis met je print?" },
   "ret.misPrintTekst":{ en: "That is a separate matter. If something is broken, wrong or badly printed, we sort it out — for made-to-order too.",
-                       nl: "Dat staat hier los van. Is er iets kapot, verkeerd of slecht geprint, dan lossen we het op — ook bij maatwerk.",
-                       fr: "C'est indépendant. Si quelque chose est cassé, erroné ou mal imprimé, nous le réglons — y compris pour le sur-mesure." },
+                       nl: "Dat staat hier los van. Is er iets kapot, verkeerd of slecht geprint, dan lossen we het op — ook bij maatwerk." },
 
-  "pri.watWeBijhouden":{ en: "What we keep",        nl: "Wat we bijhouden",       fr: "Ce que nous conservons" },
+  "pri.watWeBijhouden":{ en: "What we keep",        nl: "Wat we bijhouden" },
   "pri.watWeBijhoudenTekst":{ en: "Your email address, your name and your address — needed to print and ship your order. Plus what you ordered, and the models you send us yourself.",
-                       nl: "Je e-mailadres, je naam en je adres — nodig om je bestelling te printen en te versturen. Daarnaast wat je besteld hebt, en de modellen die je zelf doorstuurt.",
-                       fr: "Ton adresse e-mail, ton nom et ton adresse — nécessaires pour imprimer et expédier ta commande. Ainsi que ce que tu as commandé et les modèles que tu envoies." },
-  "pri.waarHetStaat":{ en: "Where it lives",        nl: "Waar het staat",         fr: "Où c'est stocké" },
+                       nl: "Je e-mailadres, je naam en je adres — nodig om je bestelling te printen en te versturen. Daarnaast wat je besteld hebt, en de modellen die je zelf doorstuurt." },
+  "pri.waarHetStaat":{ en: "Where it lives",        nl: "Waar het staat" },
   "pri.waarHetStaatTekst":{ en: "In Firebase, Google's database, on servers in Europe. We use no advertising and no tracking cookies. What is kept in your browser — your cart, your address — sits on your own device and disappears when you clear it.",
-                       nl: "In Firebase, de databank van Google, op servers in Europa. We gebruiken geen advertenties en geen volgcookies. Wat er in je browser bewaard wordt — je winkelwagen, je adres — staat op je eigen toestel en verdwijnt als je dat wist.",
-                       fr: "Dans Firebase, la base de données de Google, sur des serveurs en Europe. Nous n'utilisons ni publicité ni cookies de suivi. Ce qui est conservé dans ton navigateur — ton panier, ton adresse — reste sur ton appareil et disparaît si tu l'effaces." },
-  "pri.jeModellen":  { en: "Your own models",       nl: "Je eigen modellen",      fr: "Tes propres modèles" },
+                       nl: "In Firebase, de databank van Google, op servers in Europa. We gebruiken geen advertenties en geen volgcookies. Wat er in je browser bewaard wordt — je winkelwagen, je adres — staat op je eigen toestel en verdwijnt als je dat wist." },
+  "pri.jeModellen":  { en: "Your own models",       nl: "Je eigen modellen" },
   "pri.jeModellenTekst":{ en: "A file you send us is used to print your order, and for that alone. We do not resell it and we do not print it for anyone else.",
-                       nl: "Een bestand dat je doorstuurt gebruiken we om jouw bestelling te printen, en daarvoor alleen. We verkopen het niet door en printen het niet voor iemand anders.",
-                       fr: "Un fichier que tu envoies sert à imprimer ta commande, et à cela uniquement. Nous ne le revendons pas et ne l'imprimons pour personne d'autre." },
-  "pri.watJeKuntVragen":{ en: "What you can ask",   nl: "Wat je kunt vragen",     fr: "Ce que tu peux demander" },
-  "pri.stuurNaar":   { en: " — send a message to {mail}", nl: " — stuur een bericht naar {mail}", fr: " — envoie un message à {mail}" },
+                       nl: "Een bestand dat je doorstuurt gebruiken we om jouw bestelling te printen, en daarvoor alleen. We verkopen het niet door en printen het niet voor iemand anders." },
+  "pri.watJeKuntVragen":{ en: "What you can ask",   nl: "Wat je kunt vragen" },
+  "pri.stuurNaar":   { en: " — send a message to {mail}", nl: " — stuur een bericht naar {mail}" },
   "pri.watJeKuntVragenTekst":{ en: "You may always ask which data we hold about you, have it corrected, or have it erased{via}. Orders that have already been invoiced we are legally required to keep for a number of years; the rest goes.",
-                       nl: "Je mag altijd vragen welke gegevens we van je hebben, ze laten verbeteren, of ze laten wissen{via}. Bestellingen die al gefactureerd zijn moeten we wettelijk een aantal jaar bijhouden; de rest gaat weg.",
-                       fr: "Tu peux toujours demander quelles données nous avons sur toi, les faire corriger ou les faire effacer{via}. Les commandes déjà facturées doivent légalement être conservées quelques années ; le reste est supprimé." },
+                       nl: "Je mag altijd vragen welke gegevens we van je hebben, ze laten verbeteren, of ze laten wissen{via}. Bestellingen die al gefactureerd zijn moeten we wettelijk een aantal jaar bijhouden; de rest gaat weg." },
 
-  "fout.bevestigen": { en: "Confirmation failed:",  nl: "Bevestigen mislukt:",    fr: "Échec de la confirmation :" },
+  "fout.bevestigen": { en: "Confirmation failed:",  nl: "Bevestigen mislukt:" },
 
   // --- archief ---
   "arch.alleBestellingen":{ en: "Every order that ever came in — including the ones taken out of the overview. Nothing is ever lost here.",
-                       nl: "Alle bestellingen die ooit binnenkwamen — ook die uit het overzicht gehaald zijn. Hier gaat nooit iets verloren.",
-                       fr: "Toutes les commandes jamais reçues — y compris celles retirées de l'aperçu. Rien ne se perd ici." },
+                       nl: "Alle bestellingen die ooit binnenkwamen — ook die uit het overzicht gehaald zijn. Hier gaat nooit iets verloren." },
   "arch.jouwBestellingen":{ en: "All your orders — including the ones taken out of the overview. Nothing is ever lost here.",
-                       nl: "Al je bestellingen — ook die uit het overzicht gehaald zijn. Hier gaat nooit iets verloren.",
-                       fr: "Toutes tes commandes — y compris celles retirées de l'aperçu. Rien ne se perd ici." },
-  "arch.zoek":       { en: "Search by name, order number, product or town…", nl: "Zoek op naam, bestelnummer, product of plaats…", fr: "Chercher par nom, numéro, produit ou commune…" },
-  "arch.oudste":     { en: "Oldest first",          nl: "Oudste eerst",           fr: "Les plus anciennes d'abord" },
-  "arch.nieuwste":   { en: "Newest first",          nl: "Nieuwste eerst",         fr: "Les plus récentes d'abord" },
-  "arch.terugzetten":{ en: "Put back in the overview", nl: "Terugzetten in het overzicht", fr: "Remettre dans l'aperçu" },
-  "arch.nietsGevonden":{ en: "Nothing found for this search.", nl: "Niets gevonden met deze zoekopdracht.", fr: "Rien trouvé pour cette recherche." },
+                       nl: "Al je bestellingen — ook die uit het overzicht gehaald zijn. Hier gaat nooit iets verloren." },
+  "arch.zoek":       { en: "Search by name, order number, product or town…", nl: "Zoek op naam, bestelnummer, product of plaats…" },
+  "arch.oudste":     { en: "Oldest first",          nl: "Oudste eerst" },
+  "arch.nieuwste":   { en: "Newest first",          nl: "Nieuwste eerst" },
+  "arch.terugzetten":{ en: "Put back in the overview", nl: "Terugzetten in het overzicht" },
+  "arch.nietsGevonden":{ en: "Nothing found for this search.", nl: "Niets gevonden met deze zoekopdracht." },
 
   // --- je eigen model laten printen ---
-  "up.kop":          { en: "Have your model printed", nl: "Jouw model laten printen", fr: "Fais imprimer ton modèle" },
+  "up.kop":          { en: "Have your model printed", nl: "Jouw model laten printen" },
   "up.sub":          { en: "Upload one or more STL files. Give each part a name, pick the filament and the quantity — the price follows straight away from material and print time.",
-                       nl: "Upload één of meerdere STL-bestanden. Geef elk onderdeel een naam, kies het filament en het aantal — de prijs rekent meteen mee op basis van materiaal en printtijd.",
-                       fr: "Envoie un ou plusieurs fichiers STL. Donne un nom à chaque pièce, choisis le filament et la quantité — le prix suit aussitôt selon la matière et le temps d'impression." },
-  "up.nogEen":       { en: "Add another file",       nl: "Nog een bestand toevoegen", fr: "Ajouter un autre fichier" },
-  "up.kies":         { en: "Choose your .stl files", nl: "Kies je .stl-bestanden",  fr: "Choisis tes fichiers .stl" },
-  "up.meerdere":     { en: "several at once is fine · max {mb}MB each", nl: "meerdere tegelijk mag · max {mb}MB per stuk", fr: "plusieurs à la fois · max {mb}MB par fichier" },
+                       nl: "Upload één of meerdere STL-bestanden. Geef elk onderdeel een naam, kies het filament en het aantal — de prijs rekent meteen mee op basis van materiaal en printtijd." },
+  "up.nogEen":       { en: "Add another file",       nl: "Nog een bestand toevoegen" },
+  "up.kies":         { en: "Choose your .stl files", nl: "Kies je .stl-bestanden" },
+  "up.meerdere":     { en: "several at once is fine · max {mb}MB each", nl: "meerdere tegelijk mag · max {mb}MB per stuk" },
   "up.iphone":       { en: "On iPhone: choose <em>Browse</em> and find your files in Files or iCloud Drive.",
-                       nl: "Op iPhone: kies <em>Bladeren</em> en zoek je bestanden in Bestanden of iCloud Drive.",
-                       fr: "Sur iPhone : choisis <em>Parcourir</em> et cherche tes fichiers dans Fichiers ou iCloud Drive." },
-  "up.geenOnderdelen":{ en: "No parts yet. Upload your first file above.", nl: "Nog geen onderdelen. Upload hierboven je eerste bestand.", fr: "Aucune pièce pour l'instant. Envoie ton premier fichier ci-dessus." },
-  "up.naamOnderdeel":{ en: "Name of this part",      nl: "Naam van dit onderdeel", fr: "Nom de cette pièce" },
-  "up.verwijderen":  { en: "Remove",                 nl: "Verwijderen",            fr: "Supprimer" },
-  "up.analyseren":   { en: "Analysing the model…",   nl: "Model analyseren…",      fr: "Analyse du modèle…" },
-  "up.snijdenTitel": { en: "The slicing happens beside the screen — you can carry on working", nl: "Het snijden gebeurt naast het scherm — je kunt gewoon doorwerken", fr: "Le découpage se fait à côté — tu peux continuer à travailler" },
-  "up.snijden":      { en: "Slicing — you can carry on in the meantime.", nl: "Aan het snijden — je kunt ondertussen doorwerken.", fr: "Découpage en cours — tu peux continuer entre-temps." },
-  "up.pastNiet":     { en: "This part does not fit on the plate. Make it smaller or split it up.", nl: "Dit onderdeel past niet op de plaat. Verklein het of splits het op.", fr: "Cette pièce ne tient pas sur le plateau. Réduis-la ou divise-la." },
-  "up.losseStukken": { en: "Consists of {n} separate pieces", nl: "Bestaat uit {n} losse stukken", fr: "Composé de {n} pièces distinctes" },
-  "up.splitsUitleg": { en: "Split them to print each piece separately, with its own colour and quantity.", nl: "Splits ze op om elk stuk apart te printen, met een eigen kleur en aantal.", fr: "Sépare-les pour imprimer chaque pièce à part, avec sa couleur et sa quantité." },
-  "up.splitsKnop":   { en: "Split into {n} parts",   nl: "Splits in {n} onderdelen", fr: "Diviser en {n} pièces" },
-  "up.omgezetKop":   { en: "Converted to STL",       nl: "Omgezet naar STL",       fr: "Converti en STL" },
+                       nl: "Op iPhone: kies <em>Bladeren</em> en zoek je bestanden in Bestanden of iCloud Drive." },
+  "up.geenOnderdelen":{ en: "No parts yet. Upload your first file above.", nl: "Nog geen onderdelen. Upload hierboven je eerste bestand." },
+  "up.naamOnderdeel":{ en: "Name of this part",      nl: "Naam van dit onderdeel" },
+  "up.verwijderen":  { en: "Remove",                 nl: "Verwijderen" },
+  "up.analyseren":   { en: "Analysing the model…",   nl: "Model analyseren…" },
+  "up.snijdenTitel": { en: "The slicing happens beside the screen — you can carry on working", nl: "Het snijden gebeurt naast het scherm — je kunt gewoon doorwerken" },
+  "up.snijden":      { en: "Slicing — you can carry on in the meantime.", nl: "Aan het snijden — je kunt ondertussen doorwerken." },
+  "up.pastNiet":     { en: "This part does not fit on the plate. Make it smaller or split it up.", nl: "Dit onderdeel past niet op de plaat. Verklein het of splits het op." },
+  "up.losseStukken": { en: "Consists of {n} separate pieces", nl: "Bestaat uit {n} losse stukken" },
+  "up.splitsUitleg": { en: "Split them to print each piece separately, with its own colour and quantity.", nl: "Splits ze op om elk stuk apart te printen, met een eigen kleur en aantal." },
+  "up.splitsKnop":   { en: "Split into {n} parts",   nl: "Splits in {n} onderdelen" },
+  "up.omgezetKop":   { en: "Converted to STL",       nl: "Omgezet naar STL" },
   "up.omgezetUit":   { en: "The 3mf file could not be read, but {wat}. We print the shape as it is; colours or separate objects from the 3mf did not come along, so pick the colour here yourself.",
-                       nl: "Het 3mf-bestand liet zich niet lezen, maar {wat}. We printen de vorm zoals hij is; kleuren of losse objecten uit het 3mf zijn niet meegekomen, dus kies de kleur hier zelf.",
-                       fr: "Le fichier 3mf n'a pas pu être lu, mais {wat}. Nous imprimons la forme telle quelle ; les couleurs ou objets distincts du 3mf n'ont pas suivi, choisis donc la couleur ici." },
-  "up.kleurUitBestand":{ en: "Colour from the file ({hex}) matched to the closest filament.", nl: "Kleur uit het bestand ({hex}) gekoppeld aan het dichtstbijzijnde filament.", fr: "Couleur du fichier ({hex}) associée au filament le plus proche." },
-  "up.volume":       { en: "Volume",                 nl: "Volume",                 fr: "Volume" },
-  "up.driehoeken":   { en: "Triangles",              nl: "Driehoeken",             fr: "Triangles" },
-  "up.eenheid":      { en: "Unit in the file",       nl: "Eenheid in bestand",     fr: "Unité du fichier" },
-  "up.schaal":       { en: "Scale — {pct}%",         nl: "Schaal — {pct}%",        fr: "Échelle — {pct} %" },
-  "up.materiaalKleur":{ en: "Material and colour",   nl: "Materiaal en kleur",     fr: "Matière et couleur" },
-  "up.opdracht":     { en: "Your job",               nl: "Jouw opdracht",          fr: "Ta commande" },
-  "up.totaalAantal": { en: "Total quantity",         nl: "Totaal aantal",          fr: "Quantité totale" },
-  "up.assembleren":  { en: "Deliver assembled",      nl: "Geassembleerd leveren",  fr: "Livrer assemblé" },
-  "up.assemblerenKort":{ en: "Assembly",             nl: "Assembleren",            fr: "Assemblage" },
+                       nl: "Het 3mf-bestand liet zich niet lezen, maar {wat}. We printen de vorm zoals hij is; kleuren of losse objecten uit het 3mf zijn niet meegekomen, dus kies de kleur hier zelf." },
+  "up.kleurUitBestand":{ en: "Colour from the file ({hex}) matched to the closest filament.", nl: "Kleur uit het bestand ({hex}) gekoppeld aan het dichtstbijzijnde filament." },
+  "up.volume":       { en: "Volume",                 nl: "Volume" },
+  "up.driehoeken":   { en: "Triangles",              nl: "Driehoeken" },
+  "up.eenheid":      { en: "Unit in the file",       nl: "Eenheid in bestand" },
+  "up.schaal":       { en: "Scale — {pct}%",         nl: "Schaal — {pct}%" },
+  "up.materiaalKleur":{ en: "Material and colour",   nl: "Materiaal en kleur" },
+  "up.opdracht":     { en: "Your job",               nl: "Jouw opdracht" },
+  "up.totaalAantal": { en: "Total quantity",         nl: "Totaal aantal" },
+  "up.assembleren":  { en: "Deliver assembled",      nl: "Geassembleerd leveren" },
+  "up.assemblerenKort":{ en: "Assembly",             nl: "Assembleren" },
   "up.assemblerenUit":{ en: "We put the parts together. Without this you get them loose. {basis} plus {extra} per extra part.",
-                       nl: "Wij zetten de onderdelen in elkaar. Zonder deze optie krijg je ze los. {basis} plus {extra} per extra onderdeel.",
-                       fr: "Nous assemblons les pièces. Sans cette option tu les reçois séparées. {basis} plus {extra} par pièce supplémentaire." },
-  "up.hoeveelheidskorting":{ en: "Volume discount {pct}%", nl: "Hoeveelheidskorting {pct}%", fr: "Remise sur quantité {pct} %" },
-  "up.vanafKorting": { en: "From {n} pieces you get {pct}% off.", nl: "Vanaf {n} stuks krijg je {pct}% korting.", fr: "À partir de {n} pièces tu obtiens {pct} % de remise." },
-  "up.opmerkingen":  { en: "Notes for this job (finish, colour change, how it fits together…)", nl: "Opmerkingen bij deze opdracht (afwerking, kleurwissel, hoe het in elkaar hoort...)", fr: "Remarques sur cette commande (finition, changement de couleur, assemblage…)" },
-  "up.bezigSlicen":  { en: "Slicing…",               nl: "Bezig met slicen…",      fr: "Découpage en cours…" },
-  "up.naarWagen":    { en: "Add to cart",            nl: "Toevoegen aan winkelwagen", fr: "Ajouter au panier" },
-  "up.logIn":        { en: "Log in to have your own model printed", nl: "Log in om een eigen model te laten printen", fr: "Connecte-toi pour faire imprimer ton modèle" },
-  "up.geenBruikbaar":{ en: "No usable part yet",     nl: "Nog geen bruikbaar onderdeel", fr: "Pas encore de pièce utilisable" },
-  "up.versturen":    { en: "Sending… {pct}%",        nl: "Versturen… {pct}%",      fr: "Envoi… {pct} %" },
-  "up.uploadMislukt":{ en: "Upload failed:",         nl: "Uploaden mislukt:",      fr: "Échec de l'envoi :" },
-  "up.foutToegang":  { en: "No access to the storage — check the Storage rules in Firebase.", nl: "Geen toegang tot de opslag — controleer de Storage-regels in Firebase.", fr: "Pas d'accès au stockage — vérifie les règles Storage dans Firebase." },
+                       nl: "Wij zetten de onderdelen in elkaar. Zonder deze optie krijg je ze los. {basis} plus {extra} per extra onderdeel." },
+  "up.hoeveelheidskorting":{ en: "Volume discount {pct}%", nl: "Hoeveelheidskorting {pct}%" },
+  "up.vanafKorting": { en: "From {n} pieces you get {pct}% off.", nl: "Vanaf {n} stuks krijg je {pct}% korting." },
+  "up.opmerkingen":  { en: "Notes for this job (finish, colour change, how it fits together…)", nl: "Opmerkingen bij deze opdracht (afwerking, kleurwissel, hoe het in elkaar hoort...)" },
+  "up.bezigSlicen":  { en: "Slicing…",               nl: "Bezig met slicen…" },
+  "up.naarWagen":    { en: "Add to cart",            nl: "Toevoegen aan winkelwagen" },
+  "up.logIn":        { en: "Log in to have your own model printed", nl: "Log in om een eigen model te laten printen" },
+  "up.geenBruikbaar":{ en: "No usable part yet",     nl: "Nog geen bruikbaar onderdeel" },
+  "up.versturen":    { en: "Sending… {pct}%",        nl: "Versturen… {pct}%" },
+  "up.uploadMislukt":{ en: "Upload failed:",         nl: "Uploaden mislukt:" },
+  "up.foutToegang":  { en: "No access to the storage — check the Storage rules in Firebase.", nl: "Geen toegang tot de opslag — controleer de Storage-regels in Firebase." },
   "up.foutStil":     { en: "The storage is not answering. Usually that means Storage has not been set up in Firebase (Build → Storage); otherwise your connection was too slow.",
-                       nl: "De opslag antwoordt niet. Meestal betekent dat Storage nog niet is ingesteld in Firebase (Build → Storage); anders was je verbinding te traag.",
-                       fr: "Le stockage ne répond pas. Cela signifie généralement que Storage n'est pas configuré dans Firebase (Build → Storage) ; sinon ta connexion était trop lente." },
-  "up.foutGeenOpslag":{ en: "File storage has not been set up in Firebase yet (Build → Storage).", nl: "De bestandsopslag is nog niet ingesteld in Firebase (Build → Storage).", fr: "Le stockage de fichiers n'est pas encore configuré dans Firebase (Build → Storage)." },
-  "up.foutVol":      { en: "The Firebase project's storage limit has been reached.", nl: "De opslaglimiet van het Firebase-project is bereikt.", fr: "La limite de stockage du projet Firebase est atteinte." },
-  "up.objFout":      { en: "We don't read the dimensions from .obj automatically — we'll send you a price after checking.", nl: "Van .obj lezen we de maten niet automatisch — we sturen je een prijs na controle.", fr: "Nous ne lisons pas automatiquement les dimensions d'un .obj — nous t'enverrons un prix après vérification." },
-  "up.leesFout":     { en: "Could not read this file:", nl: "Kon dit bestand niet uitlezen:", fr: "Impossible de lire ce fichier :" },
-  "up.omgezetMelding":{ en: "This 3mf file could not be read, but {wat} — converted to STL, you can simply carry on", nl: "Dit 3mf-bestand kon niet gelezen worden, maar {wat} — omgezet naar STL, je kunt gewoon verder", fr: "Ce fichier 3mf n'a pas pu être lu, mais {wat} — converti en STL, tu peux continuer" },
-  "up.gevonden":     { en: "{n} parts found in {bestand}", nl: "{n} onderdelen gevonden in {bestand}", fr: "{n} pièces trouvées dans {bestand}" },
-  "up.eigenModel":   { en: "Your own model — {naam}", nl: "Eigen model — {naam}",   fr: "Ton modèle — {naam}" },
-  "up.eigenOpdracht":{ en: "Your own job — {n} parts", nl: "Eigen opdracht — {n} onderdelen", fr: "Ta commande — {n} pièces" },
+                       nl: "De opslag antwoordt niet. Meestal betekent dat Storage nog niet is ingesteld in Firebase (Build → Storage); anders was je verbinding te traag." },
+  "up.foutGeenOpslag":{ en: "File storage has not been set up in Firebase yet (Build → Storage).", nl: "De bestandsopslag is nog niet ingesteld in Firebase (Build → Storage)." },
+  "up.foutVol":      { en: "The Firebase project's storage limit has been reached.", nl: "De opslaglimiet van het Firebase-project is bereikt." },
+  "up.objFout":      { en: "We don't read the dimensions from .obj automatically — we'll send you a price after checking.", nl: "Van .obj lezen we de maten niet automatisch — we sturen je een prijs na controle." },
+  "up.leesFout":     { en: "Could not read this file:", nl: "Kon dit bestand niet uitlezen:" },
+  "up.omgezetMelding":{ en: "This 3mf file could not be read, but {wat} — converted to STL, you can simply carry on", nl: "Dit 3mf-bestand kon niet gelezen worden, maar {wat} — omgezet naar STL, je kunt gewoon verder" },
+  "up.gevonden":     { en: "{n} parts found in {bestand}", nl: "{n} onderdelen gevonden in {bestand}" },
+  "up.eigenModel":   { en: "Your own model — {naam}", nl: "Eigen model — {naam}" },
+  "up.eigenOpdracht":{ en: "Your own job — {n} parts", nl: "Eigen opdracht — {n} onderdelen" },
   "up.uitJeModel":   { en: "This price comes from your model itself: we slice it into layers here and add up the walls, the top and bottom and the infill.",
-                       nl: "Deze prijs komt uit je model zelf: we snijden het hier in lagen en tellen de wanden, de boven- en onderkant en de vulling bij elkaar op.",
-                       fr: "Ce prix vient de ton modèle : nous le découpons ici en couches et additionnons les parois, le dessus, le dessous et le remplissage." },
+                       nl: "Deze prijs komt uit je model zelf: we snijden het hier in lagen en tellen de wanden, de boven- en onderkant en de vulling bij elkaar op." },
 
   "prijs.uitleg":    { en: "Worked out automatically from the volume and the print time. For an unusual shape that needs a lot of support, the shop may adjust this.",
-                       nl: "Automatisch berekend uit het volume en de printtijd. Bij een bijzondere vorm die veel steunmateriaal vraagt, kan de shop dit nog bijstellen.",
-                       fr: "Calculé automatiquement d'après le volume et le temps d'impression. Pour une forme particulière qui demande beaucoup de support, la boutique peut l'ajuster." },
+                       nl: "Automatisch berekend uit het volume en de printtijd. Bij een bijzondere vorm die veel steunmateriaal vraagt, kan de shop dit nog bijstellen." },
 };
 
-const TALEN = [["en", "English"], ["nl", "Nederlands"], ["fr", "Français"]];
-const LOCALES = { en: "en-GB", nl: "nl-BE", fr: "fr-BE" };
+const TALEN = [["en", "English"], ["nl", "Nederlands"]];
+const LOCALES = { en: "en-GB", nl: "nl-BE" };
 const STANDAARDTAAL = "en";
 
+const kentTaal = (v) => TALEN.some(([k]) => k === v);
+/* Welke taal geldt er nu? In volgorde: wat je deze sessie koos, wat er in je
+   profiel staat (dan gaat het mee naar je telefoon), wat deze browser onthield,
+   en anders wat de winkel als standaard heeft. */
 function taal(){
+  // Alleen wat je deze sessie zelf aanklikte staat in __taal; de rest lezen we
+  // elke keer opnieuw. Cachten we localStorage hierin, dan zou een oude keuze
+  // in deze browser het winnen van wat er in je profiel staat — precies
+  // omgekeerd aan wat je verwacht als je ergens anders inlogt.
   if (state.__taal) return state.__taal;
+  if (kentTaal(state.profile?.taal)) return state.profile.taal;
   try{
     const v = localStorage.getItem("lc_taal");
-    if (v && TALEN.some(([k]) => k === v)) return (state.__taal = v);
+    if (kentTaal(v)) return v;
   }catch(e){}
   const w = winkel().taal;
-  return TALEN.some(([k]) => k === w) ? w : STANDAARDTAAL;
+  return kentTaal(w) ? w : STANDAARDTAAL;
 }
 function zetTaal(v){
+  if (!kentTaal(v)) return;
   state.__taal = v;
   try{ localStorage.setItem("lc_taal", v); }catch(e){}
   document.documentElement.lang = v;
+  // Ben je ingelogd, dan hoort je keuze bij je account: dan lees je de shop op
+  // je telefoon in dezelfde taal zonder daar opnieuw te moeten kiezen.
+  if (state.user){
+    state.profile = { ...(state.profile || {}), taal: v };
+    updateDoc(doc(db, "users", state.user.uid), { taal: v }).catch(() => {});
+  }
   render();
 }
 /* t("sleutel") geeft de tekst in de huidige taal. Ontbreekt er een vertaling,
@@ -1755,14 +1783,14 @@ function leesLink(){
   if (q.get("bestelling")) return { view: "account", orderId: q.get("bestelling") };
   if (q.get("ontvangen"))  return { view: "account", orderId: q.get("ontvangen"), actie: "ontvangen" };
   const p = q.get("pagina");
-  if (p && ["account","archief","custom","cart","shop"].includes(p)) return { view: p };
+  if (p && ["account","archief","custom","cart","shop","instellingen"].includes(p)) return { view: p };
 
   const h = decodeURIComponent(location.hash || "").replace(/^#/, "");
   if (!h) return null;
   const [wat, id] = h.split("/");
   if (wat === "bestelling" && id) return { view: "account", orderId: id };
   if (wat === "ontvangen" && id) return { view: "account", orderId: id, actie: "ontvangen" };
-  if (["account","archief","custom","cart","shop"].includes(wat)) return { view: wat };
+  if (["account","archief","custom","cart","shop","instellingen"].includes(wat)) return { view: wat };
   return null;
 }
 const __link = leesLink();
@@ -1771,7 +1799,7 @@ if (__link) history.replaceState(null, "", SITE_URL);
 /* --------------------------- state --------------------------- */
 /* Waar iemand was toen hij herlaadde. Inloggen en betalen slaan we over: daar
    halverwege terugkomen helpt niemand. */
-const HERSTELBARE_VIEWS = ["shop","product","custom","cart","account","admin","archief","bedankt","info"];
+const HERSTELBARE_VIEWS = ["shop","product","custom","cart","account","admin","archief","bedankt","info","instellingen"];
 function bewaardeView(){
   try{
     const v = JSON.parse(sessionStorage.getItem('lc_view') || "null");
@@ -1883,12 +1911,19 @@ onAuthStateChanged(auth, async (u) => {
         email: u.email, address: {}, isAdmin: isAdminEmail(u.email),
       };
     }
+    // je taal en je bewaarde producten komen nu uit je profiel; wat er in deze
+    // browser stond wordt daarbij gevoegd in plaats van overschreven
+    state.__taal = null;
+    await voegBewaardeSamen();
     listenOrders();
     listenProducts(); // opnieuw luisteren (beheerder ziet alles)
   } else {
     state.profile = null;
     state.profileError = null;
     state.orders = [];
+    // uitgelogd val je terug op wat deze browser onthield
+    state.__taal = null;
+    state.__bewaard = null;
     listenProducts();
   }
   bewaakView();
@@ -1946,6 +1981,62 @@ function bekendAdres(){
 function bekendLand(){
   return state.profile?.shippingCountry || bewaardAdres()?.land || null;
 }
+
+/* =====================================================================
+   Bewaarde producten
+   Een hartje op een kaart. Wie nog twijfelt, legt iets opzij in plaats van het
+   in zijn winkelwagen te duwen — en vindt het later terug bij Instellingen.
+
+   Het staat in je browser én, als je ingelogd bent, in je profiel. Zo ben je
+   het niet kwijt als je op je telefoon verder kijkt, en werkt het toch al
+   voordat je een account hebt.
+   ===================================================================== */
+const BEWAARD_SLEUTEL = "lc_bewaard";
+function inBrowserBewaard(){
+  try{
+    const v = JSON.parse(localStorage.getItem(BEWAARD_SLEUTEL) || "[]");
+    return Array.isArray(v) ? v : [];
+  }catch(e){ return []; }
+}
+function bewaarde(){
+  if (state.__bewaard) return state.__bewaard;
+  return Array.isArray(state.profile?.bewaard) ? state.profile.bewaard : inBrowserBewaard();
+}
+/* Wie eerst rondkeek en dan pas inlogde, heeft twee lijstjes: één in deze
+   browser en één bij zijn account. Weggooien van het ene is altijd fout, dus
+   voegen we ze samen — wat je hier net opzij legde staat vooraan. */
+async function voegBewaardeSamen(){
+  if (!state.user) return;
+  const hier = inBrowserBewaard();
+  const daar = Array.isArray(state.profile?.bewaard) ? state.profile.bewaard : [];
+  const samen = [...new Set([...hier, ...daar])].slice(0, 60);
+  state.__bewaard = null;
+  if (samen.length === daar.length && samen.every((x, i) => x === daar[i])) return;
+  state.profile = { ...(state.profile || {}), bewaard: samen };
+  try{ localStorage.setItem(BEWAARD_SLEUTEL, JSON.stringify(samen)); }catch(e){}
+  try{ await updateDoc(doc(db, "users", state.user.uid), { bewaard: samen }); }catch(e){}
+}
+const isBewaard = (id) => bewaarde().includes(id);
+function zetBewaard(id){
+  const nu = bewaarde();
+  const uit = nu.includes(id) ? nu.filter(x => x !== id) : [id, ...nu].slice(0, 60);
+  state.__bewaard = uit;
+  try{ localStorage.setItem(BEWAARD_SLEUTEL, JSON.stringify(uit)); }catch(e){}
+  if (state.user){
+    state.profile = { ...(state.profile || {}), bewaard: uit };
+    updateDoc(doc(db, "users", state.user.uid), { bewaard: uit }).catch(() => {});
+  }
+  const p = (state.products || []).find(x => x.id === id);
+  notify(t(uit.includes(id) ? "bewaar.erbij" : "bewaar.eraf", { naam: p?.name || "" }));
+  render();
+}
+/* De bewaarde producten die nog bestaan, in de volgorde waarin je ze opzij
+   legde. Iets dat uit de collectie gehaald is, laten we stilletjes weg. */
+function bewaardeProducten(){
+  return bewaarde().map(id => (state.products || []).find(p => p.id === id))
+    .filter(p => p && !verborgen(p));
+}
+window.__zetBewaard = zetBewaard;
 async function onthoudAdres(address, land){
   if (!address || !address.street) return;
   const kaal = { street: address.street || "", zip: address.zip || "", city: address.city || "" };
@@ -1969,9 +2060,16 @@ async function doRegister(name, email, password, address){
   registering = true;
   try{
     const cred = await createUserWithEmailAndPassword(auth, email, password);
-    const profile = { name, email, address, isAdmin: isAdminEmail(email), createdAt: Date.now() };
+    // Wat je al opzij legde en welke taal je las voordat je een account had,
+    // hoort meteen in je nieuwe profiel te staan. Deze setDoc schrijft het hele
+    // document, dus wat hier niet in staat, is weg.
+    const profile = {
+      name, email, address, isAdmin: isAdminEmail(email), createdAt: Date.now(),
+      taal: taal(), bewaard: inBrowserBewaard(),
+    };
     await setDoc(doc(db, "users", cred.user.uid), profile);
     state.profile = profile;
+    state.__bewaard = null;              // voortaan komt de lijst uit je profiel
     // De luisteraar startte al vóór dit profiel er was en luistert dus als
     // klant. Voor een beheerder is dat te weinig — opnieuw aanhaken.
     if (profile.isAdmin) listenOrders();
@@ -4350,6 +4448,10 @@ async function placeOrder(shippingCountry, address, payment){
     // in welke taal deze klant besteld heeft, zodat zijn latere berichten in
     // diezelfde taal aankomen — ook als jij ze vanuit jouw scherm verstuurt
     taal: taal(),
+    // en welke berichten hij wil. Dat staat in zijn profiel, maar de verzend-
+    // en ontvangstmail vertrekken vanuit jouw scherm en daar kun je zijn
+    // profiel niet zomaar bij pakken — dus reist de wens mee met de bestelling.
+    mailWens: { ...(state.profile?.mail || {}) },
     items: state.cart.map(({id,productId,kind,name,price,qty,filament,dims,printTime,grams,jobParts,assembled,uploadId,sliced,colorChoices,listPrice,discountPct,eigenTekst})=>({
       id, productId: productId || id, kind, name, price, qty,
       eigenTekst: eigenTekst || null,
@@ -4539,7 +4641,12 @@ async function mailBestelling(o){
   });
   if (!r.ok && r.reason !== "niet ingesteld") console.warn("bestelbevestiging niet verstuurd:", r.reason);
 }
+/* Wil deze klant dit bericht nog? Wie niets koos krijgt alles: stil afhaken is
+   nooit de bedoeling, alleen wie het uitzet slaat hem over. */
+const wilMail = (o, soort) => o?.mailWens?.[soort] !== false;
+
 async function mailVerzonden(o){
+  if (!wilMail(o, "verzonden")) return;
   const w = deliveryWindow(o);
   const r = await sendMail("tplShipped", {
     ...mailOrderParams(o),
@@ -4552,6 +4659,7 @@ async function mailVerzonden(o){
   if (!r.ok && r.reason !== "niet ingesteld") notify("Verzendmail niet verstuurd: " + r.reason);
 }
 async function mailGeleverd(o){
+  if (!wilMail(o, "geleverd")) return;
   const r = await sendMail("tplDelivered", {
     ...mailOrderParams(o),
     // hier klikt de klant op om de ontvangst te bevestigen
@@ -4738,6 +4846,7 @@ function renderAuthNav(){
     `}
 
     <div class="menu-sep"></div>
+    <button class="menu-item" data-go="instellingen">${ic("gear")} ${t("inst.kop")}</button>
     <button class="menu-item" id="menuTheme">${ic(dark ? "sun" : "moon")} ${dark ? t("nav.licht") : t("nav.donker")}</button>
   `;
 
@@ -4754,13 +4863,42 @@ function closeMenu(){
   document.getElementById('menuPanel')?.classList.add('hidden');
   document.getElementById('navMenu')?.setAttribute('aria-expanded', 'false');
 }
-function toggleTheme(){
+/* Het thema kent drie standen: licht, donker, of meelopen met je toestel. Die
+   derde is de aangenamere: je telefoon gaat 's avonds vanzelf donker en de shop
+   gaat mee. We bewaren hem als "auto" en rekenen bij het tekenen uit wat dat op
+   dit moment betekent. */
+const THEMAS = ["licht", "donker", "auto"];
+function toestelDonker(){
+  return !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+}
+function themaKeuze(){
+  try{
+    const v = localStorage.getItem('lc_theme');
+    if (v === 'light') return 'licht';
+    if (v === 'dark') return 'donker';
+  }catch(e){}
+  return 'auto';
+}
+function zetThema(keuze){
   const root = document.documentElement;
-  const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  root.setAttribute('data-theme', next);
-  try{ localStorage.setItem('lc_theme', next); }catch(e){}
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', next === 'dark' ? '#0F1012' : '#F5F4F0');
-  if (state.view === "product" || state.view === "custom") render();  // de 3D-weergave hertekenen
+  const donker = keuze === 'donker' || (keuze === 'auto' && toestelDonker());
+  root.setAttribute('data-theme', donker ? 'dark' : 'light');
+  try{
+    if (keuze === 'auto') localStorage.removeItem('lc_theme');
+    else localStorage.setItem('lc_theme', donker ? 'dark' : 'light');
+  }catch(e){}
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', donker ? '#0F1012' : '#F5F4F0');
+  render();                       // ook de 3D-weergaven opnieuw tekenen
+}
+function toggleTheme(){
+  zetThema(document.documentElement.getAttribute('data-theme') === 'dark' ? 'licht' : 'donker');
+}
+/* Staat het thema op "volg mijn toestel", dan hoort de shop mee te draaien als
+   je telefoon 's avonds omslaat — zonder dat je hoeft te herladen. */
+if (window.matchMedia){
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
+    if (themaKeuze() === 'auto') zetThema('auto');
+  });
 }
 
 (function initMenu(){
@@ -4831,15 +4969,6 @@ function renderVoet(){
     if (b){ b.setAttribute('aria-label', t(sleutel)); b.title = t(sleutel); }
   }
   document.querySelector('.brand')?.setAttribute('aria-label', t("nav.naarCollectie"));
-  const talen = document.getElementById('voetTalen');
-  if (talen && talen.dataset.taal !== taal()){
-    talen.dataset.taal = taal();
-    talen.innerHTML = TALEN.map(([k, n]) =>
-      `<button class="${k === taal() ? "aan" : ""}" data-taal="${k}" lang="${k}">${n}</button>`).join("");
-    talen.querySelectorAll('[data-taal]').forEach(b => {
-      b.onclick = () => zetTaal(b.dataset.taal);
-    });
-  }
   document.querySelectorAll('[data-info-ga]').forEach(b => {
     b.textContent = t("info." + b.dataset.infoGa);
   });
@@ -4896,6 +5025,7 @@ function renderInhoud(app){
     case "bedankt": app.innerHTML = viewBedankt(); attachShopHandlers(); return;
     case "info": app.innerHTML = viewInfo(); attachInfoHandlers(); return;
     case "account": app.innerHTML = viewAccount(); attachShopHandlers(); return;
+    case "instellingen": app.innerHTML = viewInstellingen(); attachInstellingenHandlers(); return;
     case "archief": app.innerHTML = viewArchief(); attachArchiefHandlers(); return;
     case "admin": app.innerHTML = viewAdmin(); attachAdminHandlers(); return;
   }
@@ -4942,18 +5072,25 @@ function gefilterdeProducten(){
     }));
 }
 
-function viewShop(){
-  const alles = zichtbareProducten();
-  const gevonden = gefilterdeProducten();
-  const cats = categorieen();
-  const filtert = !!(state.__zoek || "").trim() || (state.__cat && state.__cat !== "alles");
-  const cards = gevonden.map(p => `
+/* Eén kaart uit de collectie. Staat apart omdat hij op twee plekken hoort: in
+   de collectie en bij je bewaarde producten. Het hartje zit in een eigen knop
+   binnen de kaart — die vangt zijn eigen klik af, zodat je met het hartje niet
+   per ongeluk de productpagina opent. */
+function productKaart(p){
+  const bew = isBewaard(p.id);
+  return `
     <button class="card rel${verborgen(p) ? " kaart-verborgen" : ""}" data-open="${p.id}">
       <div class="thumb rel">
         ${productThumb(p)}
         ${p.featured && !verborgen(p) ? `<span class="flag">${t("shop.uitgelicht")}</span>` : ``}
         ${verborgen(p) ? `<span class="flag">${ic("eye-slash")} ${t("shop.verborgen")}</span>` : ``}
         ${discountOf(p) ? `<span class="flag" style="left:auto;right:10px;background:var(--accent);color:#fff;">&minus;${discountOf(p).pct}%</span>` : ``}
+        <span class="hart ${bew ? "aan" : ""}" data-bewaar="${esc(p.id)}" role="button" tabindex="0"
+              title="${esc(t(bew ? "bewaar.weghalen" : "bewaar.leggen"))}"
+              aria-label="${esc(t(bew ? "bewaar.weghalen" : "bewaar.leggen"))}"
+              aria-pressed="${bew ? "true" : "false"}">
+          <i class="fa-${bew ? "solid" : "regular"} fa-heart" aria-hidden="true"></i>
+        </span>
       </div>
       <div>
         <div class="card-title">${esc(p.name)}</div>
@@ -4963,7 +5100,15 @@ function viewShop(){
           ${sizingOf(p) ? `<span class="label">${t("shop.opMaat")}</span>` : ``}
         </div>
       </div>
-    </button>`).join("");
+    </button>`;
+}
+
+function viewShop(){
+  const alles = zichtbareProducten();
+  const gevonden = gefilterdeProducten();
+  const cats = categorieen();
+  const filtert = !!(state.__zoek || "").trim() || (state.__cat && state.__cat !== "alles");
+  const cards = gevonden.map(productKaart).join("");
 
   return `
     ${pauzeBanner()}
@@ -5116,6 +5261,15 @@ function attachCartHandlers(){
 }
 
 function attachShopHandlers(){
+  // Eerst het hartje: het zit ín de kaart, dus zonder stopPropagation zou een
+  // klik erop ook de productpagina openen.
+  document.querySelectorAll('[data-bewaar]').forEach(h => {
+    h.onclick = (e) => { e.stopPropagation(); e.preventDefault(); zetBewaard(h.dataset.bewaar); };
+    h.onkeydown = (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.stopPropagation(); e.preventDefault(); zetBewaard(h.dataset.bewaar);
+    };
+  });
   document.querySelectorAll('[data-open]').forEach(btn=>{
     btn.onclick = () => {
       state.selectedProduct = state.products.find(p=>p.id===btn.dataset.open);
@@ -5836,55 +5990,45 @@ function maatKiezer(p, standaardAan){
    ===================================================================== */
 const MATERIAAL_GIDS = [
   { type: "PLA Basic",
-    kop:  { en: "The ordinary choice", nl: "De gewone keuze", fr: "Le choix courant" },
+    kop:  { en: "The ordinary choice", nl: "De gewone keuze" },
     goed: { en: "Anything that stays indoors: decoration, toys, boxes, presents.",
-            nl: "Alles wat binnen blijft: decoratie, speelgoed, doosjes, cadeautjes.",
-            fr: "Tout ce qui reste à l'intérieur : décoration, jouets, boîtes, cadeaux." },
+            nl: "Alles wat binnen blijft: decoratie, speelgoed, doosjes, cadeautjes." },
     let:  { en: "Don't leave it in the car or in full sun — from about 55 °C it starts to deform.",
-            nl: "Niet in de auto of in de volle zon laten liggen — vanaf zo'n 55 °C begint het te vervormen.",
-            fr: "Ne le laisse pas dans la voiture ni en plein soleil — dès 55 °C il se déforme." },
-    sterk:{ en: "Sturdy but a bit brittle", nl: "Stevig maar wat bros", fr: "Solide mais un peu cassant" },
-    kleur:{ en: "Most colours", nl: "De meeste kleuren", fr: "La plupart des couleurs" } },
+            nl: "Niet in de auto of in de volle zon laten liggen — vanaf zo'n 55 °C begint het te vervormen." },
+    sterk:{ en: "Sturdy but a bit brittle", nl: "Stevig maar wat bros" },
+    kleur:{ en: "Most colours", nl: "De meeste kleuren" } },
   { type: "PLA Matte",
-    kop:  { en: "Without the shine", nl: "Zonder glans", fr: "Sans brillance" },
+    kop:  { en: "Without the shine", nl: "Zonder glans" },
     goed: { en: "The same as PLA Basic, but it looks more expensive: no glossy layers.",
-            nl: "Hetzelfde als PLA Basic, maar het ziet er duurder uit: geen glimmende laagjes.",
-            fr: "Comme le PLA Basic, mais l'aspect fait plus cher : pas de couches brillantes." },
+            nl: "Hetzelfde als PLA Basic, maar het ziet er duurder uit: geen glimmende laagjes." },
     let:  { en: "Just as sensitive to heat as ordinary PLA.",
-            nl: "Even gevoelig voor warmte als gewoon PLA.",
-            fr: "Aussi sensible à la chaleur que le PLA ordinaire." },
-    sterk:{ en: "Same as PLA Basic", nl: "Zelfde als PLA Basic", fr: "Comme le PLA Basic" },
-    kleur:{ en: "Soft, matte tones", nl: "Zachte, doffe tinten", fr: "Teintes douces et mates" } },
+            nl: "Even gevoelig voor warmte als gewoon PLA." },
+    sterk:{ en: "Same as PLA Basic", nl: "Zelfde als PLA Basic" },
+    kleur:{ en: "Soft, matte tones", nl: "Zachte, doffe tinten" } },
   { type: "PLA Silk+",
-    kop:  { en: "With a sheen", nl: "Met glans", fr: "Avec de la brillance" },
+    kop:  { en: "With a sheen", nl: "Met glans" },
     goed: { en: "Jewellery, figurines, gifts — anything the eye lands on.",
-            nl: "Sieraden, beeldjes, cadeaus — alles waar het oog op valt.",
-            fr: "Bijoux, figurines, cadeaux — tout ce qui attire l'œil." },
+            nl: "Sieraden, beeldjes, cadeaus — alles waar het oog op valt." },
     let:  { en: "The sheen shows the layers a little more; not for parts that have to fit.",
-            nl: "De glans laat laagjes wat meer zien; niet voor onderdelen die moeten passen.",
-            fr: "La brillance révèle un peu les couches ; pas pour des pièces qui doivent s'emboîter." },
-    sterk:{ en: "Slightly softer than PLA Basic", nl: "Iets zachter dan PLA Basic", fr: "Un peu plus tendre que le PLA Basic" },
-    kleur:{ en: "Glossy, almost metallic", nl: "Glanzend, bijna metaalachtig", fr: "Brillant, presque métallique" } },
+            nl: "De glans laat laagjes wat meer zien; niet voor onderdelen die moeten passen." },
+    sterk:{ en: "Slightly softer than PLA Basic", nl: "Iets zachter dan PLA Basic" },
+    kleur:{ en: "Glossy, almost metallic", nl: "Glanzend, bijna metaalachtig" } },
   { type: "PETG HF",
-    kop:  { en: "For outdoors and for water", nl: "Voor buiten en voor water", fr: "Pour l'extérieur et l'eau" },
+    kop:  { en: "For outdoors and for water", nl: "Voor buiten en voor water" },
     goed: { en: "Planters, things in the bathroom, something that lies in the car, parts that may flex.",
-            nl: "Plantenbakken, dingen in de badkamer, iets dat in de auto ligt, onderdelen die buigen mogen.",
-            fr: "Jardinières, objets de salle de bain, ce qui traîne dans la voiture, pièces qui plient." },
+            nl: "Plantenbakken, dingen in de badkamer, iets dat in de auto ligt, onderdelen die buigen mogen." },
     let:  { en: "Slightly less crisp in the details than PLA.",
-            nl: "Iets minder scherp in de details dan PLA.",
-            fr: "Détails un peu moins nets qu'avec le PLA." },
-    sterk:{ en: "Tough, it bends rather than breaks", nl: "Taai, buigt liever dan dat het breekt", fr: "Tenace, il plie plutôt que de casser" },
-    kleur:{ en: "Often slightly translucent", nl: "Vaak licht doorschijnend", fr: "Souvent légèrement translucide" } },
+            nl: "Iets minder scherp in de details dan PLA." },
+    sterk:{ en: "Tough, it bends rather than breaks", nl: "Taai, buigt liever dan dat het breekt" },
+    kleur:{ en: "Often slightly translucent", nl: "Vaak licht doorschijnend" } },
   { type: "ABS",
-    kop:  { en: "For heat and knocks", nl: "Voor warmte en klappen", fr: "Pour la chaleur et les chocs" },
+    kop:  { en: "For heat and knocks", nl: "Voor warmte en klappen" },
     goed: { en: "Parts that have to take a knock or get warm.",
-            nl: "Onderdelen die tegen een stoot moeten kunnen of warm worden.",
-            fr: "Pièces qui doivent encaisser un choc ou chauffer." },
+            nl: "Onderdelen die tegen een stoot moeten kunnen of warm worden." },
     let:  { en: "It can shrink while printing; large flat pieces don't always work out.",
-            nl: "Kan bij het printen krimpen; grote platte stukken lukken niet altijd.",
-            fr: "Il peut rétrécir à l'impression ; les grandes pièces plates ne passent pas toujours." },
-    sterk:{ en: "The strongest of the four", nl: "Het stevigst van de vier", fr: "Le plus solide des quatre" },
-    kleur:{ en: "Matte, opaque", nl: "Mat, gedekt", fr: "Mat, opaque" } },
+            nl: "Kan bij het printen krimpen; grote platte stukken lukken niet altijd." },
+    sterk:{ en: "The strongest of the four", nl: "Het stevigst van de vier" },
+    kleur:{ en: "Matte, opaque", nl: "Mat, gedekt" } },
 ];
 function materiaalGids(){
   const aanwezig = new Set((state.filaments || []).filter(f => f.enabled).map(f => f.type));
@@ -6031,7 +6175,15 @@ function viewProduct(){
         </div>
         <div>
           ${p.category ? `<span class="badge badge-accent">${esc(p.category)}</span>` : ``}
-          <h1 class="font-display" style="font-size:24px;margin:0 0 10px;">${esc(p.name)}</h1>
+          <div class="between" style="gap:12px;align-items:flex-start;">
+            <h1 class="font-display" style="font-size:24px;margin:0 0 10px;">${esc(p.name)}</h1>
+            <button class="hart-knop ${isBewaard(p.id) ? "aan" : ""}" data-bewaar="${esc(p.id)}"
+                    title="${esc(t(isBewaard(p.id) ? "bewaar.weghalen" : "bewaar.leggen"))}"
+                    aria-label="${esc(t(isBewaard(p.id) ? "bewaar.weghalen" : "bewaar.leggen"))}"
+                    aria-pressed="${isBewaard(p.id) ? "true" : "false"}">
+              <i class="fa-${isBewaard(p.id) ? "solid" : "regular"} fa-heart" aria-hidden="true"></i>
+            </button>
+          </div>
           <p class="price" style="font-size:26px;margin:0 0 4px;">
             ${toeslag
               ? `<span class="now">${fmtEUR(productPrice(p) + toeslag)}</span>`
@@ -6177,6 +6329,9 @@ function attachProductHandlers(){
   });
   document.querySelectorAll('[data-maatref]').forEach(btn=>{
     btn.onclick = () => { state.__maatRef = btn.dataset.maatref; render(); };
+  });
+  document.querySelectorAll('[data-bewaar]').forEach(h => {
+    h.onclick = () => zetBewaard(h.dataset.bewaar);
   });
   const tekst = document.getElementById('persTekst');
   if (tekst) tekst.oninput = () => {
@@ -8071,6 +8226,125 @@ function attachInfoHandlers(){
   });
 }
 
+/* =====================================================================
+   Instellingen
+   Alles wat je over jezelf kunt zeggen, op één plek. Bewust bereikbaar zonder
+   account: taal en thema horen bij de browser waarin je zit, niet bij een
+   inlog. Wie wél ingelogd is, krijgt er zijn gegevens en zijn bewaarde
+   producten bij — en zijn taalkeuze verhuist dan mee naar zijn telefoon.
+   ===================================================================== */
+function keuzeRij(sleutel, opties, nu, attr){
+  return `
+    <div class="inst-rij">
+      <span class="inst-label">${t(sleutel)}</span>
+      <div class="fil-types" style="margin:0;">
+        ${opties.map(([k, label]) => `
+          <button class="fil-type ${k === nu ? "active" : ""}" ${attr}="${esc(k)}">${esc(label)}</button>`).join("")}
+      </div>
+    </div>`;
+}
+function viewInstellingen(){
+  const p = state.profile || {};
+  const a = p.address || bewaardAdres() || {};
+  const bew = bewaardeProducten();
+  const mail = p.mail || {};
+  return `
+    <div style="padding:32px 0;max-width:520px;">
+      <button class="back" onclick="go('${state.user ? "account" : "shop"}')">${ic("arrow-left")} ${t("alg.terug")}</button>
+      <h1 class="font-display" style="font-size:22px;margin:0 0 4px;">${t("inst.kop")}</h1>
+      <p class="muted" style="font-size:13px;line-height:1.6;margin:0 0 18px;">${t("inst.sub")}</p>
+
+      <div class="cart-item">
+        ${keuzeRij("inst.taal", TALEN, taal(), "data-kiestaal")}
+        ${keuzeRij("inst.thema", THEMAS.map(k => [k, t("thema." + k)]), themaKeuze(), "data-kiesthema")}
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:2px 0 0;">
+          ${t(state.user ? "inst.bijAccount" : "inst.bijBrowser")}
+        </p>
+      </div>
+
+      ${state.user ? `
+        <h2 class="font-display" style="font-size:16px;margin:22px 0 8px;">${t("inst.gegevens")}</h2>
+        <div class="cart-item">
+          <label class="field-label" style="margin-top:0;">${t("auth.naam")}</label>
+          <input id="instNaam" value="${esc(p.name || "")}" autocomplete="name" name="name" />
+          <label class="field-label">${t("ck.bezorgadres")}</label>
+          <input id="instStraat" placeholder="${esc(t("ck.straat"))}" autocomplete="street-address" value="${esc(a.street || "")}" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <input id="instPostcode" placeholder="${esc(t("ck.postcode"))}" autocomplete="postal-code" inputmode="numeric" value="${esc(a.zip || "")}" />
+            <input id="instGemeente" placeholder="${esc(t("ck.gemeente"))}" autocomplete="address-level2" value="${esc(a.city || "")}" />
+          </div>
+          <label class="field-label">${t("ck.land")}</label>
+          <select class="field" id="instLand">
+            ${SHIPPING_RATES.map(r => `<option value="${esc(r.country)}"${r.country === (p.shippingCountry || bekendLand()) ? " selected" : ""}>${esc(landTekst(r.country))}</option>`).join("")}
+          </select>
+          <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 12px;">${t("inst.adresUitleg")}</p>
+          <button class="btn btn-accent" id="instBewaarBtn" style="width:100%;">${t("inst.bewaren")}</button>
+        </div>
+
+        <h2 class="font-display" style="font-size:16px;margin:22px 0 8px;">${t("inst.berichten")}</h2>
+        <div class="cart-item">
+          <label class="checkbox-row" style="margin:0 0 6px;">
+            <input type="checkbox" id="mailVerzonden" style="width:auto;margin:0;" ${mail.verzonden === false ? "" : "checked"} />
+            ${t("inst.mailVerzonden")}
+          </label>
+          <label class="checkbox-row" style="margin:0;">
+            <input type="checkbox" id="mailGeleverd" style="width:auto;margin:0;" ${mail.geleverd === false ? "" : "checked"} />
+            ${t("inst.mailGeleverd")}
+          </label>
+          <p class="muted" style="font-size:12px;line-height:1.65;margin:8px 0 0;">${t("inst.mailUitleg")}</p>
+        </div>` : `
+        <div class="cart-item" style="margin-top:18px;text-align:center;">
+          <p style="font-size:13px;line-height:1.65;margin:0 0 12px;">${t("inst.logInVoorMeer")}</p>
+          <button class="btn btn-accent" onclick="go('login')">${t("nav.inlogRegistreer")}</button>
+        </div>`}
+
+      <h2 class="font-display" style="font-size:16px;margin:22px 0 8px;">
+        ${t("bewaar.kop")}${bew.length ? ` <span class="muted font-mono" style="font-size:12px;">${bew.length}</span>` : ``}
+      </h2>
+      ${bew.length ? `
+        <div class="grid grid-klein">
+          ${bew.map(productKaart).join("")}
+        </div>` : `
+        <div class="cart-item">
+          <p class="muted" style="font-size:13px;line-height:1.65;margin:0;">${t("bewaar.leeg")}</p>
+        </div>`}
+    </div>`;
+}
+function attachInstellingenHandlers(){
+  attachShopHandlers();                       // de kaarten en de hartjes
+  document.querySelectorAll('[data-kiestaal]').forEach(b => {
+    b.onclick = () => zetTaal(b.dataset.kiestaal);
+  });
+  document.querySelectorAll('[data-kiesthema]').forEach(b => {
+    b.onclick = () => zetThema(b.dataset.kiesthema);
+  });
+  const bewaar = document.getElementById('instBewaarBtn');
+  if (bewaar) bewaar.onclick = async () => {
+    const val = id => (document.getElementById(id)?.value || "").trim();
+    const adres = { street: val('instStraat'), zip: val('instPostcode'), city: val('instGemeente') };
+    const land = document.getElementById('instLand')?.value || null;
+    bewaar.disabled = true;
+    try{
+      await updateDoc(doc(db, "users", state.user.uid), {
+        name: val('instNaam'), address: adres, shippingCountry: land,
+      });
+      state.profile = { ...(state.profile || {}), name: val('instNaam'), address: adres, shippingCountry: land };
+      try{ localStorage.setItem(ADRES_SLEUTEL, JSON.stringify({ ...adres, land })); }catch(e){}
+      notify(t("inst.bewaard"));
+      render();
+    }catch(err){ notify(t("inst.mislukt") + " " + firestoreHint(err)); bewaar.disabled = false; }
+  };
+  for (const [id, veld] of [["mailVerzonden", "verzonden"], ["mailGeleverd", "geleverd"]]){
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.onchange = () => {
+      const mail = { ...(state.profile?.mail || {}), [veld]: el.checked };
+      state.profile = { ...(state.profile || {}), mail };
+      updateDoc(doc(db, "users", state.user.uid), { mail }).catch(() => {});
+    };
+  }
+}
+
 function viewAccount(){
   if (!state.user){
     return `<div style="padding:32px 0;"><p class="muted">${t("acc.nietIngelogd")}</p><button class="btn btn-accent" onclick="go('login')">${t("auth.inloggen")}</button></div>`;
@@ -8111,8 +8385,9 @@ function viewAccount(){
         <button class="btn btn-ghost btn-sm" onclick="go('archief')" style="margin-left:6px;">${t("acc.naarArchief")}</button>
       </p>` : ``}
 
-      <div class="row" style="margin-top:20px;">
+      <div class="row" style="margin-top:20px;flex-wrap:wrap;gap:8px;">
         <button class="btn btn-ghost btn-sm" onclick="go('shop')"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> ${t("acc.naarShop")}</button>
+        <button class="btn btn-ghost btn-sm" onclick="go('instellingen')">${ic("gear")} ${t("acc.instellingen")}</button>
         <button class="btn btn-ghost btn-sm" onclick="window.__logout()">${t("nav.uitloggen")}</button>
       </div>
     </div>`;
@@ -9824,8 +10099,10 @@ function viewWinkelAdmin(){
         ${TALEN.map(([k, n]) => `<option value="${k}"${(w.taal || STANDAARDTAAL) === k ? " selected" : ""}>${esc(n)}</option>`).join("")}
       </select>
       <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 12px;">
-        Wat een bezoeker als eerste te zien krijgt. Onderaan elke pagina kan hij zelf
-        een andere kiezen; die keuze onthoudt zijn browser. Shopbeheer blijft Nederlands.
+        Wat een bezoeker als eerste te zien krijgt. Bij Instellingen kan hij zelf een
+        andere kiezen; is hij ingelogd, dan gaat die keuze mee naar zijn telefoon.
+        Shopbeheer blijft Nederlands — klik zelf op Nederlands als de winkel in het
+        Engels opent, dan werk jij gewoon in je eigen taal.
       </p>
 
       <label class="field-label">Wie mag er nog meer in Shopbeheer</label>
