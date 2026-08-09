@@ -2855,7 +2855,12 @@ async function analyzeFile(file, sleutel){
    0.577 — die blijft dus scherp, zoals het hoort. Bij een ronding liggen de
    vlakken veel dichter bij elkaar en zitten ze ruim boven de grens, dus die
    wordt wél glad. */
-const ZACHT_TOT = 260000;    // daarboven duurt het samenvoegen te lang
+/* Zachte normalen zijn er om een grof model glad te laten lijken. Een model
+   van honderdduizenden driehoeken ís al glad — daar valt niets te winnen,
+   terwijl het samenvoegen er wel honderden milliseconden op de hoofddraad
+   kost. Precies de tijd die we met de werkdraad net hadden vrijgemaakt. De
+   grens ligt daarom net boven wat een 3D-voorbeeld ooit groot wordt. */
+const ZACHT_TOT = 70000;
 
 function vlakkeNormalen(mesh){
   const n = mesh.length / 9;
@@ -2874,9 +2879,7 @@ function vlakkeNormalen(mesh){
 
 function zachteNormalen(mesh, knik = 0.78){
   const n = mesh.length / 9;
-  // Een model van een miljoen driehoeken samenvoegen kost seconden en een berg
-  // geheugen. Zo fijn getekend valt het verschil toch niet meer op, dus dan
-  // nemen we per driehoek gewoon zijn eigen richting.
+  // Te fijn om er nog iets aan te hebben: dan per driehoek zijn eigen richting.
   if (n > ZACHT_TOT) return vlakkeNormalen(mesh);
   const vlakN = new Float32Array(n * 3);
   const opTel = new Map();                 // plek → opgetelde richting
