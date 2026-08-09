@@ -310,6 +310,25 @@
   .voet-klein{color:var(--muted);font-size:12px;line-height:1.6;margin-left:auto;}
   @media(max-width:640px){ .voet-klein{margin-left:0;flex-basis:100%;} }
 
+  /* ---------- materiaalgids ---------- */
+  .gids-knop{
+    display:inline-flex;align-items:center;gap:6px;background:none;border:none;
+    color:var(--muted);font-size:12px;line-height:1.5;padding:4px 8px;border-radius:8px;
+    flex-shrink:0;transition:color .16s, background .16s;
+  }
+  .gids-knop:hover{color:var(--accent);background:var(--surface2);}
+  .gids{
+    background:var(--surface2);border-radius:12px;padding:13px 14px;margin:0 0 14px;
+    animation:uitvouwen .3s cubic-bezier(.22,.7,.3,1) both;
+  }
+  .gids-blok + .gids-blok{border-top:1px solid var(--line);margin-top:10px;padding-top:10px;}
+  .gids-naam{font-size:13.5px;font-weight:600;line-height:1.5;margin:0 0 4px;}
+  .gids .kv{font-size:12.5px;line-height:1.6;padding:3px 0;gap:16px;}
+  .gids .kv span:last-child{font-family:inherit;max-width:60%;}
+
+  /* ---------- de winkel staat even op pauze ---------- */
+  .pauzevak{margin:0 0 22px;}
+
   /* ---------- hoe groot is het echt ---------- */
   .maatvak{margin:14px 0 0;padding:14px 15px 12px;}
   .maatvak-kop{
@@ -351,6 +370,7 @@
     transition:color .16s, background .16s;
   }
   .zoekvak > button:hover{color:var(--ink);background:var(--surface2);}
+  .zoeksorteer{width:auto;margin:0;flex-shrink:0;font-size:13px;padding:10px 12px;}
   .zoekchips{display:flex;gap:6px;flex-wrap:wrap;}
   .chip{
     background:var(--surface);border:1px solid var(--line-strong);color:var(--muted);
@@ -1173,8 +1193,34 @@ window.go = go;
 /* Deze adressen krijgen automatisch beheerdersrechten. Dit is gemak, geen
    beveiliging: de echte grens ligt in de Firestore-regels, want alles wat
    hier staat draait in de browser van de bezoeker. */
-const ADMIN_EMAILS = ["jelle@mattan.be"];
-function isAdminEmail(email){ return ADMIN_EMAILS.includes(String(email || "").trim().toLowerCase()); }
+/* Dit adres is altijd beheerder. Het staat vast in de code zodat je jezelf
+   nooit buiten kunt sluiten — verwijder je per ongeluk alle beheerders uit de
+   instellingen, dan kom je hiermee nog binnen. Wie er verder bij mag, zet je
+   in Shopbeheer → Winkelgegevens.
+   Let op: dit is gemak, geen beveiliging. De echte grens ligt in de
+   Firestore-regels, want alles hier draait in de browser van de bezoeker. */
+const HOOFD_BEHEERDER = "jelle@mattan.be";
+function beheerderMails(){
+  return [HOOFD_BEHEERDER, ...(winkel().beheerders || [])]
+    .map(e => String(e || "").trim().toLowerCase()).filter(Boolean);
+}
+function isAdminEmail(email){
+  return beheerderMails().includes(String(email || "").trim().toLowerCase());
+}
+
+/* Staat de winkel op pauze? Dan zegt hij dat bovenaan, en jij bepaalt of er
+   ondertussen besteld mag worden. */
+function pauze(){
+  const w = winkel();
+  if (!w.pauze) return null;
+  // een einddatum die voorbij is, zet de pauze vanzelf uit
+  if (w.pauzeTot && new Date(w.pauzeTot + "T23:59:59").getTime() < Date.now()) return null;
+  return {
+    bericht: w.pauzeBericht || "We zijn er even niet.",
+    tot: w.pauzeTot || null,
+    bestellen: w.pauzeBestellen !== false,
+  };
+}
 
 /* Tijdens registreren schrijft doRegister het profiel zelf. Deze callback vuurt
    al vlak na het aanmaken van het account, dus vóór dat schrijven klaar is —
@@ -1329,11 +1375,14 @@ function listenProducts(){
     state.productsLoaded = true;
     state.productsError = null;
     state.productsStalled = false;
-    // Na een herlaadbeurt op een productpagina: het product weer opzoeken.
-    if (!state.selectedProduct && state.selectedProductId){
-      const p = state.products.find(x => x.id === state.selectedProductId);
+    // Het geopende product opnieuw oppikken uit wat er net binnenkwam. Dat is
+    // nodig na een herlaadbeurt, maar ook gewoon tijdens het kijken: verandert
+    // het product ondertussen, dan bleef je anders naar de oude versie staren.
+    const wil = state.selectedProduct?.id || state.selectedProductId;
+    if (wil){
+      const p = state.products.find(x => x.id === wil);
       if (p) state.selectedProduct = p;
-      else if (state.view === "product") state.view = "shop";
+      else if (state.view === "product"){ state.selectedProduct = null; state.view = "shop"; }
     }
     if (state.view === "shop" || state.view === "product" || state.view === "admin") render();
   }, (err) => {
@@ -1379,13 +1428,39 @@ const DEFAULT_WINKEL = {
   naam: "Extrudo", eigenaar: "", straat: "", postcode: "", gemeente: "",
   land: "België", email: "", telefoon: "", btw: "", ondernemingsnummer: "",
   levertijd: "3 tot 5 werkdagen", retourdagen: 14,
+  // wie er nog meer in Shopbeheer mag; jouw eigen adres staat vast in de code
+  beheerders: [],
+  // de winkel even op pauze, met een boodschap erbij
+  pauze: false, pauzeBericht: "", pauzeTot: "", pauzeBestellen: true,
 };
 function winkel(){ return { ...DEFAULT_WINKEL, ...(state.winkel || {}) }; }
 function listenWinkel(){
   onSnapshot(WINKEL_DOC(), (snap) => {
     state.winkel = snap.exists() ? snap.data() : null;
-    if (["info","admin","shop"].includes(state.view)) render();
+    herkeurBeheerder();
+    // de pauze en de beheerderslijst raken bijna elk scherm
+    render();
   }, () => { /* valt terug op de standaardwaarden */ });
+}
+/* Wie er beheerder is staat in de instellingen, en die komen later binnen dan
+   het profiel. Zonder deze stap zou iemand die je net hebt toegevoegd pas bij
+   zijn vólgende bezoek in Shopbeheer geraken.
+
+   Iemand zijn rechten áfnemen doen we alleen als de winkelgegevens er echt
+   staan. Bestaat dat document nog niet, dan is de lijst leeg omdat er nooit
+   iets is ingevuld — niet omdat jij iemand hebt weggehaald. Zonder dit
+   onderscheid verloor een beheerder die met de hand was aangezet zijn toegang
+   bij de eerstvolgende paginalading. */
+async function herkeurBeheerder(){
+  if (!state.user || !state.profile) return;
+  const hoort = isAdminEmail(state.user.email);
+  if (hoort === !!state.profile.isAdmin) return;
+  if (!hoort && !state.winkel) return;         // geen lijst, dus niets af te nemen
+  state.profile.isAdmin = hoort;
+  try{ await updateDoc(doc(db, "users", state.user.uid), { isAdmin: hoort }); }
+  catch(e){ /* de regels beslissen; lukt het niet, dan blijft het zoals het was */ }
+  if (hoort) listenOrders();
+  renderAuthNav();
 }
 async function saveWinkel(values){ await setDoc(WINKEL_DOC(), values); }
 /* Wat er nog ingevuld moet worden voor de voorwaarden kloppen. */
@@ -3495,6 +3570,26 @@ async function zoekCode(code, subtotaal){
     return keurCode(c, snap.exists() ? snap.data() : null, subtotaal);
   }catch(e){ return { ok: false, waarom: "Kon de code niet nakijken" }; }
 }
+/* =====================================================================
+   Wat het meest verkocht wordt
+   Een klant ziet alleen zijn eigen bestellingen, dus hij kan niet zelf tellen
+   wat populair is. Daarom houdt elk product zijn eigen teller bij, die bij een
+   bestelling wordt opgehoogd. Lukt dat niet, dan is de bestelling belangrijker
+   dan het cijfertje — dan slaan we het stil over.
+   ===================================================================== */
+async function telVerkocht(items){
+  const per = new Map();
+  for (const i of items || []){
+    const id = i.productId || i.id;
+    if (!id || i.kind === "custom") continue;
+    per.set(id, (per.get(id) || 0) + (i.qty || 1));
+  }
+  for (const [id, n] of per){
+    try{ await updateDoc(doc(db, "products", id), { verkocht: increment(n) }); }
+    catch(e){ console.warn("verkoopteller niet bijgewerkt:", e); }
+  }
+}
+
 /* Eén gebruik bijtellen. Lukt dat niet, dan is de bestelling belangrijker. */
 async function telCodeGebruik(code){
   try{
@@ -3592,8 +3687,9 @@ async function placeOrder(shippingCountry, address, payment){
   const order = {
     uid: state.user.uid,
     userEmail: state.user.email,
-    items: state.cart.map(({id,productId,kind,name,price,qty,filament,dims,printTime,grams,jobParts,assembled,uploadId,sliced,colorChoices,listPrice,discountPct})=>({
+    items: state.cart.map(({id,productId,kind,name,price,qty,filament,dims,printTime,grams,jobParts,assembled,uploadId,sliced,colorChoices,listPrice,discountPct,eigenTekst})=>({
       id, productId: productId || id, kind, name, price, qty,
+      eigenTekst: eigenTekst || null,
       filament: filament || null, dims: dims || null,
       colorChoices: colorChoices || null,
       listPrice: listPrice ?? null, discountPct: discountPct || 0,
@@ -3626,6 +3722,7 @@ async function placeOrder(shippingCountry, address, payment){
     state.__ckVeld = null; state.__ckLand = null; state.__adresCheck = null;
     state.__korting = null; state.__afhaal = null;
     if (korting) telCodeGebruik(korting.code);
+    telVerkocht(order.items);
     const geplaatst = { id: ref.id, ...order };
     // Een toastje na het betalen is te weinig: dat is net het moment waarop
     // iemand wil lezen dat het gelukt is en wat er nu gaat gebeuren.
@@ -4125,10 +4222,33 @@ function renderInhoud(app){
 function categorieen(){
   return [...new Set(zichtbareProducten().map(p => (p.category || "").trim()).filter(Boolean))].sort();
 }
+/* Sorteren. "Populair" komt uit de teller die bij elke bestelling omhoog gaat;
+   staat alles nog op nul, dan komt het nieuwste bovenaan. */
+const SORTEER = [
+  ["populair", "Populair"],
+  ["nieuw",    "Nieuwste"],
+  ["laag",     "Prijs oplopend"],
+  ["hoog",     "Prijs aflopend"],
+];
+function sorteerProducten(lijst){
+  const hoe = SORTEER.some(([k]) => k === state.__sort) ? state.__sort : "populair";
+  const prijs = p => sizingOf(p) ? basePriceOf(p) : productPrice(p);
+  const kopie = [...lijst];
+  if (hoe === "nieuw") kopie.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  else if (hoe === "laag") kopie.sort((a, b) => prijs(a) - prijs(b));
+  else if (hoe === "hoog") kopie.sort((a, b) => prijs(b) - prijs(a));
+  // Puur op wat er verkocht is. Uitgelichte producten krijgen hun eigen
+  // vlaggetje op de kaart; ze hier vooraan zetten zou "populair" iets anders
+  // laten betekenen dan wat er staat.
+  else kopie.sort((a, b) =>
+    (Number(b.verkocht) || 0) - (Number(a.verkocht) || 0)
+    || (b.createdAt || 0) - (a.createdAt || 0));
+  return kopie;
+}
 function gefilterdeProducten(){
   const zoek = (state.__zoek || "").trim().toLowerCase();
   const cat = state.__cat || "alles";
-  return zichtbareProducten()
+  return sorteerProducten(zichtbareProducten()
     .filter(p => cat === "alles" ? true : (p.category || "").trim() === cat)
     .filter(p => {
       if (!zoek) return true;
@@ -4136,7 +4256,7 @@ function gefilterdeProducten(){
         .filter(Boolean).join(" ").toLowerCase();
       // elk los woord moet ergens voorkomen: "vaas petg" vindt de petg-vaas
       return zoek.split(/\s+/).every(w => hooi.includes(w));
-    });
+    }));
 }
 
 function viewShop(){
@@ -4163,6 +4283,7 @@ function viewShop(){
     </button>`).join("");
 
   return `
+    ${pauzeBanner()}
     <section class="hero">
       <div class="hero-grid">
         <div>
@@ -4200,6 +4321,9 @@ function viewShop(){
                  value="${esc(state.__zoek || "")}" aria-label="Zoek in de collectie" />
           ${(state.__zoek || "").trim() ? `<button id="shopZoekWis" aria-label="Zoekterm wissen">${ic("xmark")}</button>` : ``}
         </div>
+        <select class="field zoeksorteer" id="shopSort" aria-label="Sorteren">
+          ${SORTEER.map(([k, naam]) => `<option value="${k}"${(state.__sort || "populair") === k ? " selected" : ""}>${naam}</option>`).join("")}
+        </select>
         ${cats.length > 1 ? `
           <div class="zoekchips">
             <button class="chip ${!state.__cat || state.__cat === "alles" ? "active" : ""}" data-cat="alles">Alles</button>
@@ -4226,6 +4350,27 @@ function geenTreffers(){
         <button class="btn btn-ghost btn-sm" id="shopFilterWeg">${ic("rotate-left")} Toon alles</button>
         <button class="btn btn-accent btn-sm" onclick="go('custom')">${ic("arrow-up-from-bracket")} Upload je model</button>
       </div>
+    </div>`;
+}
+
+/* De winkel staat even op pauze. Dat hoort bovenaan te staan, niet pas bij het
+   afrekenen — niemand vult graag een adres in om dan te horen dat het toch niet
+   doorgaat. */
+function pauzeBanner(){
+  const pz = pauze();
+  if (!pz) return ``;
+  return `
+    <div class="notice pauzevak">
+      <p class="notice-title">${ic("mug-hot")} ${esc(winkel().naam)} is even gesloten</p>
+      <p style="font-size:14px;line-height:1.7;margin:0;">${esc(pz.bericht)}</p>
+      ${pz.tot ? `<p class="muted" style="font-size:13px;line-height:1.65;margin:6px 0 0;">
+        Vanaf ${esc(new Date(pz.tot + "T12:00:00").toLocaleDateString('nl-BE', { day:'numeric', month:'long' }))} zijn we er weer.
+      </p>` : ``}
+      <p class="muted" style="font-size:13px;line-height:1.65;margin:6px 0 0;">
+        ${pz.bestellen
+          ? "Bestellen kan gewoon — je pakje vertrekt zodra we terug zijn."
+          : "Bestellen kan even niet. Je kunt wel alvast rondkijken."}
+      </p>
     </div>`;
 }
 
@@ -4309,6 +4454,8 @@ function attachShopHandlers(){
   document.querySelectorAll('[data-cat]').forEach(b => {
     b.onclick = () => { state.__cat = b.dataset.cat; render(); };
   });
+  const sorteer = document.getElementById('shopSort');
+  if (sorteer) sorteer.onchange = () => { state.__sort = sorteer.value; render(); };
 }
 
 /* --------------------------- maatwerk per product --------------------------- */
@@ -4379,7 +4526,10 @@ function discountOf(p){
 }
 /* De prijs zonder korting. */
 function listPrice(p){
-  return sizingOf(p) ? sizedEstimate(p).unit : p.price;
+  if (sizingOf(p)) return sizedEstimate(p).unit;
+  const b = bundelPrijs(p);
+  if (b) return b.prijs;
+  return p.price;
 }
 function productPrice(p){
   const vol = listPrice(p);
@@ -4526,9 +4676,60 @@ function currentFilament(p){
    kleuren: mond geel, arm blauw. Elk vak krijgt zijn eigen keuzemenu; de
    klant klapt er één open tegelijk, zodat het overzichtelijk blijft.
    ===================================================================== */
+/* =====================================================================
+   Een setje: één product dat uit andere producten bestaat
+   De prijs is de som van wat erin zit, min de korting die jij erop zet. De
+   kleuren regelen zichzelf: elk stuk uit het setje wordt een kleurvak, dus de
+   klant kiest per stuk een kleur en jij ziet dat terug in de bestelling, in de
+   winkelwagen en in je printlijst — zonder dat daar iets voor bijgebouwd moest
+   worden.
+   ===================================================================== */
+function bundelVan(p){
+  const ids = Array.isArray(p?.bundelVan) ? p.bundelVan : [];
+  return ids.map(id => (state.products || []).find(x => x.id === id)).filter(Boolean);
+}
+function bundelPrijs(p){
+  const stuks = bundelVan(p);
+  if (!stuks.length) return null;
+  const los = stuks.reduce((s, x) => s + (Number(x.price) || 0), 0);
+  const pct = Math.min(90, Math.max(0, Number(p.bundelKorting) || 0));
+  return { los, prijs: Math.round(los * (100 - pct)) / 100, pct, stuks };
+}
+
 function colorSlots(p){
+  // Een setje krijgt zijn vakken van wat erin zit: één kleur per stuk.
+  const stuks = bundelVan(p);
+  if (stuks.length) return stuks.map(x => ({ name: x.name, filamentId: null })).slice(0, 10);
   const s = Array.isArray(p?.colorSlots) ? p.colorSlots.filter(x => x && x.name) : [];
   return s.slice(0, 10);
+}
+
+/* =====================================================================
+   Een naam of tekst op je print
+   Dit is wat 3D printen kan en een winkel niet: hetzelfde model, maar dan met
+   jouw naam erin. Per product zet je zelf aan of het kan, hoe het veld heet,
+   hoeveel tekens erin passen en of het extra kost.
+   ===================================================================== */
+function personalisatie(p){
+  const x = p?.personalisatie;
+  if (!x || !x.aan) return null;
+  return {
+    label: (x.label || "").trim() || "Naam of tekst",
+    hint: (x.hint || "").trim(),
+    max: Math.max(1, Math.min(60, Number(x.max) || 16)),
+    prijs: Math.max(0, Number(x.prijs) || 0),
+    verplicht: !!x.verplicht,
+  };
+}
+function gekozenTekst(p){
+  const t = (state.__tekst || {})[p?.id] || "";
+  const pers = personalisatie(p);
+  return pers ? t.slice(0, pers.max) : "";
+}
+/* Mag er besteld worden? Bij een verplicht veld niet zolang het leeg is. */
+function tekstKlaar(p){
+  const pers = personalisatie(p);
+  return !pers || !pers.verplicht || !!gekozenTekst(p).trim();
 }
 /* De keuze per vak, met de standaardkleur van het product als terugval. */
 function slotFilament(p, i){
@@ -4581,9 +4782,13 @@ function slotPicker(p){
       <span class="stappen-balk" style="max-width:none;display:block;margin-bottom:12px;">
         <span style="width:${Math.round(klaar / slots.length * 100)}%;"></span>
       </span>
-      <p class="muted" style="font-size:12px;margin:0 0 12px;">
-        Dit model bestaat uit ${slots.length} stukken. Kies voor elk stuk een kleur.
-      </p>
+      <div class="between" style="margin:0 0 12px;gap:10px;">
+        <span class="muted" style="font-size:12px;line-height:1.6;">
+          Dit model bestaat uit ${slots.length} stukken. Kies voor elk stuk een kleur.
+        </span>
+        ${gidsKnop()}
+      </div>
+      ${state.__gidsOpen ? materiaalGids() : ``}
       ${slots.map((s, i) => {
         const g = slotGekozen(p, i);
         const uit = open === i;
@@ -4865,6 +5070,56 @@ function maatScene(min, size, ref){
   };
 }
 
+/* Mag dit product nu in de winkelwagen? */
+function bestelbaar(p){
+  const pz = pauze();
+  if (pz && !pz.bestellen) return false;
+  return slotsKlaar(p) && tekstKlaar(p);
+}
+
+/* Het veld waarin de klant zijn naam of tekst typt. */
+function tekstVak(p){
+  const pers = personalisatie(p);
+  if (!pers) return ``;
+  const nu = gekozenTekst(p);
+  return `
+    <div class="cart-item" style="margin:16px 0 0;">
+      <label class="field-label" style="margin-top:0;" for="persTekst">
+        ${esc(pers.label)}${pers.verplicht ? ` <span style="color:var(--accent);">*</span>` : ` <span class="muted">(mag leeg)</span>`}
+      </label>
+      <input id="persTekst" maxlength="${pers.max}" value="${esc(nu)}"
+             placeholder="${esc(pers.hint || "Typ hier je tekst")}" style="margin:0 0 6px;" />
+      <div class="between">
+        <span class="muted" style="font-size:12px;line-height:1.6;">
+          ${pers.prijs > 0 ? `Kost ${fmtEUR(pers.prijs)} extra.` : `Zit bij de prijs in.`}
+          Dit printen we mee in het model.
+        </span>
+        <span class="muted font-mono" style="font-size:11px;flex-shrink:0;">${nu.length}/${pers.max}</span>
+      </div>
+    </div>`;
+}
+
+/* Wat er in een setje zit, met wat het los zou kosten. */
+function bundelVak(p){
+  const b = bundelPrijs(p);
+  if (!b) return ``;
+  return `
+    <div class="cart-item" style="margin:16px 0 0;">
+      <p class="maatvak-kop">${ic("boxes-stacked")} Dit setje bestaat uit</p>
+      ${b.stuks.map(x => `
+        <div class="kv"><span>${esc(x.name)}</span><span class="font-mono">${fmtEUR(x.price)}</span></div>`).join("")}
+      <div class="kv" style="border-top:1px solid var(--line-strong);margin-top:6px;padding-top:8px;">
+        <span>Los zou dat ${fmtEUR(b.los)} zijn</span>
+        <span class="font-mono" style="color:var(--accent);font-weight:600;">
+          ${b.pct ? `je bespaart ${fmtEUR(b.los - b.prijs)}` : `samen ${fmtEUR(b.prijs)}`}
+        </span>
+      </div>
+      <p class="muted" style="font-size:12px;line-height:1.65;margin:8px 0 0;">
+        Je kiest hieronder voor elk stuk apart een kleur.
+      </p>
+    </div>`;
+}
+
 /* Voor een product zonder 3D-model: een eigen vakje met een blok van de juiste
    afmetingen naast het bekende voorwerp. Ook hier in 3D en ook draaibaar — de
    vorm klopt niet, de grootte wel. */
@@ -4905,6 +5160,64 @@ function maatKiezer(p, standaardAan){
     </div>`;
 }
 
+/* =====================================================================
+   Materiaalgids
+   Welk plastic waarvoor? Dat weet een klant niet, en een verkeerde keuze komt
+   als klacht terug. De gids staat achter een informatieteken naast de
+   filamentkeuze, zodat hij er is als je hem nodig hebt en verder niet in de
+   weg zit. Dezelfde tekst staat ook onder de winkelgegevens.
+   ===================================================================== */
+const MATERIAAL_GIDS = [
+  { type: "PLA Basic", kop: "De gewone keuze",
+    goed: "Alles wat binnen blijft: decoratie, speelgoed, doosjes, cadeautjes.",
+    let: "Niet in de auto of in de volle zon laten liggen — vanaf zo'n 55 °C begint het te vervormen.",
+    sterk: "Stevig maar wat bros", kleur: "De meeste kleuren" },
+  { type: "PLA Matte", kop: "Zonder glans",
+    goed: "Hetzelfde als PLA Basic, maar het ziet er duurder uit: geen glimmende laagjes.",
+    let: "Even gevoelig voor warmte als gewoon PLA.",
+    sterk: "Zelfde als PLA Basic", kleur: "Zachte, doffe tinten" },
+  { type: "PLA Silk+", kop: "Met glans",
+    goed: "Sieraden, beeldjes, cadeaus — alles waar het oog op valt.",
+    let: "De glans laat laagjes wat meer zien; niet voor onderdelen die moeten passen.",
+    sterk: "Iets zachter dan PLA Basic", kleur: "Glanzend, bijna metaalachtig" },
+  { type: "PETG HF", kop: "Voor buiten en voor water",
+    goed: "Plantenbakken, dingen in de badkamer, iets dat in de auto ligt, onderdelen die buigen mogen.",
+    let: "Iets minder scherp in de details dan PLA.",
+    sterk: "Taai, buigt liever dan dat het breekt", kleur: "Vaak licht doorschijnend" },
+  { type: "ABS", kop: "Voor warmte en klappen",
+    goed: "Onderdelen die tegen een stoot moeten kunnen of warm worden.",
+    let: "Kan bij het printen krimpen; grote platte stukken lukken niet altijd.",
+    sterk: "Het stevigst van de vier", kleur: "Mat, gedekt" },
+];
+function materiaalGids(){
+  const aanwezig = new Set((state.filaments || []).filter(f => f.enabled).map(f => f.type));
+  const lijst = MATERIAAL_GIDS.filter(m => !aanwezig.size || aanwezig.has(m.type));
+  return `
+    <div class="gids">
+      <p class="muted" style="font-size:13px;line-height:1.7;margin:0 0 12px;">
+        Alle soorten printen we even netjes; het verschil zit in waar je het voor gebruikt.
+        Twijfel je? PLA Basic is voor bijna alles binnenshuis de juiste keuze.
+      </p>
+      ${lijst.map(m => `
+        <div class="gids-blok">
+          <p class="gids-naam">${esc(m.type)} <span class="muted">&mdash; ${esc(m.kop)}</span></p>
+          <div class="kv"><span>Goed voor</span><span style="text-align:right;">${esc(m.goed)}</span></div>
+          <div class="kv"><span>Let op</span><span style="text-align:right;">${esc(m.let)}</span></div>
+          <div class="kv"><span>Sterkte</span><span style="text-align:right;">${esc(m.sterk)}</span></div>
+          <div class="kv"><span>Uitzicht</span><span style="text-align:right;">${esc(m.kleur)}</span></div>
+        </div>`).join("")}
+    </div>`;
+}
+/* Het informatieteken naast de filamentkeuze, met de gids eronder. */
+function gidsKnop(){
+  return `
+    <button class="gids-knop" id="materiaalGidsBtn"
+            title="Welk materiaal kies je waarvoor?"
+            aria-expanded="${state.__gidsOpen ? "true" : "false"}">
+      ${ic("circle-info")} <span>Welk materiaal?</span>
+    </button>`;
+}
+
 function filamentPicker(p){
   if (colorSlots(p).length) return slotPicker(p);
   const list = availableFilaments(p);
@@ -4919,8 +5232,9 @@ function filamentPicker(p){
     <div class="fil-block">
       <div class="between" style="margin-bottom:10px;">
         <span class="font-display" style="font-size:14px;">Filament</span>
-        <span class="muted font-mono" style="font-size:10px;">BAMBU LAB</span>
+        ${gidsKnop()}
       </div>
+      ${state.__gidsOpen ? materiaalGids() : ``}
       <div class="fil-types">
         ${types.map(t => typeKnop(p, t, t === activeType, "data-filtype")).join("")}
       </div>
@@ -5046,19 +5360,24 @@ function viewProduct(){
             </p>` : ``}
           ${p.description ? `<p style="font-size:14px;line-height:1.6;color:var(--ink);opacity:.85;">${esc(p.description)}</p>` : ``}
           ${sizing ? sizingBlock(p) : ``}
+          ${bundelVak(p)}
           ${filamentPicker(p)}
           ${est ? priceBreakdown(est) : ``}
+          ${tekstVak(p)}
           ${specs ? `<div class="spec-grid">${specs}</div>` : ``}
           ${toon3d ? `` : maatBlokVak(p)}
           <div class="row" style="margin-top:18px;">
             <div class="stepper"><button id="qMinus"><i class="fa-solid fa-minus" aria-hidden="true"></i></button><span id="qVal">1</span><button id="qPlus"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></div>
             <button class="btn btn-accent" id="addBtn"
-                    ${slotsKlaar(p) ? "" : "disabled style=\"opacity:.5;\""}>
+                    ${bestelbaar(p) ? "" : "disabled style=\"opacity:.5;\""}>
               <i class="fa-solid fa-cart-plus" aria-hidden="true"></i>
-              ${!slotsKlaar(p) ? `Kies nog ${slotsTeGaan(p)} kleur${slotsTeGaan(p) > 1 ? "en" : ""}` : "Toevoegen"}
+              ${!slotsKlaar(p) ? `Kies nog ${slotsTeGaan(p)} kleur${slotsTeGaan(p) > 1 ? "en" : ""}`
+                : !tekstKlaar(p) ? `Vul eerst ${esc(personalisatie(p).label.toLowerCase())} in`
+                : pauze() && !pauze().bestellen ? "Even gesloten"
+                : "Toevoegen"}
             </button>
           </div>
-          <p class="footer-note"><i class="fa-solid fa-print" aria-hidden="true"></i> Wordt op bestelling geprint — verzending binnen 3 tot 5 werkdagen.</p>
+          <p class="footer-note"><i class="fa-solid fa-print" aria-hidden="true"></i> Wordt op bestelling geprint — verzending binnen ${esc(winkel().levertijd)}.</p>
         </div>
       </div>
     </div>`;
@@ -5164,6 +5483,13 @@ function attachProductHandlers(){
   document.querySelectorAll('[data-maatref]').forEach(btn=>{
     btn.onclick = () => { state.__maatRef = btn.dataset.maatref; render(); };
   });
+  const tekst = document.getElementById('persTekst');
+  if (tekst) tekst.oninput = () => {
+    (state.__tekst ||= {})[state.selectedProduct.id] = tekst.value;
+    render();                       // de teller en de knop lopen mee
+  };
+  const gids = document.getElementById('materiaalGidsBtn');
+  if (gids) gids.onclick = () => { state.__gidsOpen = !state.__gidsOpen; render(); };
   toon3dVoorbeeld();
   tekenMaatBlok();
   document.querySelectorAll('[data-filtype]').forEach(btn=>{
@@ -5237,16 +5563,26 @@ function attachProductHandlers(){
       const x = slotFilament(p, i);
       return { slot: s.name, id: x?.id, type: x?.type, name: x?.name, hex: x?.hex, finish: x?.finish };
     });
+    if (!tekstKlaar(p)){
+      notify(`Vul eerst ${personalisatie(p).label.toLowerCase()} in`);
+      document.getElementById('persTekst')?.focus();
+      return;
+    }
+    const pz = pauze();
+    if (pz && !pz.bestellen){ notify("De winkel staat even op pauze"); return; }
+    const pers = personalisatie(p);
+    const eigenTekst = pers ? gekozenTekst(p).trim() : "";
     const f = slots.length ? slotFilament(p, 0) : currentFilament(p);
     const sizing = sizingOf(p);
     const dims = sizing ? currentDims(p) : null;
     const est = sizing ? sizedEstimate(p) : null;
     addToCart({
       // kleur én maat maken de regel uniek, zodat twee varianten niet samensmelten
-      id: [p.id, keuzes.length ? keuzes.map(k=>k.id).join("+") : f?.id, dims?.join("x")].filter(Boolean).join("::"),
+      id: [p.id, keuzes.length ? keuzes.map(k=>k.id).join("+") : f?.id, dims?.join("x"), eigenTekst].filter(Boolean).join("::"),
       productId: p.id,
       kind: "product", name: p.name, qty,
-      price: est ? est.unit : Math.round((productPrice(p) + gekozenToeslag(p)) * 100) / 100,
+      eigenTekst: eigenTekst || null,
+      price: est ? est.unit : Math.round((productPrice(p) + gekozenToeslag(p) + (pers?.prijs || 0)) * 100) / 100,
       filamentSurcharge: est ? 0 : gekozenToeslag(p),
       listPrice: est ? null : listPrice(p) + gekozenToeslag(p),
       discountPct: discountOf(p)?.pct || 0,
@@ -5254,7 +5590,8 @@ function attachProductHandlers(){
       filament: f ? { id:f.id, type:f.type, name:f.name, hex:f.hex, finish:f.finish } : null,
       colorChoices: keuzes.length ? keuzes : null,
     });
-    if (slots.length){ state.__slotFil = {}; state.__openSlot = 0; render(); }
+    if (pers) (state.__tekst ||= {})[p.id] = "";
+    if (slots.length || pers){ state.__slotFil = {}; state.__openSlot = 0; render(); }
   };
 }
 
@@ -6196,6 +6533,9 @@ function wagenSpecs(it){
   // De maat staat er alleen bij als de klant hem zelf gekozen heeft — bij
   // maatwerk dus. Bij een geüpload model staat er geen maat in de regel.
   if (it.dims) uit.push(regel("Maat", esc(it.dims.join(" × ")) + " mm"));
+  // wat er op het stuk geprint moet worden, is het belangrijkste dat je niet
+  // mag missen — noch de klant, noch jij bij het printen
+  if (it.eigenTekst) uit.push(regel("Tekst", `<strong>${esc(it.eigenTekst)}</strong>`));
   return uit.join("");
 }
 
@@ -6212,7 +6552,8 @@ function wagenKort(it){
     ? `${vakken.length} kleuren`
     : it.filament ? esc([it.filament.type, it.filament.name].filter(Boolean).join(" · "))
     : (Array.isArray(it.jobParts) && it.jobParts.length) ? `${it.jobParts.length} onderdelen` : "";
-  return `${bollen}${woorden ? `<span>${woorden}</span>` : ``}`;
+  const tekst = it.eigenTekst ? `<span>“${esc(it.eigenTekst)}”</span>` : ``;
+  return `${bollen}${woorden ? `<span>${woorden}</span>` : ``}${tekst}`;
 }
 
 /* De vorm van het bijbehorende product, zodat het kleurvoorbeeld in de
@@ -6945,6 +7286,7 @@ function viewBedankt(){
    ===================================================================== */
 const INFO_DELEN = [
   ["contact",     "Contact",        "envelope"],
+  ["materialen",  "Materialen",     "palette"],
   ["voorwaarden", "Voorwaarden",    "file-lines"],
   ["retour",      "Retour",         "rotate-left"],
   ["privacy",     "Privacy",        "shield-halved"],
@@ -6964,6 +7306,10 @@ function viewInfo(){
   const mist = winkelOntbreekt();
   const adres = adresRegel(w);
   const inhoud = {
+    materialen: `
+      <h3 class="info-kop">Welk materiaal kies je waarvoor?</h3>
+      ${materiaalGids()}`,
+
     contact: `
       <p style="font-size:14px;line-height:1.75;margin:0 0 14px;">
         Achter ${esc(w.naam)} zit één printer en één persoon. Heb je een vraag over een bestelling,
@@ -7119,6 +7465,65 @@ function viewAccount(){
         <button class="btn btn-ghost btn-sm" onclick="window.__logout()">Uitloggen</button>
       </div>
     </div>`;
+}
+
+/* Personaliseren aanzetten voor dit product. */
+function persAdminBlock(ed){
+  const x = ed?.personalisatie || {};
+  return `
+    <details class="vak"${x.aan ? " open" : ""}>
+      <summary>${ic("pen")} Naam of tekst erop${x.aan ? ` <span class="badge">aan</span>` : ""}</summary>
+      <div class="vak-body">
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
+          Zet dit aan en de klant kan bij dit product een naam of tekst opgeven. Die zie je
+          terug in de bestelling en in je printlijst, zodat je hem in het model kunt zetten
+          voor je print.
+        </p>
+        <label class="checkbox-row"><input type="checkbox" id="pPersAan" style="width:auto;margin:0;" ${x.aan ? "checked" : ""} /> Personaliseren kan bij dit product</label>
+        <label class="field-label">Hoe heet het veld</label>
+        <input id="pPersLabel" placeholder="Naam op de tag" value="${esc(x.label || "")}" />
+        <label class="field-label">Voorbeeldtekst in het veld</label>
+        <input id="pPersHint" placeholder="Bijv. Lotte" value="${esc(x.hint || "")}" />
+        <div class="form-grid">
+          <div>
+            <label class="field-label">Hoeveel tekens passen erop</label>
+            <input id="pPersMax" type="number" min="1" max="60" value="${esc(String(x.max ?? 16))}" />
+          </div>
+          <div>
+            <label class="field-label">Kost het extra (€)</label>
+            <input id="pPersPrijs" type="number" min="0" step="0.5" value="${esc(String(x.prijs ?? 0))}" />
+          </div>
+        </div>
+        <label class="checkbox-row"><input type="checkbox" id="pPersVerplicht" style="width:auto;margin:0;" ${x.verplicht ? "checked" : ""} /> Verplicht — zonder tekst kan er niet besteld worden</label>
+      </div>
+    </details>`;
+}
+
+/* Een setje samenstellen uit andere producten. */
+function bundelAdminBlock(ed){
+  const gekozen = Array.isArray(state.__draftBundel) ? state.__draftBundel
+    : (Array.isArray(ed?.bundelVan) ? ed.bundelVan : []);
+  const andere = (state.products || []).filter(p => p.id !== ed?.id && !Array.isArray(p.bundelVan));
+  return `
+    <details class="vak"${gekozen.length ? " open" : ""}>
+      <summary>${ic("boxes-stacked")} Setje${gekozen.length ? ` <span class="badge">${gekozen.length}</span>` : ""}</summary>
+      <div class="vak-body">
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
+          Vink aan wat er in dit setje zit. De prijs volgt uit wat je aanvinkt, min de korting
+          hieronder — je hoeft er dus zelf geen prijs voor te verzinnen. De klant kiest voor elk
+          stuk apart een kleur.
+        </p>
+        ${andere.length ? andere.map(p => `
+          <label class="checkbox-row">
+            <input type="checkbox" class="bundelvink" value="${esc(p.id)}" style="width:auto;margin:0;"
+                   ${gekozen.includes(p.id) ? "checked" : ""} />
+            ${esc(p.name)} <span class="muted font-mono" style="font-size:11px;">${fmtEUR(p.price)}</span>
+          </label>`).join("")
+          : `<p class="muted" style="font-size:13px;margin:0;">Je hebt nog geen andere producten om te bundelen.</p>`}
+        <label class="field-label">Korting op het setje (%)</label>
+        <input id="pBundelKorting" type="number" min="0" max="90" value="${esc(String(ed?.bundelKorting ?? 10))}" />
+      </div>
+    </details>`;
 }
 
 /* Het printbestand bij een product instellen. undefined = laten staan wat er
@@ -7609,6 +8014,8 @@ function viewAdmin(){
             </details>
 
             ${printAdminBlock(ed)}
+            ${persAdminBlock(ed)}
+            ${bundelAdminBlock(ed)}
 
             <details class="vak"${(state.__draftSlots || []).length ? " open" : ""}>
               <summary>${ic("palette")} Kleuren per onderdeel${(state.__draftSlots || []).length ? ` <span class="badge">${(state.__draftSlots || []).length}</span>` : ""}</summary>
@@ -7974,6 +8381,7 @@ function bestelRegel(o, i, idx){
           ${vakken.length
             ? vakken.map(c => kleurRegel(c, c.slot || "Kleur")).join("")
             : i.filament ? kleurRegel(i.filament, "Filament") : ``}
+          ${i.eigenTekst ? `<div class="detail-regel"><span class="sleutel">Tekst</span><span class="waarde"><strong>${esc(i.eigenTekst)}</strong></span></div>` : ``}
           ${i.dims ? `<div class="detail-regel"><span class="sleutel">Maat</span><span class="waarde">${esc(i.dims.join(" × "))} mm</span></div>` : ``}
           <div class="detail-regel"><span class="sleutel">Aantal</span><span class="waarde">${i.qty} × ${fmtEUR(i.price)} = ${fmtEUR(i.price * i.qty)}</span></div>
           ${i.discountPct ? `<div class="detail-regel"><span class="sleutel">Korting</span><span class="waarde">${i.discountPct}% — was ${fmtEUR(i.listPrice ?? 0)}</span></div>` : ``}
@@ -8671,7 +9079,8 @@ function printGroep(g, n){
           <button class="printrij${itemGeprint(s.order, s.idx) ? " af" : ""}"
                   data-qprint="${esc(s.order.id)}|${s.idx}">
             <span class="stap-vink${itemGeprint(s.order, s.idx) ? " ja" : ""}">${itemGeprint(s.order, s.idx) ? ic("check") : ""}</span>
-            <span class="printrij-naam">${s.item.qty}× ${esc(s.item.name)}</span>
+            <span class="printrij-naam">${s.item.qty}× ${esc(s.item.name)}${
+              s.item.eigenTekst ? ` — <strong>${esc(s.item.eigenTekst)}</strong>` : ``}</span>
             <span class="muted font-mono printrij-bij">${esc(orderNumber(s.order))} · ${esc(s.order.userEmail || "")}</span>
           </button>`).join("")}
       </div>
@@ -8759,6 +9168,35 @@ function viewWinkelAdmin(){
         Veertien dagen is wat de wet vraagt voor gewone artikelen. Voor iets dat speciaal
         voor iemand geprint wordt geldt die bedenktijd niet — dat staat zo op de retourpagina.
       </p>
+
+      <label class="field-label">Wie mag er nog meer in Shopbeheer</label>
+      <input id="wk_beheerders" placeholder="papa@voorbeeld.be, zus@voorbeeld.be"
+             value="${esc((w.beheerders || []).join(", "))}" />
+      <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 12px;">
+        E-mailadressen met een komma ertussen. Wie hier staat en inlogt, komt in Shopbeheer.
+        Jouw eigen adres (${esc(HOOFD_BEHEERDER)}) staat vast in de code, zodat je jezelf
+        nooit kunt buitensluiten.
+      </p>
+
+      <div class="cart-item" style="padding:12px 13px;margin:2px 0 12px;">
+        <label class="checkbox-row" style="margin:0 0 8px;">
+          <input type="checkbox" id="wk_pauze" style="width:auto;margin:0;" ${w.pauze ? "checked" : ""} />
+          <strong>De winkel staat even op pauze</strong>
+        </label>
+        <label class="field-label">Wat je klanten te lezen krijgen</label>
+        <input id="wk_pauzeBericht" placeholder="Ik ben tot 20 juli op reis." value="${esc(w.pauzeBericht || "")}" />
+        <label class="field-label">Tot wanneer (mag leeg)</label>
+        <input id="wk_pauzeTot" type="date" value="${esc(w.pauzeTot || "")}" />
+        <label class="checkbox-row">
+          <input type="checkbox" id="wk_pauzeBestellen" style="width:auto;margin:0;" ${w.pauzeBestellen !== false ? "checked" : ""} />
+          Bestellen mag ondertussen gewoon
+        </label>
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:6px 0 0;">
+          Staat het vinkje uit, dan kan er niets in de winkelwagen. De datum zet de pauze
+          vanzelf weer uit als hij voorbij is.
+        </p>
+      </div>
+
       <button class="btn btn-accent" id="saveWinkelBtn" style="width:100%;">Opslaan</button>
       <p class="footer-note">
         ${ic("eye")} <button class="detail-toggle" onclick="go('info')">Bekijk hoe het er voor een klant uitziet</button>
@@ -8773,6 +9211,14 @@ function attachWinkelHandlers(){
     const uit = {};
     for (const [id] of WINKEL_VELDEN) uit[id] = val(id);
     uit.retourdagen = Math.max(0, Math.min(90, parseInt(val('retourdagen'), 10) || 14));
+    uit.beheerders = val('beheerders').split(/[,;\s]+/)
+      .map(e => e.trim().toLowerCase())
+      .filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))
+      .filter(e => e !== HOOFD_BEHEERDER);
+    uit.pauze = !!document.getElementById('wk_pauze')?.checked;
+    uit.pauzeBericht = val('pauzeBericht');
+    uit.pauzeTot = val('pauzeTot');
+    uit.pauzeBestellen = !!document.getElementById('wk_pauzeBestellen')?.checked;
     if (!uit.naam) uit.naam = DEFAULT_WINKEL.naam;
     btn.disabled = true;
     try{
@@ -9196,7 +9642,7 @@ function sizingFromForm(){
 
 /* Het productformulier wordt opnieuw getekend zodra je een kleurvak toevoegt
    of een model kiest. Zonder dit was je dan kwijt wat je al ingetypt had. */
-const PRODUCT_VELDEN = ['pName','pPrice','pDesc','pCategory','pColor','pMaterial',
+const PRODUCT_VELDEN = ['pName','pPrice','pDesc','pPersLabel','pPersHint','pPersMax','pPersPrijs','pBundelKorting','pCategory','pColor','pMaterial',
   'pInfill','pLayer','pDim','pTime','pWeight','pDiscount','pDiscountUntil',
   'pSolidity','pSizeInfill','pSizeLayer'];
 function herstelProductFormulier(){
@@ -9386,12 +9832,15 @@ function attachAdminHandlers(){
     const val = id => (document.getElementById(id)?.value || "").trim();
     const name = val('pName');
     const price = parseFloat(val('pPrice'));
+    const isSet = document.querySelectorAll('.bundelvink:checked').length > 0;
     if (!name){ notify("Vul een naam in"); return; }
-    if (!isFinite(price) || price <= 0){ notify("Vul een geldige prijs in"); return; }
+    // Een setje rekent zijn prijs uit wat erin zit; daar hoef je er dus geen
+    // voor in te vullen.
+    if (!isSet && (!isFinite(price) || price <= 0)){ notify("Vul een geldige prijs in"); return; }
 
     const weight = parseInt(val('pWeight'),10);
     const data = {
-      name, price,
+      name, price: isFinite(price) && price > 0 ? price : 0,
       description: val('pDesc'),
       hidden: !!document.getElementById('pHidden')?.checked,
       discountPct: Math.min(90, Math.max(0, parseInt(val('pDiscount'),10) || 0)),
@@ -9411,6 +9860,16 @@ function attachAdminHandlers(){
       sizing: sizingFromForm(),
       filamentTypes: [...document.querySelectorAll('.ptype:checked')].map(c => c.value),
       featured: !!document.getElementById('pFeatured')?.checked,
+      personalisatie: {
+        aan: !!document.getElementById('pPersAan')?.checked,
+        label: val('pPersLabel'),
+        hint: val('pPersHint'),
+        max: Math.max(1, Math.min(60, parseInt(val('pPersMax'), 10) || 16)),
+        prijs: Math.max(0, parseFloat(val('pPersPrijs')) || 0),
+        verplicht: !!document.getElementById('pPersVerplicht')?.checked,
+      },
+      bundelVan: [...document.querySelectorAll('.bundelvink:checked')].map(c => c.value),
+      bundelKorting: Math.max(0, Math.min(90, parseInt(val('pBundelKorting'), 10) || 0)),
       images: (state.__draftImages || []).filter(isSafeImageSrc).slice(0, MAX_PRODUCT_IMAGES),
       icon: "cube",
     };
