@@ -248,9 +248,10 @@
   /* ---------- meldingen ---------- */
   .toast{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);
-    border-radius:12px;padding:13px 18px;font-size:13px;z-index:60;max-width:calc(100vw - 32px);
+    border-radius:12px;padding:11px 12px 11px 16px;font-size:13px;z-index:60;max-width:calc(100vw - 32px);
     display:flex;align-items:center;gap:10px;
   }
+  .toast span{overflow:hidden;text-overflow:ellipsis;}
   .toast i{color:var(--accent);}
   .notice{border:1px solid var(--accent);border-left-width:3px;border-radius:12px;padding:13px 15px;background:var(--surface);}
   .notice-title{color:var(--accent);font-weight:600;font-size:13px;margin:0 0 6px;display:flex;align-items:center;gap:8px;}
@@ -554,6 +555,78 @@
   .admin-row img{width:42px;height:42px;border-radius:8px;object-fit:cover;display:block;}
   .admin-thumb{width:42px;height:42px;border-radius:8px;background:var(--plate);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;color:var(--muted);}
 
+  /* =====================================================================
+     Beweging
+     Alles wat verschijnt komt op, wat opengaat schuift uit. Kort en klein
+     gehouden: een scherm dat danst leidt af. Wie in zijn toestel heeft gezegd
+     dat hij minder beweging wil, krijgt onderaan alles uitgezet.
+     ===================================================================== */
+  @keyframes opkomen   { from { opacity:0; transform:translateY(9px);  } to { opacity:1; transform:none; } }
+  @keyframes uitvouwen { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+  @keyframes indraaien { from { opacity:0; transform:scale(.94);       } to { opacity:1; transform:none; } }
+  @keyframes omhoog    { from { opacity:0; transform:translate(-50%,14px); } to { opacity:1; transform:translate(-50%,0); } }
+  @keyframes tikje     { 0%{transform:scale(1);} 40%{transform:scale(1.28);} 100%{transform:scale(1);} }
+  @keyframes pols      { 0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent);}
+                         70%{box-shadow:0 0 0 9px transparent;} 100%{box-shadow:0 0 0 0 transparent;} }
+
+  /* een nieuw scherm komt rustig op */
+  #app > div{ animation:opkomen .26s cubic-bezier(.22,.7,.3,1) both; }
+
+  /* de collectie druppelt binnen in plaats van in één klap te staan */
+  .grid > .card{ animation:opkomen .34s cubic-bezier(.22,.7,.3,1) both; }
+  .grid > .card:nth-child(1){animation-delay:.02s;} .grid > .card:nth-child(2){animation-delay:.06s;}
+  .grid > .card:nth-child(3){animation-delay:.10s;} .grid > .card:nth-child(4){animation-delay:.14s;}
+  .grid > .card:nth-child(5){animation-delay:.18s;} .grid > .card:nth-child(6){animation-delay:.22s;}
+  .grid > .card:nth-child(n+7){animation-delay:.26s;}
+
+  /* alles wat uitklapt schuift open */
+  .kleurkiezer-lade, .stappen-body, .bestelregel-body, .vak-body, .slot-body{
+    animation:uitvouwen .22s cubic-bezier(.22,.7,.3,1) both;
+  }
+  .kleurkiezer{ transition:border-color .18s, background .18s; }
+  .kleurkiezer.open{ animation:indraaien .2s cubic-bezier(.22,.7,.3,1) both; }
+  /* het vak dat nog wacht trekt even de aandacht */
+  .kleurkiezer.leeg.open{ animation:indraaien .2s cubic-bezier(.22,.7,.3,1) both, pols 1.6s ease-out .2s 2; }
+  .kleurkiezer-nr{ transition:background .22s, color .22s, transform .22s; }
+  .kleurkiezer.gekozen .kleurkiezer-nr{ animation:tikje .34s cubic-bezier(.3,1.4,.5,1) both; }
+  .kleurkiezer-keuze .fil-chip{ transition:transform .2s; }
+
+  /* knoppen geven mee onder je vinger */
+  .btn, .fil-type, .swatch, .tab, .stap, .beheer-nav button, .bestelregel-kop, .kleurkiezer-knop{
+    transition:transform .12s cubic-bezier(.3,1.3,.5,1), background .14s, border-color .14s, color .14s, opacity .14s;
+  }
+  .btn:active, .fil-type:active, .tab:active, .stap:active,
+  .beheer-nav button:active, .bestelregel-kop:active, .kleurkiezer-knop:active{ transform:scale(.975); }
+  .swatch:hover{ transform:translateY(-2px); }
+  .swatch:active{ transform:scale(.9); }
+  .swatch.active{ animation:tikje .3s cubic-bezier(.3,1.4,.5,1) both; }
+  .card{ transition:transform .18s cubic-bezier(.22,.7,.3,1), box-shadow .18s, background .14s; }
+  .card:hover{ transform:translateY(-3px); }
+
+  /* de melding onderaan schuift omhoog in beeld */
+  .toast:not(.hidden){ animation:omhoog .28s cubic-bezier(.22,.7,.3,1) both; }
+  .toast .toast-actie{
+    margin-left:4px;background:var(--paper);color:var(--ink);border:none;border-radius:8px;
+    padding:7px 12px;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;
+  }
+  .toast .toast-actie:active{ transform:scale(.96); }
+
+  /* het aantal in de winkelwagen springt op als er iets bij komt */
+  .cart-count.bump{ animation:tikje .42s cubic-bezier(.3,1.5,.5,1) both; }
+
+  /* onderdelen en bestelregels komen op als ze verschijnen */
+  .part-card, .bestelregel, .order-card, .admin-row{
+    animation:opkomen .24s cubic-bezier(.22,.7,.3,1) both;
+  }
+  .stappen-balk > span, .snijbalk > span{ transition:width .3s cubic-bezier(.22,.7,.3,1); }
+
+  @media(prefers-reduced-motion:reduce){
+    *, *::before, *::after{
+      animation-duration:.001ms !important; animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+    }
+  }
+
   /* ---------- skelet ---------- */
   .skel{background:var(--surface2);position:relative;overflow:hidden;}
   .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--line),transparent);animation:shimmer 1.5s infinite;}
@@ -754,12 +827,34 @@ const SHIPPING_RATES = [
 ];
 
 function fmtEUR(n){ return new Intl.NumberFormat("nl-BE",{style:"currency",currency:"EUR"}).format(n); }
-function notify(msg){
+/* Een melding onderaan. Hoort er iets bij dat je meteen kunt doen — na het
+   toevoegen wil je vaak recht naar je winkelwagen — dan komt daar een knop bij
+   te staan in plaats van dat je zelf moet zoeken. */
+function notify(msg, actie){
   const t = document.getElementById('toast');
-  t.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> ' + esc(msg);
+  t.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> <span style="min-width:0;">'
+    + esc(msg) + '</span>';
+  if (actie){
+    const knop = document.createElement('button');
+    knop.className = 'toast-actie';
+    knop.textContent = actie.tekst;
+    knop.onclick = () => { verbergToast(); actie.doe(); };
+    t.appendChild(knop);
+  }
   t.classList.remove('hidden');
+  // opnieuw laten binnenkomen, ook als hij al stond
+  t.style.animation = 'none';
+  void t.offsetWidth;
+  t.style.animation = '';
   clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(()=>t.classList.add('hidden'), 3000);
+  window.__toastTimer = setTimeout(verbergToast, actie ? 6000 : 3000);
+}
+/* Weg is weg: de knop mag niet als onzichtbaar overblijfsel blijven staan,
+   want dan is hij nog steeds aan te klikken met een toetsenbord. */
+function verbergToast(){
+  const t = document.getElementById('toast');
+  t.classList.add('hidden');
+  t.innerHTML = "";
 }
 
 const SITE_URL = location.origin + location.pathname;
@@ -3041,7 +3136,7 @@ function addToCart(item){
   const existing = state.cart.find(x=>x.id===item.id && x.kind===item.kind);
   if (existing) existing.qty += item.qty; else state.cart.push(item);
   saveCart();
-  notify(item.name + " toegevoegd");
+  notify(item.name + " toegevoegd", { tekst: "Naar winkelwagen", doe: () => go("cart") });
   renderCartBadge();
   // op de productpagina hangt de knop af van wat er nog op voorraad is
   if (state.view === "product") render();
@@ -3130,10 +3225,18 @@ function toggleTheme(){
 
 window.__logout = doLogout;
 
+let __vorigeMand = null;
 function renderCartBadge(){
   const b = document.getElementById('cartBadge');
   const c = cartCount();
   if (c>0){ b.textContent=c; b.classList.remove('hidden'); } else b.classList.add('hidden');
+  // even opspringen als er iets bij komt, zodat je ziet wáár het heen ging
+  if (__vorigeMand !== null && c > __vorigeMand){
+    b.classList.remove('bump');
+    void b.offsetWidth;
+    b.classList.add('bump');
+  }
+  __vorigeMand = c;
 }
 
 function esc(s=""){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
