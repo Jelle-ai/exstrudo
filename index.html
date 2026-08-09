@@ -293,7 +293,110 @@
     padding:4px 10px;border:1px solid var(--line-strong);border-radius:999px;color:var(--muted);
   }
   .badge-accent{border-color:var(--accent);color:var(--accent);}
-  .footer-note{font-size:12px;color:var(--muted);margin-top:14px;display:flex;align-items:center;gap:8px;}
+  .footer-note{font-size:12px;line-height:1.65;color:var(--muted);margin-top:14px;display:flex;align-items:center;gap:8px;}
+
+  /* ---------- de voet van elke pagina ---------- */
+  .voet{border-top:1px solid var(--line);margin-top:48px;padding:22px 20px 34px;}
+  .voet-binnen{
+    max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap;
+  }
+  .voet-naam{font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;letter-spacing:-.01em;}
+  .voet-links{display:flex;gap:4px;flex-wrap:wrap;}
+  .voet-links button{
+    background:none;border:none;color:var(--muted);font-size:13px;line-height:1.6;
+    padding:4px 8px;border-radius:8px;transition:color .16s, background .16s;
+  }
+  .voet-links button:hover{color:var(--ink);background:var(--surface2);}
+  .voet-klein{color:var(--muted);font-size:12px;line-height:1.6;margin-left:auto;}
+  @media(max-width:640px){ .voet-klein{margin-left:0;flex-basis:100%;} }
+
+  /* ---------- hoe groot is het echt ---------- */
+  .maatvak{margin:14px 0 0;padding:14px 15px 12px;}
+  .maatvak-kop{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 10px;
+  }
+  /* De tekening is op ware verhouding; laat ze niet meegroeien met een breed
+     scherm, anders wordt een bankkaart ter grootte van een half beeldscherm
+     getoond en klopt het gevoel juist niet meer. */
+  .maatvak svg{display:block;margin:0 auto;max-width:320px;}
+  .maat-vloer{stroke:var(--line-strong);stroke-width:1;}
+  .maat-kaart{fill:var(--surface2);stroke:var(--line-strong);stroke-width:1;}
+  .maat-ding{fill:var(--accent);opacity:.9;}
+  .maat-label-in{
+    fill:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:9px;text-anchor:middle;
+  }
+  .maat-label{
+    fill:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;text-anchor:middle;
+  }
+
+  /* ---------- zoeken en filteren in de collectie ---------- */
+  .zoekbalk{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px;}
+  .zoekvak{
+    position:relative;display:flex;align-items:center;gap:10px;flex:1 1 260px;min-width:0;
+    background:var(--surface);border:1px solid var(--line-strong);border-radius:11px;padding:0 12px;
+    transition:border-color .16s;
+  }
+  .zoekvak:focus-within{border-color:var(--accent);}
+  .zoekvak > i{color:var(--muted);font-size:13px;flex-shrink:0;}
+  .zoekvak input{
+    border:none;background:none;margin:0;padding:11px 0;flex:1;min-width:0;font-size:14px;
+  }
+  /* Op een telefoon een maat groter: onder 16px zoomt iOS in zodra je het
+     vakje aantikt, en daarna niet meer uit. */
+  @media (pointer: coarse){ .zoekvak input{font-size:16px;} }
+  .zoekvak input:focus{outline:none;}
+  .zoekvak input::-webkit-search-cancel-button{display:none;}
+  .zoekvak > button{
+    background:none;border:none;color:var(--muted);padding:6px;border-radius:8px;flex-shrink:0;
+    transition:color .16s, background .16s;
+  }
+  .zoekvak > button:hover{color:var(--ink);background:var(--surface2);}
+  .zoekchips{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{
+    background:var(--surface);border:1px solid var(--line-strong);color:var(--muted);
+    border-radius:999px;padding:7px 14px;font-size:12.5px;line-height:1.4;
+    transition:background .16s, color .16s, border-color .16s, transform .14s cubic-bezier(.3,1.3,.5,1);
+  }
+  .chip:hover{color:var(--ink);}
+  .chip:active{transform:scale(.96);}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600;}
+
+  /* ---------- wat er op de printer moet ---------- */
+  .printrij{
+    display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+    background:none;border:none;border-top:1px solid var(--line);padding:11px 2px;
+    transition:background .14s;
+  }
+  .printrij:first-of-type{border-top:none;}
+  .printrij:hover{background:var(--surface2);border-radius:10px;}
+  .printrij-naam{flex:1;min-width:0;font-size:13.5px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .printrij-bij{font-size:10.5px;flex-shrink:0;}
+  .printrij.af .printrij-naam{color:var(--muted);text-decoration:line-through;}
+  @media(max-width:520px){ .printrij-bij{display:none;} }
+
+  /* ---------- bedankt ---------- */
+  .bedankt-kop{display:flex;align-items:flex-start;gap:14px;}
+  .bedankt-vink{
+    width:44px;height:44px;border-radius:999px;flex-shrink:0;
+    background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;
+  }
+  .bedankt-stap{display:flex;align-items:flex-start;gap:12px;padding:9px 0;}
+  .bedankt-stap + .bedankt-stap{border-top:1px solid var(--line);}
+  .bedankt-stap-bol{
+    width:30px;height:30px;border-radius:999px;flex-shrink:0;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12px;
+  }
+  .bedankt-stap.later .bedankt-stap-bol{background:var(--surface2);color:var(--muted);}
+
+  /* ---------- winkelgegevens en voorwaarden ---------- */
+  .info-blok{line-height:1.75;font-size:14px;}
+  .info-blok p{margin:0 0 14px;}
+  .info-kop{font-family:'Archivo',sans-serif;font-size:14px;font-weight:700;margin:20px 0 7px;}
+  .info-kop:first-child{margin-top:0;}
+  .info-blok .kv{padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;line-height:1.6;}
+  .info-blok .kv:first-of-type{border-top:none;}
+  .ontbreekt{color:var(--accent);font-size:12.5px;}
 
   /* ---------- product ---------- */
   .product-layout{display:grid;grid-template-columns:1fr;gap:30px;}
@@ -804,6 +907,20 @@
     <div class="card"><div class="thumb skel"></div><div><div class="skel" style="height:13px;width:80%;"></div><div class="skel" style="height:11px;width:40%;margin-top:8px;"></div></div></div>
   </div>
 </main>
+
+<footer class="voet">
+  <div class="voet-binnen">
+    <span class="voet-naam" id="voetNaam">Extrudo</span>
+    <nav class="voet-links">
+      <button data-info-ga="contact">Contact</button>
+      <button data-info-ga="voorwaarden">Voorwaarden</button>
+      <button data-info-ga="retour">Retour</button>
+      <button data-info-ga="privacy">Privacy</button>
+    </nav>
+    <span class="voet-klein" id="voetGegevens"></span>
+  </div>
+</footer>
+
 <div id="toast" class="toast hidden"></div>
 
 <script>
@@ -997,7 +1114,7 @@ if (__link) history.replaceState(null, "", SITE_URL);
 /* --------------------------- state --------------------------- */
 /* Waar iemand was toen hij herlaadde. Inloggen en betalen slaan we over: daar
    halverwege terugkomen helpt niemand. */
-const HERSTELBARE_VIEWS = ["shop","product","custom","cart","account","admin","archief"];
+const HERSTELBARE_VIEWS = ["shop","product","custom","cart","account","admin","archief","bedankt","info"];
 function bewaardeView(){
   try{
     const v = JSON.parse(sessionStorage.getItem('lc_view') || "null");
@@ -1010,6 +1127,7 @@ const __start = __link || bewaardeView();
 let state = {
   view: __start?.view || "shop",
   selectedProductId: __start?.productId || null,
+  __bedankt: __start?.bedankt || null,
   // waar de link uit de e-mail naartoe wees; wordt afgehandeld zodra de
   // bestellingen binnen zijn
   linkOrder: __link?.orderId || null,
@@ -1045,6 +1163,8 @@ function bewaarView(){
     sessionStorage.setItem('lc_view', JSON.stringify({
       view: HERSTELBARE_VIEWS.includes(state.view) ? state.view : "shop",
       productId: state.selectedProduct?.id || state.selectedProductId || null,
+      // herlaad je vlak na het betalen, dan hoor je je bedankt weer te zien
+      bedankt: state.__bedankt || null,
     }));
   }catch(e){}
 }
@@ -1247,6 +1367,39 @@ async function saveFilaments(items){
 }
 
 /* --------------------------- prijsinstellingen --------------------------- */
+/* =====================================================================
+   Wie de winkel is
+   Naam, adres, e-mail, ondernemingsnummer. Dit staat onderaan elke pagina en
+   het vult de winkelvoorwaarden in. Bewust niets verzonnen: wat je niet invult,
+   blijft leeg staan met de melding dat het nog moet — een webshop die met
+   verkeerde gegevens naar buiten komt is erger dan een die eerlijk zegt dat er
+   iets ontbreekt.
+   ===================================================================== */
+const WINKEL_DOC = () => doc(db, "settings", "shop");
+const DEFAULT_WINKEL = {
+  naam: "Extrudo", eigenaar: "", straat: "", postcode: "", gemeente: "",
+  land: "België", email: "", telefoon: "", btw: "", ondernemingsnummer: "",
+  levertijd: "3 tot 5 werkdagen", retourdagen: 14,
+};
+function winkel(){ return { ...DEFAULT_WINKEL, ...(state.winkel || {}) }; }
+function listenWinkel(){
+  onSnapshot(WINKEL_DOC(), (snap) => {
+    state.winkel = snap.exists() ? snap.data() : null;
+    if (["info","admin","shop"].includes(state.view)) render();
+  }, () => { /* valt terug op de standaardwaarden */ });
+}
+async function saveWinkel(values){ await setDoc(WINKEL_DOC(), values); }
+/* Wat er nog ingevuld moet worden voor de voorwaarden kloppen. */
+function winkelOntbreekt(){
+  const w = winkel();
+  return [
+    [!w.eigenaar, "de naam van wie de winkel voert"],
+    [!w.straat || !w.postcode || !w.gemeente, "het adres"],
+    [!w.email, "een e-mailadres"],
+    [!w.ondernemingsnummer, "je ondernemingsnummer"],
+  ].filter(([leeg]) => leeg).map(([, wat]) => wat);
+}
+
 const PRICING_DOC = () => doc(db, "settings", "pricing");
 function listenPricing(){
   onSnapshot(PRICING_DOC(), (snap) => {
@@ -3471,9 +3624,11 @@ async function placeOrder(shippingCountry, address, payment){
     state.__ckVeld = null; state.__ckLand = null; state.__adresCheck = null;
     state.__korting = null; state.__afhaal = null;
     if (korting) telCodeGebruik(korting.code);
-    notify("Betaald met testgeld — bestelling geplaatst!");
-    go("account");
     const geplaatst = { id: ref.id, ...order };
+    // Een toastje na het betalen is te weinig: dat is net het moment waarop
+    // iemand wil lezen dat het gelukt is en wat er nu gaat gebeuren.
+    state.__bedanktKopie = geplaatst;
+    go("bedankt", { __bedankt: ref.id });
     mailBestelling(geplaatst);          // mag rustig achteraf komen
     mailNieuweBestelling(geplaatst);    // en een seintje naar de shop zelf
   }catch(e){ notify("Bestellen mislukt: " + e.message); }
@@ -3895,9 +4050,53 @@ function wisselAnimatie(app){
   state.__wisselTimer = setTimeout(() => app.classList.remove('wissel'), 900);
 }
 
+/* De voet staat buiten #app, dus die wordt niet meegetekend. Hij verandert
+   alleen als de winkelgegevens veranderen — bijhouden is genoeg. */
+function renderVoet(){
+  const w = winkel();
+  const naam = document.getElementById('voetNaam');
+  if (naam) naam.textContent = w.naam;
+  const klein = document.getElementById('voetGegevens');
+  if (klein){
+    const adres = adresRegel(w);
+    klein.textContent = [adres, w.ondernemingsnummer ? "Ondernemingsnr. " + w.ondernemingsnummer : null]
+      .filter(Boolean).join(" · ");
+  }
+}
+
+/* Waar stond je cursor?
+   Een hertekening vervangt de hele inhoud van #app. Stond je op dat moment in
+   een zoekvak te typen, dan is dat vakje weg en typ je de rest in het niets —
+   na één letter ben je je cursor kwijt. We onthouden daarom vlak vóór het
+   vervangen welk veld de aandacht had en waar de cursor stond, en zetten dat
+   erna terug. Blur helpt niet: die vuurt tijdens het vervangen, dus vóórdat we
+   zouden kunnen kijken. */
+function onthoudFocus(){
+  const el = document.activeElement;
+  if (!el || !el.id || !document.getElementById('app')?.contains(el)) return null;
+  let start = null, eind = null;
+  try{ start = el.selectionStart; eind = el.selectionEnd; }catch(e){}
+  return { id: el.id, start, eind };
+}
+function herstelFocus(bewaard){
+  if (!bewaard) return;
+  const el = document.getElementById(bewaard.id);
+  if (!el || el === document.activeElement) return;
+  el.focus();
+  if (bewaard.start !== null){
+    try{ el.setSelectionRange(bewaard.start, bewaard.eind); }catch(e){}
+  }
+}
+
 function render(){
   renderCartBadge();
+  renderVoet();
   const app = document.getElementById('app');
+  const focus = onthoudFocus();
+  try{ renderInhoud(app); } finally { herstelFocus(focus); }
+}
+
+function renderInhoud(app){
   wisselAnimatie(app);
   switch(state.view){
     case "shop": app.innerHTML = viewShop(); break;
@@ -3907,6 +4106,8 @@ function render(){
     case "checkout": app.innerHTML = viewCheckout(); attachCheckoutHandlers(); return;
     case "payment": app.innerHTML = viewPayment(); attachPaymentHandlers(); return;
     case "login": app.innerHTML = viewAuth(state.__authMode || "login"); attachAuthHandlers(); return;
+    case "bedankt": app.innerHTML = viewBedankt(); attachShopHandlers(); return;
+    case "info": app.innerHTML = viewInfo(); attachInfoHandlers(); return;
     case "account": app.innerHTML = viewAccount(); attachShopHandlers(); return;
     case "archief": app.innerHTML = viewArchief(); attachArchiefHandlers(); return;
     case "admin": app.innerHTML = viewAdmin(); attachAdminHandlers(); return;
@@ -3914,8 +4115,34 @@ function render(){
   attachShopHandlers();
 }
 
+/* Zoeken en filteren in de collectie.
+   Met vier producten heb je dit niet nodig, met dertig wel. We zoeken in wat
+   iemand redelijkerwijs zou intypen: de naam, de omschrijving, de categorie en
+   het materiaal. De categorieën komen uit de producten zelf, dus je hoeft
+   nergens een lijstje bij te houden. */
+function categorieen(){
+  return [...new Set(zichtbareProducten().map(p => (p.category || "").trim()).filter(Boolean))].sort();
+}
+function gefilterdeProducten(){
+  const zoek = (state.__zoek || "").trim().toLowerCase();
+  const cat = state.__cat || "alles";
+  return zichtbareProducten()
+    .filter(p => cat === "alles" ? true : (p.category || "").trim() === cat)
+    .filter(p => {
+      if (!zoek) return true;
+      const hooi = [p.name, p.description, p.category, p.material, p.color]
+        .filter(Boolean).join(" ").toLowerCase();
+      // elk los woord moet ergens voorkomen: "vaas petg" vindt de petg-vaas
+      return zoek.split(/\s+/).every(w => hooi.includes(w));
+    });
+}
+
 function viewShop(){
-  const cards = zichtbareProducten().map(p => `
+  const alles = zichtbareProducten();
+  const gevonden = gefilterdeProducten();
+  const cats = categorieen();
+  const filtert = !!(state.__zoek || "").trim() || (state.__cat && state.__cat !== "alles");
+  const cards = gevonden.map(p => `
     <button class="card rel${verborgen(p) ? " kaart-verborgen" : ""}" data-open="${p.id}">
       <div class="thumb rel">
         ${productThumb(p)}
@@ -3958,10 +4185,46 @@ function viewShop(){
         <p class="label" style="margin:0 0 4px;">02 &mdash; Collectie</p>
         <h2 class="font-display" style="font-size:26px;margin:0;">Klaar om te printen</h2>
       </div>
-      ${state.products.length ? `<span class="label">${state.products.length} ${state.products.length === 1 ? "artikel" : "artikelen"}</span>` : ``}
+      ${alles.length ? `<span class="label">${
+        filtert ? `${gevonden.length} van ${alles.length}` : `${alles.length} ${alles.length === 1 ? "artikel" : "artikelen"}`
+      }</span>` : ``}
     </div>
-    <div class="grid">${cards || `<div style="grid-column:1/-1;padding:20px;">${emptyCollectionNotice()}</div>`}</div>
+
+    ${alles.length > 3 ? `
+      <div class="zoekbalk">
+        <div class="zoekvak">
+          ${ic("magnifying-glass")}
+          <input id="shopZoek" type="search" placeholder="Zoek in de collectie…"
+                 value="${esc(state.__zoek || "")}" aria-label="Zoek in de collectie" />
+          ${(state.__zoek || "").trim() ? `<button id="shopZoekWis" aria-label="Zoekterm wissen">${ic("xmark")}</button>` : ``}
+        </div>
+        ${cats.length > 1 ? `
+          <div class="zoekchips">
+            <button class="chip ${!state.__cat || state.__cat === "alles" ? "active" : ""}" data-cat="alles">Alles</button>
+            ${cats.map(c => `<button class="chip ${state.__cat === c ? "active" : ""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}
+          </div>` : ``}
+      </div>` : ``}
+
+    <div class="grid">${cards || `<div style="grid-column:1/-1;padding:20px;">${
+      filtert ? geenTreffers() : emptyCollectionNotice()
+    }</div>`}</div>
   `;
+}
+
+/* Wel producten, maar niets dat past bij wat je zocht. */
+function geenTreffers(){
+  return `
+    <div style="text-align:center;padding:14px 0;">
+      <p style="font-size:15px;line-height:1.6;margin:0 0 4px;">Niets gevonden</p>
+      <p class="muted" style="font-size:13px;line-height:1.65;margin:0 0 14px;">
+        We hebben niets dat past bij ${(state.__zoek || "").trim() ? `“${esc(state.__zoek.trim())}”` : "dit filter"}.
+        Je kunt je model ook zelf doorsturen — dan printen we precies wat je wil.
+      </p>
+      <div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" id="shopFilterWeg">${ic("rotate-left")} Toon alles</button>
+        <button class="btn btn-accent btn-sm" onclick="go('custom')">${ic("arrow-up-from-bracket")} Upload je model</button>
+      </div>
+    </div>`;
 }
 
 /* Een lege collectie heeft altijd een oorzaak — die tonen we in plaats van niets. */
@@ -4031,6 +4294,18 @@ function attachShopHandlers(){
       state.__dims = null;   // begin bij de standaardmaten van dit product
       go("product");
     };
+  });
+
+  // Zoeken tekent het scherm bij elke letter opnieuw; render() zet je cursor
+  // daarna zelf weer terug waar hij stond.
+  const zoek = document.getElementById('shopZoek');
+  if (zoek) zoek.oninput = () => { state.__zoek = zoek.value; render(); };
+  const wis = document.getElementById('shopZoekWis');
+  if (wis) wis.onclick = () => { state.__zoek = ""; render(); document.getElementById('shopZoek')?.focus(); };
+  const alles = document.getElementById('shopFilterWeg');
+  if (alles) alles.onclick = () => { state.__zoek = ""; state.__cat = "alles"; render(); };
+  document.querySelectorAll('[data-cat]').forEach(b => {
+    b.onclick = () => { state.__cat = b.dataset.cat; render(); };
   });
 }
 
@@ -4347,6 +4622,59 @@ function slotPicker(p){
     </div>`;
 }
 
+/* =====================================================================
+   Hoe groot is dat nu echt?
+   "Ik dacht dat het groter was" is de meest gehoorde teleurstelling bij een
+   3D-print. Millimeters op een pagina zeggen weinig; een bankkaart ernaast wél
+   — die heeft iedereen in zijn zak en is overal even groot (85,6 × 54 mm).
+   We tekenen het voorwerp van opzij naast zo'n kaart, op dezelfde schaal.
+   ===================================================================== */
+const KAART = { b: 85.6, h: 54 };
+function productMaat(p){
+  if (Array.isArray(p?.modelSize) && p.modelSize.length === 3) return p.modelSize.map(Number);
+  const s = sizingOf(p);
+  if (s) return currentDims(p);
+  return maatUitTekst(p?.dimensions);
+}
+function maatVergelijking(p){
+  const m = productMaat(p);
+  if (!m || !m.every(v => isFinite(v) && v > 0)) return ``;
+  const [x, y, z] = m;
+  const breed = Math.max(x, y);                 // van opzij zie je de breedste kant
+  const hoog = z;
+  // alles in één tekening, dus één schaal voor beide voorwerpen
+  const mmBreed = Math.max(breed, KAART.b) * 1.16;
+  const mmHoog = Math.max(hoog, KAART.h) * 1.22;
+  const W = 320, H = Math.max(90, Math.round(W * mmHoog / mmBreed));
+  const s = W / mmBreed;
+  const vloer = H - 14;
+  const kb = KAART.b * s, kh = KAART.h * s;
+  const ob = breed * s, oh = hoog * s;
+  const gat = 16;
+  const totaal = kb + gat + ob;
+  const x0 = (W - totaal) / 2;
+  return `
+    <div class="cart-item maatvak">
+      <p class="maatvak-kop">${ic("ruler-combined")} Hoe groot is het?</p>
+      <svg viewBox="0 0 ${W} ${H}" role="img" width="100%"
+           aria-label="Het voorwerp is ${Math.round(breed)} bij ${Math.round(hoog)} millimeter, naast een bankkaart van 86 bij 54 millimeter">
+        <line x1="0" y1="${vloer}" x2="${W}" y2="${vloer}" class="maat-vloer" />
+        <rect x="${x0.toFixed(1)}" y="${(vloer - kh).toFixed(1)}" width="${kb.toFixed(1)}" height="${kh.toFixed(1)}"
+              rx="${(3.2 * s).toFixed(1)}" class="maat-kaart" />
+        <text x="${(x0 + kb / 2).toFixed(1)}" y="${(vloer - kh / 2 + 4).toFixed(1)}" class="maat-label-in">bankkaart</text>
+        <rect x="${(x0 + kb + gat).toFixed(1)}" y="${(vloer - oh).toFixed(1)}" width="${ob.toFixed(1)}" height="${oh.toFixed(1)}"
+              rx="${Math.min(6, 2 * s).toFixed(1)}" class="maat-ding" />
+        <text x="${(x0 + kb + gat + ob / 2).toFixed(1)}" y="${(vloer + 11).toFixed(1)}" class="maat-label">
+          ${Math.round(breed)} × ${Math.round(hoog)} mm
+        </text>
+      </svg>
+      <p class="muted" style="font-size:12px;line-height:1.65;margin:8px 0 0;">
+        Op ware grootte naast elkaar, zodat je niet hoeft te gokken.
+        ${sizingOf(p) ? "De tekening volgt de maat die je hierboven kiest." : ""}
+      </p>
+    </div>`;
+}
+
 function filamentPicker(p){
   if (colorSlots(p).length) return slotPicker(p);
   const list = availableFilaments(p);
@@ -4491,6 +4819,7 @@ function viewProduct(){
           ${filamentPicker(p)}
           ${est ? priceBreakdown(est) : ``}
           ${specs ? `<div class="spec-grid">${specs}</div>` : ``}
+          ${maatVergelijking(p)}
           <div class="row" style="margin-top:18px;">
             <div class="stepper"><button id="qMinus"><i class="fa-solid fa-minus" aria-hidden="true"></i></button><span id="qVal">1</span><button id="qPlus"><i class="fa-solid fa-plus" aria-hidden="true"></i></button></div>
             <button class="btn btn-accent" id="addBtn"
@@ -6247,6 +6576,233 @@ function orderCard(o){
     </div>`;
 }
 
+/* =====================================================================
+   Bedankt
+   Het scherm na het betalen. Vroeger sprong je hier meteen naar je account met
+   een toastje erbij — net op het moment dat iemand geld heeft uitgegeven en
+   wil lezen dat het gelukt is. Hier staat wat je besteld hebt, wat het kost,
+   wanneer je het mag verwachten en wat er nu gebeurt.
+   ===================================================================== */
+function viewBedankt(){
+  // De bestelling komt zo binnen via de luisteraar; tot die tijd tonen we de
+  // kopie die we bij het plaatsen bijhielden.
+  const o = state.orders.find(x => x.id === state.__bedankt) || state.__bedanktKopie;
+  if (!o){
+    return `
+      <div style="padding:32px 0;max-width:520px;">
+        <h1 class="font-display" style="font-size:22px;margin:0 0 8px;">Bedankt!</h1>
+        <p class="muted" style="line-height:1.7;">Je bestelling is geplaatst. Je vindt hem terug bij je bestellingen.</p>
+        <button class="btn btn-accent" onclick="go('account')">Naar mijn bestellingen</button>
+      </div>`;
+  }
+  const w = winkel();
+  const venster = o.pickupAt ? null : deliveryWindow(o);
+  const stappen = o.pickupAt
+    ? [["print", "Wij printen het", "Je krijgt bericht zodra we eraan beginnen."],
+       ["shop", "Klaarzetten om af te halen", "Je krijgt een seintje wanneer het klaarstaat."],
+       ["hand-holding-heart", "Jij komt het halen", fmtMoment(o.pickupAt)]]
+    : [["print", "Wij printen het", "Je krijgt bericht zodra we eraan beginnen."],
+       ["box", "Inpakken en verzenden", "Met een mail als het pakje vertrekt."],
+       ["truck", "Bij jou in de bus", venster ? `Rond ${fmtDate(venster.from)} — ${fmtDate(venster.to)}` : "Binnen enkele werkdagen."]];
+  const a = o.shippingAddress || {};
+  return `
+    <div style="padding:32px 0;max-width:520px;">
+      <div class="bedankt-kop">
+        <span class="bedankt-vink">${ic("check")}</span>
+        <div style="min-width:0;">
+          <h1 class="font-display" style="font-size:24px;margin:0 0 4px;">Bedankt!</h1>
+          <p class="muted" style="font-size:13.5px;line-height:1.6;margin:0;">
+            Je bestelling staat bij ons. We gaan er meteen mee aan de slag.
+          </p>
+        </div>
+      </div>
+
+      <div class="cart-item" style="margin:18px 0 16px;">
+        <div class="between" style="gap:12px;">
+          <span>
+            <span class="muted font-mono" style="font-size:11px;display:block;">BESTELNUMMER</span>
+            <span class="font-mono" style="font-size:16px;font-weight:600;">${esc(orderNumber(o))}</span>
+          </span>
+          <span style="text-align:right;">
+            <span class="muted font-mono" style="font-size:11px;display:block;">BETAALD</span>
+            <span class="font-mono" style="font-size:16px;font-weight:600;color:var(--accent);">${fmtEUR(o.total)}</span>
+          </span>
+        </div>
+      </div>
+
+      <h2 class="font-display" style="font-size:16px;margin:0 0 4px;">Wat er nu gebeurt</h2>
+      <p class="muted" style="font-size:12.5px;line-height:1.65;margin:0 0 12px;">
+        ${o.userEmail
+          ? `Elke stap krijg je per mail op <strong>${esc(o.userEmail)}</strong>.`
+          : `Je kunt de bestelling altijd volgen bij je bestellingen.`}
+      </p>
+      <div class="cart-item" style="margin-bottom:16px;">
+        ${stappen.map(([icoon, titel, tekst], i) => `
+          <div class="bedankt-stap${i ? " later" : ""}">
+            <span class="bedankt-stap-bol">${ic(icoon)}</span>
+            <span style="min-width:0;">
+              <span style="display:block;font-size:14px;font-weight:600;line-height:1.5;">${esc(titel)}</span>
+              <span class="muted" style="display:block;font-size:12.5px;line-height:1.6;">${esc(tekst)}</span>
+            </span>
+          </div>`).join("")}
+      </div>
+
+      <div class="cart-item" style="margin-bottom:16px;">
+        <p class="muted font-mono" style="font-size:11px;margin:0 0 8px;">${o.pickupAt ? "AFHALEN BIJ" : "GAAT NAAR"}</p>
+        <p style="font-size:14px;line-height:1.7;margin:0;">
+          ${o.pickupAt
+            ? esc(o.pickupAddress || w.naam)
+            : `${esc(a.street || "")}<br/>${esc(a.zip || "")} ${esc(a.city || "")}<br/>${esc(o.shippingCountry || "")}`}
+        </p>
+      </div>
+
+      <div class="row" style="gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-accent" onclick="go('account')">${ic("receipt")} Mijn bestellingen</button>
+        <button class="btn btn-ghost" onclick="go('shop')">Verder winkelen</button>
+      </div>
+      <p class="footer-note">
+        ${ic("circle-question")} Iets niet duidelijk?
+        ${w.email ? `Mail ons op <a href="mailto:${esc(w.email)}" style="color:inherit;">${esc(w.email)}</a>.` : `Je vindt onze gegevens onderaan de pagina.`}
+      </p>
+    </div>`;
+}
+
+/* =====================================================================
+   Winkelgegevens, voorwaarden en privacy
+   Een webshop hoort te zeggen wie hij is, wat de regels zijn en wat er met je
+   gegevens gebeurt. De tekst hieronder wordt opgebouwd uit wat er in
+   Shopbeheer → Winkelgegevens staat; wat daar leeg is, blijft hier zichtbaar
+   leeg met de reden erbij. Verzinnen is geen optie.
+   ===================================================================== */
+const INFO_DELEN = [
+  ["contact",     "Contact",        "envelope"],
+  ["voorwaarden", "Voorwaarden",    "file-lines"],
+  ["retour",      "Retour",         "rotate-left"],
+  ["privacy",     "Privacy",        "shield-halved"],
+];
+/* Alleen een land is geen adres — dan hoort er niets te staan, geen "België"
+   dat doet alsof het compleet is. */
+function adresRegel(w){
+  if (!w.straat || !w.gemeente) return null;
+  return [w.straat, [w.postcode, w.gemeente].filter(Boolean).join(" "), w.land].filter(Boolean).join(", ");
+}
+function ontbreektRegel(wat){
+  return `<span class="ontbreekt" title="Vul dit in bij Shopbeheer → Winkelgegevens">${esc(wat)} ontbreekt nog</span>`;
+}
+function viewInfo(){
+  const w = winkel();
+  const deel = INFO_DELEN.some(([id]) => id === state.__infoDeel) ? state.__infoDeel : "contact";
+  const mist = winkelOntbreekt();
+  const adres = adresRegel(w);
+  const inhoud = {
+    contact: `
+      <p style="font-size:14px;line-height:1.75;margin:0 0 14px;">
+        Achter ${esc(w.naam)} zit één printer en één persoon. Heb je een vraag over een bestelling,
+        of wil je iets laten printen dat niet in de collectie staat? Stuur gerust een bericht.
+      </p>
+      <div class="kv"><span>Winkel</span><span>${esc(w.naam)}</span></div>
+      <div class="kv"><span>Wie</span><span>${w.eigenaar ? esc(w.eigenaar) : ontbreektRegel("De naam")}</span></div>
+      <div class="kv"><span>Adres</span><span style="text-align:right;">${adres ? esc(adres) : ontbreektRegel("Het adres")}</span></div>
+      <div class="kv"><span>E-mail</span><span>${w.email ? `<a href="mailto:${esc(w.email)}" style="color:inherit;">${esc(w.email)}</a>` : ontbreektRegel("Een e-mailadres")}</span></div>
+      ${w.telefoon ? `<div class="kv"><span>Telefoon</span><span>${esc(w.telefoon)}</span></div>` : ``}
+      <div class="kv"><span>Ondernemingsnummer</span><span>${w.ondernemingsnummer ? esc(w.ondernemingsnummer) : ontbreektRegel("Het nummer")}</span></div>
+      ${w.btw ? `<div class="kv"><span>Btw-nummer</span><span>${esc(w.btw)}</span></div>` : ``}`,
+
+    voorwaarden: `
+      <h3 class="info-kop">Wie je koopt van</h3>
+      <p>${esc(w.naam)}${w.eigenaar ? `, ${esc(w.eigenaar)}` : ``}${adres ? `, ${esc(adres)}` : ``}.
+      ${w.ondernemingsnummer ? `Ondernemingsnummer ${esc(w.ondernemingsnummer)}.` : ``}</p>
+
+      <h3 class="info-kop">Wat je koopt</h3>
+      <p>Alles wordt op bestelling geprint. Er ligt niets op voorraad: jouw bestelling wordt pas
+      gemaakt nadat je hem geplaatst hebt. Kleuren op je scherm kunnen licht afwijken van het
+      echte filament, en bij een geprint voorwerp zijn kleine laaglijnen normaal — dat hoort bij
+      de techniek en is geen gebrek.</p>
+
+      <h3 class="info-kop">Prijzen</h3>
+      <p>Alle prijzen staan in euro. De prijs bij een product geldt voor het goedkoopste filament;
+      kies je een duurdere soort, dan staat op het knopje wat erbij komt. Verzendkosten zie je
+      vóór je betaalt.</p>
+
+      <h3 class="info-kop">Betalen</h3>
+      <p>Je bestelling wordt pas geprint nadat de betaling rond is.</p>
+
+      <h3 class="info-kop">Levering</h3>
+      <p>We printen en versturen binnen ${esc(w.levertijd)} na je bestelling. Dat is een schatting,
+      geen belofte: een grote print duurt langer, en soms mislukt er een en beginnen we opnieuw.
+      Loopt het uit, dan laten we het weten. Afhalen kan als dat in de winkel aanstaat; je kiest
+      dan zelf een moment.</p>
+
+      <h3 class="info-kop">Als er iets mis is</h3>
+      <p>Is je bestelling beschadigd aangekomen, of klopt er iets niet met wat je gekregen hebt,
+      laat het binnen veertien dagen weten${w.email ? ` via ${esc(w.email)}` : ``}. We maken het
+      opnieuw of betalen terug. Je hebt daarnaast de wettelijke garantie van twee jaar.</p>`,
+
+    retour: `
+      <h3 class="info-kop">Bedenktijd van ${esc(String(w.retourdagen))} dagen</h3>
+      <p>Voor gewone artikelen uit de collectie heb je ${esc(String(w.retourdagen))} dagen bedenktijd
+      vanaf het moment dat je het pakje krijgt. Laat het binnen die termijn weten${w.email ? ` via ${esc(w.email)}` : ``},
+      stuur het ongebruikt terug, en je krijgt je geld terug — de verzendkosten om het terug te
+      sturen zijn voor jou.</p>
+
+      <h3 class="info-kop">Behalve bij maatwerk</h3>
+      <p>Laat je iets printen naar jouw maat, met jouw kleurencombinatie of vanuit een bestand dat
+      je zelf doorstuurt, dan geldt die bedenktijd <strong>niet</strong>. Dat is geen huisregel maar
+      wat de wet zegt over spullen die speciaal voor jou gemaakt worden: ze zijn voor niemand
+      anders bruikbaar. Kijk dus goed na wat je bestelt voor je afrekent.</p>
+
+      <h3 class="info-kop">Iets mis met je print?</h3>
+      <p>Dat staat hier los van. Is er iets kapot, verkeerd of slecht geprint, dan lossen we het op —
+      ook bij maatwerk.</p>`,
+
+    privacy: `
+      <h3 class="info-kop">Wat we bijhouden</h3>
+      <p>Je e-mailadres, je naam en je adres — nodig om je bestelling te printen en te versturen.
+      Daarnaast wat je besteld hebt, en de modellen die je zelf doorstuurt.</p>
+
+      <h3 class="info-kop">Waar het staat</h3>
+      <p>In Firebase, de databank van Google, op servers in Europa. We gebruiken geen advertenties
+      en geen volgcookies. Wat er in je browser bewaard wordt — je winkelwagen, je adres — staat
+      op je eigen toestel en verdwijnt als je dat wist.</p>
+
+      <h3 class="info-kop">Je eigen modellen</h3>
+      <p>Een bestand dat je doorstuurt gebruiken we om jouw bestelling te printen, en daarvoor
+      alleen. We verkopen het niet door en printen het niet voor iemand anders.</p>
+
+      <h3 class="info-kop">Wat je kunt vragen</h3>
+      <p>Je mag altijd vragen welke gegevens we van je hebben, ze laten verbeteren, of ze laten
+      wissen${w.email ? ` — stuur een bericht naar ${esc(w.email)}` : ``}. Bestellingen die al
+      gefactureerd zijn moeten we wettelijk een aantal jaar bijhouden; de rest gaat weg.</p>`,
+  };
+  return `
+    <div style="padding:32px 0;max-width:640px;">
+      <button class="back" onclick="go('shop')">${ic("arrow-left")} Terug naar de collectie</button>
+      <h1 class="font-display" style="font-size:24px;margin:0 0 14px;">${esc(w.naam)}</h1>
+      <div class="fil-types" style="margin-bottom:16px;">
+        ${INFO_DELEN.map(([id, naam, icoon]) => `
+          <button class="fil-type ${id === deel ? "active" : ""}" data-info="${esc(id)}">${ic(icoon)} ${esc(naam)}</button>`).join("")}
+      </div>
+      ${state.profile?.isAdmin && mist.length ? `
+        <div class="notice" style="margin-bottom:16px;">
+          <p class="notice-title">${ic("triangle-exclamation")} Alleen jij ziet dit</p>
+          <p class="muted" style="font-size:13px;line-height:1.65;margin:0 0 10px;">
+            Hier ontbreekt nog ${mist.join(", ").replace(/,([^,]*)$/, " en$1")}. Zonder die gegevens
+            zijn je voorwaarden niet volledig — een webshop hoort te zeggen wie erachter zit.
+          </p>
+          <button class="btn btn-accent btn-sm" onclick="go('admin', { __adminTab: 'winkel' })">Vul ze in</button>
+        </div>` : ``}
+      <div class="cart-item info-blok">${inhoud[deel]}</div>
+      <p class="footer-note">
+        ${ic("scale-balanced")} Deze tekst is in gewone taal geschreven en niet door een jurist nagekeken.
+      </p>
+    </div>`;
+}
+function attachInfoHandlers(){
+  document.querySelectorAll('[data-info]').forEach(b => {
+    b.onclick = () => { state.__infoDeel = b.dataset.info; render(); };
+  });
+}
+
 function viewAccount(){
   if (!state.user){
     return `<div style="padding:32px 0;"><p class="muted">Je bent niet ingelogd.</p><button class="btn btn-accent" onclick="go('login')">Inloggen</button></div>`;
@@ -6710,6 +7266,8 @@ function viewAdmin(){
       <div id="adminPricing" class="${tab==='pricing'?'':'hidden'}">${viewPricingAdmin()}</div>
       <div id="adminPickup" class="${tab==='pickup'?'':'hidden'}">${viewPickupAdmin()}</div>
       <div id="adminCodes" class="${tab==='codes'?'':'hidden'}">${viewCodesAdmin()}</div>
+      <div id="adminPrinten" class="${tab==='printen'?'':'hidden'}">${viewPrintQueue()}</div>
+      <div id="adminWinkel" class="${tab==='winkel'?'':'hidden'}">${viewWinkelAdmin()}</div>
       <div id="adminMail" class="${tab==='mail'?'':'hidden'}">${viewMailAdmin()}</div>
       <div id="adminProducts" class="${tab==='products'?'':'hidden'}">
         <div class="admin-split">
@@ -7180,14 +7738,105 @@ function bestelRegel(o, i, idx){
 /* De onderdelen van het beheer, in de volgorde waarin je ze nodig hebt. */
 const BEHEER_ONDERDELEN = [
   ["overzicht", "Overzicht",     "gauge-high"],
+  ["printen",   "Op de printer", "print"],
   ["orders",    "Bestellingen",  "receipt"],
   ["products",  "Producten",     "cube"],
   ["filaments", "Filamenten",    "palette"],
   ["pricing",   "Prijzen",       "euro-sign"],
   ["pickup",    "Afhalen",       "shop"],
   ["codes",     "Kortingscodes", "ticket"],
+  ["winkel",    "Winkelgegevens","store"],
   ["mail",      "E-mail",        "envelope"],
 ];
+
+/* =====================================================================
+   Wat heb je deze maand verdiend
+   Omzet alleen zegt niet zo veel: er gaat filament in, en de verzending die je
+   aan de klant aanrekent gaat gewoon door naar de post. Hier staat wat er
+   binnenkwam, wat het plastic ongeveer gekost heeft en wat er dus overblijft.
+   Het is een schatting — het gewicht van een print kennen we bij benadering en
+   de verzendkosten die jij écht betaalt kunnen anders liggen. Daarom staat dat
+   er ook bij: een cijfer waarvan je denkt dat het exact is, is gevaarlijker
+   dan een cijfer waarvan je weet dat het een schatting is.
+   ===================================================================== */
+function maandGrens(terug){
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(1);
+  d.setMonth(d.getMonth() - terug);
+  return d.getTime();
+}
+function filamentKost(o){
+  let kost = 0;
+  for (const i of (o.items || [])){
+    const gram = itemGram(i) * (i.qty || 1);
+    if (!gram) continue;
+    const kleuren = itemKleuren(i);
+    // de kiloprijs van wat er gekozen is; kennen we die niet, dan de standaard
+    const perKilo = kleuren.length
+      ? kleuren.reduce((s, f) => s + kiloPrijs(findFilament(f.id) || f), 0) / kleuren.length
+      : pricing().pricePerKg;
+    kost += gram / 1000 * perKilo;
+  }
+  return kost;
+}
+function maandTelling(van, tot){
+  const rijen = (state.orders || []).filter(o => o.createdAt >= van && o.createdAt < tot);
+  const omzet = rijen.reduce((s, o) => s + (o.total || 0), 0);
+  const verzend = rijen.reduce((s, o) => s + (o.shippingCost || 0), 0);
+  const korting = rijen.reduce((s, o) => s + (o.discountAmount || 0), 0);
+  const plastic = rijen.reduce((s, o) => s + filamentKost(o), 0);
+  const gram = rijen.reduce((s, o) => s + (o.items || [])
+    .reduce((g, i) => g + itemGram(i) * (i.qty || 1), 0), 0);
+  return { n: rijen.length, omzet, verzend, korting, plastic, gram, over: omzet - verzend - plastic };
+}
+function maandNaam(t){
+  return new Date(t).toLocaleDateString('nl-BE', { month: 'long', year: 'numeric' });
+}
+function maandCijfers(){
+  const nu = maandGrens(0), vorigVan = maandGrens(1);
+  const deze = maandTelling(nu, Date.now() + 1);
+  const vorige = maandTelling(vorigVan, nu);
+  if (!deze.n && !vorige.n) return ``;
+  const pijl = (a, b) => {
+    if (!b) return ``;
+    const pct = Math.round((a - b) / b * 100);
+    if (!isFinite(pct) || pct === 0) return `<span class="muted" style="font-size:11px;">gelijk aan vorige maand</span>`;
+    return `<span style="font-size:11px;color:${pct > 0 ? "var(--accent)" : "var(--muted)"};">
+      ${pct > 0 ? "▲" : "▼"} ${Math.abs(pct)}% tegenover vorige maand</span>`;
+  };
+  const regel = (kop, waarde, extra) => `
+    <div class="kv"><span>${esc(kop)}</span><span class="font-mono">${waarde}${
+      extra ? `<span class="muted" style="font-weight:400;"> ${extra}</span>` : ``}</span></div>`;
+  return `
+    <details class="vak" style="margin-bottom:12px;"${deze.n ? " open" : ""}>
+      <summary>${ic("euro-sign")} Deze maand <span class="badge">${fmtEUR(deze.over)}</span></summary>
+      <div class="vak-body">
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
+          ${esc(maandNaam(nu))} — ${deze.n} ${deze.n === 1 ? "bestelling" : "bestellingen"}.
+          ${pijl(deze.omzet, vorige.omzet)}
+        </p>
+        ${regel("Omzet", fmtEUR(deze.omzet))}
+        ${deze.korting ? regel("Waarvan korting gegeven", "−" + fmtEUR(deze.korting)) : ``}
+        ${regel("Verzending doorbetaald", "−" + fmtEUR(deze.verzend))}
+        ${regel("Filament", "−" + fmtEUR(deze.plastic), `≈ ${Math.round(deze.gram)} g`)}
+        <div class="kv" style="border-top:1px solid var(--line-strong);margin-top:6px;padding-top:8px;">
+          <span style="font-weight:600;">Blijft over</span>
+          <span class="font-mono" style="font-weight:600;color:var(--accent);">${fmtEUR(deze.over)}</span>
+        </div>
+        ${vorige.n ? `
+          <p class="muted" style="font-size:12px;line-height:1.65;margin:10px 0 0;">
+            ${esc(maandNaam(vorigVan))}: ${fmtEUR(vorige.omzet)} omzet, ${fmtEUR(vorige.over)} over
+            uit ${vorige.n} ${vorige.n === 1 ? "bestelling" : "bestellingen"}.
+          </p>` : ``}
+        <p class="muted" style="font-size:11.5px;line-height:1.65;margin:10px 0 0;">
+          Een schatting. Het gewicht van een print kennen we bij benadering, en wat de post
+          jou aanrekent kan afwijken van wat de klant betaalde. Machinetijd en stroom zitten
+          er niet in.
+        </p>
+      </div>
+    </details>`;
+}
 
 /* Het eerste scherm: in één oogopslag wat er te doen is. */
 function viewBeheerOverzicht(openstaand){
@@ -7200,6 +7849,7 @@ function viewBeheerOverzicht(openstaand){
   const maand = Date.now() - 30 * 864e5;
   const omzet = state.orders.filter(o => o.createdAt > maand).reduce((s, o) => s + (o.total || 0), 0);
   const verstopt = (state.products || []).filter(verborgen);
+  const teP = printRij().reduce((s, g) => s + g.qty, 0);
   const kaart = (cijfer, naam, let_) => `
     <div class="kpi${let_ ? " let" : ""}"><div class="cijfer">${cijfer}</div><div class="naam">${esc(naam)}</div></div>`;
   return `
@@ -7214,6 +7864,17 @@ function viewBeheerOverzicht(openstaand){
       ${teHalen ? kaart(teHalen, "wordt afgehaald") : ""}
       ${kaart(fmtEUR(omzet), "laatste 30 dagen")}
     </div>
+
+    ${teP ? `
+      <div class="cart-item" style="margin-bottom:12px;">
+        <p style="font-size:13px;font-weight:600;margin:0 0 4px;">${ic("print")} ${teP} ${teP === 1 ? "stuk moet" : "stuks moeten"} nog geprint worden</p>
+        <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 10px;">
+          Gegroepeerd per kleur, zodat je maar één keer per kleur hoeft te wisselen.
+        </p>
+        <button class="btn btn-accent btn-sm" onclick="window.__setAdminTab('printen')">Naar de printlijst</button>
+      </div>` : ``}
+
+    ${maandCijfers()}
 
     ${nieuw ? `
       <div class="cart-item" style="border-color:var(--accent);margin-bottom:12px;">
@@ -7524,6 +8185,336 @@ function mailAdminBlock(){
 /* Elk onderdeel van het beheer heeft zijn eigen scherm met een eigen
    opslaanknop. Vroeger hing alles onder Prijzen: e-mail, afhalen en codes
    erbij, met één knop onderaan die je makkelijk over het hoofd zag. */
+/* =====================================================================
+   Wat moet er op de printer
+   Je werkt niet per bestelling, je werkt per kleur: één keer filament wisselen
+   en dan alles printen wat die kleur nodig heeft. Dit scherm draait de zaak
+   dus om — het loopt over álle openstaande bestellingen heen en groepeert wat
+   er nog geprint moet worden op de kleuren die het vraagt. Daarna kijkt het of
+   er stukken samen op één plaat passen, want dat scheelt hele printbeurten.
+   Afvinken doe je hier ook; dat werkt door naar de bestelling zelf.
+   ===================================================================== */
+
+/* Welke filamenten dit besteld stuk nodig heeft. */
+function itemKleuren(i){
+  const vakken = Array.isArray(i.colorChoices) ? i.colorChoices : [];
+  if (vakken.length) return vakken;
+  const delen = Array.isArray(i.jobParts) ? i.jobParts : [];
+  if (delen.length){
+    const uniek = new Map();
+    for (const j of delen) if (j.filament) uniek.set(j.filament.id || j.filament.name, j.filament);
+    if (uniek.size) return [...uniek.values()];
+  }
+  return i.filament ? [i.filament] : [];
+}
+/* Twee stukken horen bij elkaar als ze precies dezelfde kleuren vragen. */
+function kleurSleutel(kleuren){
+  if (!kleuren.length) return "?";
+  return kleuren.map(f => f.id || `${f.type || ""}·${f.name || ""}`).sort().join(" + ");
+}
+function kleurNaam(kleuren){
+  if (!kleuren.length) return "Kleur nog onbekend";
+  return kleuren.map(f => [f.type, f.name].filter(Boolean).join(" ")).join(" + ");
+}
+
+/* De echte maat van een besteld stuk, in millimeter. Bij maatwerk staat ze in
+   de bestelling; anders komt ze uit het 3D-model dat bij het product hoort, en
+   als laatste redmiddel uit wat je zelf bij afmetingen getypt hebt. */
+function maatUitTekst(t){
+  if (!t) return null;
+  const g = (String(t).match(/\d+(?:[.,]\d+)?/g) || []).map(v => parseFloat(v.replace(",", ".")));
+  if (g.length >= 3) return g.slice(0, 3);
+  // "Ø 90 x 180 mm": een doorsnede en een hoogte
+  if (g.length === 2 && /ø|⌀|diam|^\s*o\s/i.test(String(t))) return [g[0], g[0], g[1]];
+  return null;
+}
+function itemMaat(i){
+  if (Array.isArray(i.dims) && i.dims.length === 3) return i.dims.map(Number);
+  const p = state.products.find(x => x.id === (i.productId || i.id));
+  if (Array.isArray(p?.modelSize) && p.modelSize.length === 3) return p.modelSize.map(Number);
+  return maatUitTekst(p?.dimensions);
+}
+/* Het gewicht van één stuk, zo goed als we het weten. */
+function itemGram(i){
+  if (i.grams) return Number(i.grams);
+  const p = state.products.find(x => x.id === (i.productId || i.id));
+  return Number(p?.weight) || 0;
+}
+/* De printtijd. Bij maatwerk en eigen modellen staat ze in seconden in de
+   bestelling; bij een gewoon product heb je zelf iets als "5u 40m" of "38m"
+   ingetypt. Zonder dit las de printlijst overal nul. */
+function tijdUitTekst(t){
+  if (!t) return 0;
+  const s = String(t).toLowerCase();
+  const uur = s.match(/(\d+(?:[.,]\d+)?)\s*(?:u|h)/);
+  const min = s.match(/(\d+(?:[.,]\d+)?)\s*m/);
+  let sec = 0;
+  if (uur) sec += parseFloat(uur[1].replace(",", ".")) * 3600;
+  if (min) sec += parseFloat(min[1].replace(",", ".")) * 60;
+  // alleen een getal, zonder eenheid: dan zijn het minuten
+  if (!uur && !min){
+    const n = s.match(/\d+(?:[.,]\d+)?/);
+    if (n) sec = parseFloat(n[0].replace(",", ".")) * 60;
+  }
+  return Math.round(sec);
+}
+function itemTijd(i){
+  if (i.printTime) return Number(i.printTime);
+  const p = state.products.find(x => x.id === (i.productId || i.id));
+  return tijdUitTekst(p?.printTime);
+}
+
+/* Hoe leg je een stapel stukken op zo weinig mogelijk platen?
+   Een eenvoudige planken-indeling: leg het diepste stuk eerst, vul de rij naar
+   rechts aan tot ze vol is, begin dan een nieuwe rij erboven, en pas als de
+   plaat vol is een nieuwe plaat. Dat is niet de allerbeste indeling die
+   bestaat, maar wel eentje die klopt: wat hier op één plaat staat, past er ook
+   echt op. Beloven dat er meer op past dan waar is, zou erger zijn. */
+const PLAAT_RAND = 5;        // marge tot de rand van de plaat
+const PLAAT_TUSSEN = 4;      // ruimte tussen twee stukken
+function plaatIndeling(stukken){
+  const bx = PLATE.x - 2 * PLAAT_RAND, by = PLATE.y - 2 * PLAAT_RAND;
+  const teGroot = [], lijst = [];
+  for (const s of stukken){
+    // liggend met de lange kant mee bespaart plaats
+    const w = Math.max(s.w, s.d), d = Math.min(s.w, s.d);
+    if (w > bx || d > by) teGroot.push(s); else lijst.push({ ...s, w, d });
+  }
+  lijst.sort((a, b) => b.d - a.d);
+  const platen = [];
+  for (const s of lijst){
+    let gezet = false;
+    for (const plaat of platen){
+      for (const rij of plaat.rijen){
+        if (rij.breed + PLAAT_TUSSEN + s.w <= bx){
+          rij.breed += PLAAT_TUSSEN + s.w;
+          rij.stukken.push(s);
+          gezet = true; break;
+        }
+      }
+      if (gezet) break;
+      const hoog = plaat.rijen.reduce((h, r) => h + r.diep + PLAAT_TUSSEN, 0);
+      if (hoog + s.d <= by){
+        plaat.rijen.push({ diep: s.d, breed: s.w, stukken: [s] });
+        gezet = true; break;
+      }
+    }
+    if (!gezet) platen.push({ rijen: [{ diep: s.d, breed: s.w, stukken: [s] }] });
+  }
+  return { platen, teGroot };
+}
+
+/* Alles wat nog geprint moet worden, gegroepeerd op de kleuren die het vraagt. */
+function printRij(){
+  const groepen = new Map();
+  const open = (state.orders || [])
+    .filter(o => o.status !== "Geleverd" && !o.hiddenForShop)
+    .sort((a, b) => a.createdAt - b.createdAt);        // oudste eerst: die wacht het langst
+  for (const o of open){
+    (o.items || []).forEach((i, idx) => {
+      if (itemGeprint(o, idx)) return;
+      const kleuren = itemKleuren(i);
+      const sleutel = kleurSleutel(kleuren);
+      if (!groepen.has(sleutel)) groepen.set(sleutel, { sleutel, kleuren, stukken: [], qty: 0, gram: 0, tijd: 0 });
+      const g = groepen.get(sleutel);
+      const maat = itemMaat(i);
+      g.stukken.push({ order: o, item: i, idx, maat });
+      g.qty += i.qty || 1;
+      g.gram += itemGram(i) * (i.qty || 1);
+      g.tijd += itemTijd(i) * (i.qty || 1);
+    });
+  }
+  // meeste werk bovenaan: daar valt de meeste tijd te winnen door te bundelen
+  return [...groepen.values()].sort((a, b) => b.qty - a.qty);
+}
+
+function viewPrintQueue(){
+  const groepen = printRij();
+  const stuks = groepen.reduce((s, g) => s + g.qty, 0);
+  const tijd = groepen.reduce((s, g) => s + g.tijd, 0);
+  const gram = groepen.reduce((s, g) => s + g.gram, 0);
+  if (!groepen.length){
+    return `
+      <div class="paneel-kop">
+        <h2>Op de printer</h2>
+        <p>Alles wat nog geprint moet worden, gegroepeerd per kleur.</p>
+      </div>
+      <div class="cart-item">
+        <p style="font-size:14px;line-height:1.65;margin:0;">${ic("circle-check")} Er staat niets meer te wachten. Alles is geprint.</p>
+      </div>`;
+  }
+  return `
+    <div class="paneel-kop">
+      <h2>Op de printer</h2>
+      <p>Alles wat nog geprint moet worden, over alle bestellingen heen en gegroepeerd
+         op de kleuren die het vraagt. Werk een groep af, wissel één keer van filament,
+         en ga door naar de volgende. Wat je hier afvinkt, staat ook bij de bestelling zelf.</p>
+    </div>
+
+    <div class="kpi-grid" style="margin-bottom:14px;">
+      <div class="kpi${stuks ? " let" : ""}"><div class="cijfer">${stuks}</div><div class="naam">te printen</div></div>
+      <div class="kpi"><div class="cijfer">${groepen.length}</div><div class="naam">${groepen.length === 1 ? "kleurwissel" : "kleurwissels"}</div></div>
+      <div class="kpi"><div class="cijfer">${esc(fmtDuration(tijd))}</div><div class="naam">printtijd</div></div>
+      <div class="kpi"><div class="cijfer">${Math.round(gram)} g</div><div class="naam">filament</div></div>
+    </div>
+
+    ${groepen.map((g, n) => printGroep(g, n)).join("")}`;
+}
+
+function printGroep(g, n){
+  // stukken met een bekende maat kunnen we indelen; de rest noemen we apart
+  const metMaat = [], zonderMaat = [];
+  for (const s of g.stukken){
+    for (let k = 0; k < (s.item.qty || 1); k++){
+      const naam = `${esc(s.item.name)}`;
+      if (s.maat) metMaat.push({ naam, w: s.maat[0], d: s.maat[1] });
+      else zonderMaat.push(naam);
+    }
+  }
+  const indeling = metMaat.length ? plaatIndeling(metMaat) : null;
+  const platen = indeling?.platen || [];
+  const samen = platen.length && platen[0].rijen.reduce((n2, r) => n2 + r.stukken.length, 0);
+  return `
+    <details class="bestelvak"${n === 0 ? " open" : ""}>
+      <summary class="bestelvak-kop">
+        <span class="row" style="gap:5px;flex-shrink:0;">
+          ${g.kleuren.slice(0, 4).map(f => `
+            <span class="fil-chip ${finishClass(f.finish)}" style="width:22px;height:22px;border-radius:7px;background-color:${esc(f.hex || "#888")};"></span>`).join("")
+            || `<span class="fil-chip" style="width:22px;height:22px;border-radius:7px;background:var(--surface2);"></span>`}
+        </span>
+        <span class="bestelvak-wie">
+          <span class="bestelvak-mail">${esc(kleurNaam(g.kleuren))}</span>
+          <span class="muted font-mono" style="font-size:11px;">
+            ${g.qty} ${g.qty === 1 ? "stuk" : "stuks"} · ${esc(fmtDuration(g.tijd))} · ${Math.round(g.gram)} g
+          </span>
+        </span>
+        <span class="bestelvak-pijl">⌄</span>
+      </summary>
+      <div class="bestelvak-body">
+        ${indeling ? plaatAdvies(indeling, samen) : ``}
+        ${zonderMaat.length ? `
+          <p class="muted" style="font-size:12px;line-height:1.65;margin:10px 0 0;">
+            ${ic("circle-question")} Van ${zonderMaat.length} ${zonderMaat.length === 1 ? "stuk" : "stuks"}
+            kennen we de maat niet. Zet er een 3D-model bij het product, dan rekenen we ze mee.
+          </p>` : ``}
+        <p class="muted font-mono" style="font-size:10.5px;letter-spacing:.06em;margin:14px 0 6px;">TIK AAN WAT GEPRINT IS</p>
+        ${g.stukken.map(s => `
+          <button class="printrij${itemGeprint(s.order, s.idx) ? " af" : ""}"
+                  data-qprint="${esc(s.order.id)}|${s.idx}">
+            <span class="stap-vink${itemGeprint(s.order, s.idx) ? " ja" : ""}">${itemGeprint(s.order, s.idx) ? ic("check") : ""}</span>
+            <span class="printrij-naam">${s.item.qty}× ${esc(s.item.name)}</span>
+            <span class="muted font-mono printrij-bij">${esc(orderNumber(s.order))} · ${esc(s.order.userEmail || "")}</span>
+          </button>`).join("")}
+      </div>
+    </details>`;
+}
+
+function plaatAdvies(indeling, samen){
+  const { platen, teGroot } = indeling;
+  if (!platen.length && !teGroot.length) return ``;
+  return `
+    <div class="cart-item" style="padding:12px 13px;margin:2px 0 0;">
+      <p style="font-size:13px;line-height:1.6;margin:0 0 ${platen.length ? "8px" : "0"};">
+        ${ic("layer-group")}
+        ${platen.length === 1
+          ? `Deze ${samen} ${samen === 1 ? "gaat" : "passen samen"} op <strong>één plaat</strong>.`
+          : `Dit vraagt <strong>${platen.length} platen</strong> — de eerste met ${samen} ${samen === 1 ? "stuk" : "stuks"}.`}
+      </p>
+      ${platen.map((plaat, i) => {
+        const namen = plaat.rijen.flatMap(r => r.stukken.map(s => s.naam));
+        return `<p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 3px;">
+          <strong>Plaat ${i + 1}</strong> — ${namen.join(", ")}
+        </p>`;
+      }).join("")}
+      ${teGroot.length ? `
+        <p style="font-size:12px;line-height:1.65;margin:8px 0 0;color:var(--accent);">
+          ${ic("triangle-exclamation")} ${teGroot.length} ${teGroot.length === 1 ? "stuk past" : "stuks passen"}
+          niet op de plaat van ${PLATE.x} mm. Kijk die apart na.
+        </p>` : ``}
+    </div>`;
+}
+
+function attachPrintQueueHandlers(){
+  document.querySelectorAll('[data-qprint]').forEach(b => {
+    b.onclick = () => {
+      const [orderId, idx] = b.dataset.qprint.split("|");
+      const o = state.orders.find(x => x.id === orderId);
+      if (!o) return;
+      window.__zetGeprint(orderId, +idx, !itemGeprint(o, +idx));
+    };
+  });
+}
+
+/* --------------------------- beheer: winkelgegevens --------------------------- */
+const WINKEL_VELDEN = [
+  ["naam",               "Naam van de winkel",   "Extrudo",                  true],
+  ["eigenaar",           "Wie voert de winkel",  "Voornaam Achternaam",      true],
+  ["straat",             "Straat en nummer",     "Lepelstraat 8",            true],
+  ["postcode",           "Postcode",             "9280",                     true],
+  ["gemeente",           "Gemeente",             "Lebbeke",                  true],
+  ["land",               "Land",                 "België",                   false],
+  ["email",              "E-mailadres",          "hallo@extrudo.be",         true],
+  ["telefoon",           "Telefoon (mag leeg)",  "0470 12 34 56",            false],
+  ["ondernemingsnummer", "Ondernemingsnummer",   "0123.456.789",             true],
+  ["btw",                "Btw-nummer (mag leeg)","BE0123.456.789",           false],
+  ["levertijd",          "Levertijd in woorden", "3 tot 5 werkdagen",        false],
+];
+function viewWinkelAdmin(){
+  const w = winkel();
+  const mist = winkelOntbreekt();
+  return `
+    <div class="paneel-kop">
+      <h2>Winkelgegevens</h2>
+      <p>Wie er achter de winkel zit. Dit staat onderaan elke pagina en het vult je
+         voorwaarden, je contactpagina en je privacyverklaring in.</p>
+    </div>
+    ${mist.length ? `
+      <div class="notice" style="margin-bottom:14px;">
+        <p class="notice-title">${ic("triangle-exclamation")} Nog niet volledig</p>
+        <p class="muted" style="font-size:13px;line-height:1.65;margin:0;">
+          Er ontbreekt nog ${mist.join(", ").replace(/,([^,]*)$/, " en$1")}. Een webshop
+          hoort te zeggen wie erachter zit, met welk adres en welk ondernemingsnummer —
+          zonder dat zijn je voorwaarden niet compleet.
+        </p>
+      </div>` : `
+      <div class="cart-item" style="margin-bottom:14px;">
+        <p style="font-size:13px;line-height:1.6;margin:0;">${ic("circle-check")} Je gegevens zijn volledig.</p>
+      </div>`}
+    <div class="cart-item">
+      ${WINKEL_VELDEN.map(([id, label, voorbeeld, nodig]) => `
+        <label class="field-label">${esc(label)}${nodig ? ` <span style="color:var(--accent);">*</span>` : ``}</label>
+        <input id="wk_${esc(id)}" placeholder="${esc(voorbeeld)}" value="${esc(w[id] || "")}" />`).join("")}
+      <label class="field-label">Bedenktijd in dagen</label>
+      <input id="wk_retourdagen" type="number" min="0" max="90" value="${esc(String(w.retourdagen ?? 14))}" />
+      <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 12px;">
+        Veertien dagen is wat de wet vraagt voor gewone artikelen. Voor iets dat speciaal
+        voor iemand geprint wordt geldt die bedenktijd niet — dat staat zo op de retourpagina.
+      </p>
+      <button class="btn btn-accent" id="saveWinkelBtn" style="width:100%;">Opslaan</button>
+      <p class="footer-note">
+        ${ic("eye")} <button class="detail-toggle" onclick="go('info')">Bekijk hoe het er voor een klant uitziet</button>
+      </p>
+    </div>`;
+}
+function attachWinkelHandlers(){
+  const btn = document.getElementById('saveWinkelBtn');
+  if (!btn) return;
+  btn.onclick = async () => {
+    const val = id => (document.getElementById('wk_' + id)?.value || "").trim();
+    const uit = {};
+    for (const [id] of WINKEL_VELDEN) uit[id] = val(id);
+    uit.retourdagen = Math.max(0, Math.min(90, parseInt(val('retourdagen'), 10) || 14));
+    if (!uit.naam) uit.naam = DEFAULT_WINKEL.naam;
+    btn.disabled = true;
+    try{
+      await saveWinkel(uit);
+      state.winkel = uit;
+      notify("Winkelgegevens bewaard");
+      render();
+    }catch(err){ notify("Opslaan mislukt: " + firestoreHint(err)); btn.disabled = false; }
+  };
+}
+
 function viewMailAdmin(){
   return `
     <div class="paneel-kop">
@@ -8020,6 +9011,8 @@ function attachAdminHandlers(){
   };
   attachFilamentHandlers();
   attachPricingHandlers();
+  attachWinkelHandlers();
+  attachPrintQueueHandlers();
   attachFileHandlers();
   const sizingBox = document.getElementById('pSizing');
   if (sizingBox) sizingBox.onchange = () => {
@@ -8154,7 +9147,13 @@ function attachAdminHandlers(){
     };
     // undefined = ongemoeid laten, een model = vervangen, null = weghalen
     const model = state.__draftModel;
-    if (model !== undefined) data.has3d = !!model;
+    if (model !== undefined){
+      data.has3d = !!model;
+      // De echte maat van het model bewaren we bij het product zelf. Zo weet de
+      // printlijst hoe groot een stuk is zonder het 3D-model op te halen, en
+      // kan de productpagina hem naast een bankkaart zetten.
+      data.modelSize = model ? model.size.map(v => Math.round(v * 10) / 10) : null;
+    }
 
     btn.disabled = true;
     const original = btn.textContent;
@@ -8234,6 +9233,7 @@ window.__lc = {
   sliceMesh, partSlice, partEstimate, projectTotals,
   pricing, slicerSettings, render,
   slotFilament, currentFilament,
+  plaatIndeling, printRij, maatUitTekst, itemMaat, tijdUitTekst,
   get snijders(){ return snijders; },
 };
 
@@ -8243,6 +9243,12 @@ listenProducts();
 listenFilaments();
 listenPricing();
 listenPickup();
+listenWinkel();
+// De voet staat buiten #app en wordt dus nooit opnieuw getekend: één keer
+// aanhaken volstaat.
+document.querySelectorAll('[data-info-ga]').forEach(b => {
+  b.onclick = () => go("info", { __infoDeel: b.dataset.infoGa });
+});
 renderAuthNav();
 render();
 </script>
