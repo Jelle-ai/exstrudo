@@ -301,6 +301,7 @@
   .viewer{width:100%;aspect-ratio:1/1;background:var(--plate);border:1px solid var(--line);border-radius:16px;overflow:hidden;position:relative;}
   .viewer img{width:100%;height:100%;object-fit:cover;display:block;}
   .viewer canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab;}
+  .viewer canvas[hidden]{display:none;}
   .viewer canvas:active{cursor:grabbing;}
   .viewer-leeg{
     position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -2398,7 +2399,11 @@ function nearestFilament(hex){
    meerdere objecten, dan hoort object 1 bij kleurvak 1, object 2 bij vak 2 —
    precies zoals je het in Bambu Studio klaarzet.
    ===================================================================== */
-const VOORBEELD_DRIEHOEKEN = 26000;   // samen over alle onderdelen
+/* Samen over alle onderdelen. De grens komt van Firestore: een document mag
+   niet groter zijn dan een megabyte. Sinds we punten knopen in plaats van elke
+   driehoek voluit te bewaren, past er ongeveer het dubbele in — en dat is
+   precies waar het blokkige vandaan kwam. */
+const VOORBEELD_DRIEHOEKEN = 55000;
 
 /* Vereenvoudigt een model door punten die dicht bij elkaar liggen op één punt
    te leggen: het model gaat over een denkbeeldig rooster en alle punten in
@@ -2506,31 +2511,75 @@ function voorbeeldUitDelen(delen){
           u[o+d] = Math.max(0, Math.min(65535, Math.round((dun[o+d] - min[d]) / span * 65535)));
         }
       }
-      return { u, label: delen[i]?.label || null };
+      return { ...knoopPunten(u), label: delen[i]?.label || null };
     }),
   };
 }
 
-/* Terug naar echte punten. */
+/* Punten die precies op elkaar liggen één keer bewaren, en de driehoeken naar
+   die punten laten verwijzen. In een gesloten model deelt elk punt gemiddeld
+   zes driehoeken, dus dat scheelt ongeveer de helft aan opslag — en die ruimte
+   gaat rechtstreeks naar meer driehoeken, dus naar een gladder model.
+   Zijn er te veel punten om er met twee bytes naar te wijzen, dan bewaren we
+   het onderdeel gewoon plat; dat blijft altijd werken. */
+function knoopPunten(u){
+  const n = u.length / 3;
+  const kaart = new Map();
+  const punten = [];
+  const idx = new Uint16Array(n);
+  for (let i = 0; i < n; i++){
+    const o = i * 3;
+    const s = u[o] + "," + u[o+1] + "," + u[o+2];
+    let k = kaart.get(s);
+    if (k === undefined){
+      k = punten.length / 3;
+      if (k > 65535) return { u };            // te veel punten: plat bewaren
+      punten.push(u[o], u[o+1], u[o+2]);
+      kaart.set(s, k);
+    }
+    idx[i] = k;
+  }
+  return { p: new Uint16Array(punten), i: idx };
+}
+
+/* Terug naar echte punten. Zowel de geknoopte vorm als de oude platte vorm. */
 function voorbeeldNaarMeshes(v){
   return v.parts.map(p => {
-    const u = p.u, m = new Float32Array(u.length);
-    for (let o = 0; o < u.length; o += 3){
-      for (let d = 0; d < 3; d++) m[o+d] = v.min[d] + u[o+d] / 65535 * v.span;
+    if (p.u){
+      const u = p.u, m = new Float32Array(u.length);
+      for (let o = 0; o < u.length; o += 3){
+        for (let d = 0; d < 3; d++) m[o+d] = v.min[d] + u[o+d] / 65535 * v.span;
+      }
+      return m;
+    }
+    const m = new Float32Array(p.i.length * 3);
+    for (let t = 0; t < p.i.length; t++){
+      const b = p.i[t] * 3, o = t * 3;
+      for (let d = 0; d < 3; d++) m[o+d] = v.min[d] + p.p[b+d] / 65535 * v.span;
     }
     return m;
   });
 }
 
+const bytesVan = (arr) =>
+  Bytes.fromUint8Array(new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength));
+
 async function bewaarVoorbeeld(productId, v){
   await setDoc(doc(db, "previews", productId), {
     min: v.min, span: v.span, size: v.size,
-    parts: v.parts.map(p => ({
-      b: Bytes.fromUint8Array(new Uint8Array(p.u.buffer, p.u.byteOffset, p.u.byteLength)),
-      label: p.label || null,
-    })),
+    parts: v.parts.map(p => p.u
+      // een onderdeel met te veel punten om te knopen: plat, zoals vroeger
+      ? { b: bytesVan(p.u), label: p.label || null }
+      : { p: bytesVan(p.p), i: bytesVan(p.i), label: p.label || null }),
     createdAt: Date.now(),
   });
+}
+/* Bytes uit Firestore hoeven niet op een even adres te beginnen; een Uint16Array
+   eist dat wel. Daarom altijd overkopiëren. */
+function alsU16(bytes){
+  const u = new Uint16Array(bytes.length / 2);
+  new Uint8Array(u.buffer).set(bytes);
+  return u;
 }
 async function wisVoorbeeld(productId){
   try{ await deleteDoc(doc(db, "previews", productId)); }catch(e){ /* stond er al niet */ }
@@ -2547,13 +2596,11 @@ async function haalVoorbeeld(productId){
       const d = snap.data();
       uit = {
         min: d.min, span: d.span, size: d.size,
-        parts: (d.parts || []).map(p => {
-          const bytes = p.b.toUint8Array();
-          // een kopie: de onderliggende buffer hoeft niet uitgelijnd te zijn
-          const u = new Uint16Array(bytes.length / 2);
-          new Uint8Array(u.buffer).set(bytes);
-          return { u, label: p.label || null };
-        }),
+        // p + i is de geknoopte vorm; b is de oude platte vorm, die blijft
+        // gewoon werken voor voorbeelden die er al stonden
+        parts: (d.parts || []).map(p => p.b
+          ? { u: alsU16(p.b.toUint8Array()), label: p.label || null }
+          : { p: alsU16(p.p.toUint8Array()), i: alsU16(p.i.toUint8Array()), label: p.label || null }),
       };
     }
   }catch(e){
@@ -2634,12 +2681,339 @@ async function analyzeFile(file, sleutel){
 }
 
 /* =====================================================================
-   3D-weergave — eigen renderer op een canvas, zonder externe bibliotheek.
-   Driehoeken worden geprojecteerd, van achter naar voor getekend en vlak
-   belicht. Dat is licht genoeg voor een telefoon en toont het model in het
-   gekozen filament. Daarnaast tonen we op verzoek de lagen zoals de slicer
-   ze gesneden heeft.
+   3D-weergave
+   Er zijn twee wegen. De grafische kaart (WebGL) is de gewone: die houdt per
+   beeldpunt bij wat er vooraan staat, dus loopt niets meer door elkaar heen en
+   kun je nergens door het model heen kijken. Kan een toestel dat niet, dan
+   valt hij terug op de tekening op een gewoon canvas: driehoeken van achter
+   naar voor. Die tweede weg blijft nodig voor de lagenweergave, en als
+   achtervang op oude toestellen.
+
+   Waarom niet three.js? Dat is inderdaad dé opensource-bibliotheek hiervoor en
+   ze doet dit prima. Maar ze is groter dan deze hele winkel bij elkaar, ze zou
+   van buitenaf ingeladen moeten worden, en we hebben er maar één ding uit
+   nodig: een dieptebuffer. Dat is hieronder een pagina of twee — zonder extra
+   bestand, zonder wachttijd, en zonder dat de site stukgaat als die ene server
+   het even niet doet.
    ===================================================================== */
+
+/* Zachte normalen.
+   Een driehoek heeft één richting, dus met vlakke belichting zie je elk vlakje
+   apart zitten: precies het blokkige. Punten die op dezelfde plek liggen laten
+   we daarom hun richting delen, zodat een ronding er ook rond uitziet. Alleen:
+   staan twee vlakken scherp op elkaar — de rand van een doos — dan mag dat
+   níet, anders wordt de rand een vage vlek. Vandaar de knikgrens. */
+/* De grens staat op 0.78. Bij een kubus staat een hoekpunt van drie vlakken op
+   0.577 — die blijft dus scherp, zoals het hoort. Bij een ronding liggen de
+   vlakken veel dichter bij elkaar en zitten ze ruim boven de grens, dus die
+   wordt wél glad. */
+const ZACHT_TOT = 260000;    // daarboven duurt het samenvoegen te lang
+
+function vlakkeNormalen(mesh){
+  const n = mesh.length / 9;
+  const uit = new Float32Array(n * 9);
+  for (let t = 0; t < n; t++){
+    const o = t * 9;
+    const ux = mesh[o+3]-mesh[o],   uy = mesh[o+4]-mesh[o+1], uz = mesh[o+5]-mesh[o+2];
+    const vx = mesh[o+6]-mesh[o],   vy = mesh[o+7]-mesh[o+1], vz = mesh[o+8]-mesh[o+2];
+    let nx = uy*vz - uz*vy, ny = uz*vx - ux*vz, nz = ux*vy - uy*vx;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    nx/=len; ny/=len; nz/=len;
+    for (let k = 0; k < 3; k++){ uit[o+k*3] = nx; uit[o+k*3+1] = ny; uit[o+k*3+2] = nz; }
+  }
+  return uit;
+}
+
+function zachteNormalen(mesh, knik = 0.78){
+  const n = mesh.length / 9;
+  // Een model van een miljoen driehoeken samenvoegen kost seconden en een berg
+  // geheugen. Zo fijn getekend valt het verschil toch niet meer op, dus dan
+  // nemen we per driehoek gewoon zijn eigen richting.
+  if (n > ZACHT_TOT) return vlakkeNormalen(mesh);
+  const vlakN = new Float32Array(n * 3);
+  const opTel = new Map();                 // plek → opgetelde richting
+
+  const sleutel = (x, y, z) =>
+    Math.round(x * 512) + "," + Math.round(y * 512) + "," + Math.round(z * 512);
+
+  for (let t = 0; t < n; t++){
+    const o = t * 9;
+    const ux = mesh[o+3]-mesh[o],   uy = mesh[o+4]-mesh[o+1], uz = mesh[o+5]-mesh[o+2];
+    const vx = mesh[o+6]-mesh[o],   vy = mesh[o+7]-mesh[o+1], vz = mesh[o+8]-mesh[o+2];
+    let nx = uy*vz - uz*vy, ny = uz*vx - ux*vz, nz = ux*vy - uy*vx;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    // niet delen door de lengte bij het optellen: een grote driehoek hoort
+    // zwaarder te wegen dan een spikkeltje
+    vlakN[t*3] = nx/len; vlakN[t*3+1] = ny/len; vlakN[t*3+2] = nz/len;
+    for (let k = 0; k < 3; k++){
+      const p = o + k*3;
+      const s = sleutel(mesh[p], mesh[p+1], mesh[p+2]);
+      const a = opTel.get(s);
+      if (a){ a[0] += nx; a[1] += ny; a[2] += nz; }
+      else opTel.set(s, [nx, ny, nz]);
+    }
+  }
+
+  const uit = new Float32Array(n * 9);
+  for (let t = 0; t < n; t++){
+    const o = t * 9;
+    const fx = vlakN[t*3], fy = vlakN[t*3+1], fz = vlakN[t*3+2];
+    for (let k = 0; k < 3; k++){
+      const p = o + k*3;
+      const a = opTel.get(sleutel(mesh[p], mesh[p+1], mesh[p+2]));
+      let nx = fx, ny = fy, nz = fz;
+      if (a){
+        const l = Math.hypot(a[0], a[1], a[2]) || 1;
+        const gx = a[0]/l, gy = a[1]/l, gz = a[2]/l;
+        // te scherp een knik? dan houdt dit hoekpunt zijn eigen richting
+        if (gx*fx + gy*fy + gz*fz > knik){ nx = gx; ny = gy; nz = gz; }
+      }
+      uit[p] = nx; uit[p+1] = ny; uit[p+2] = nz;
+    }
+  }
+  return uit;
+}
+
+/* --------------------------- de grafische kaart --------------------------- */
+const GL_VERT = `
+precision highp float;
+attribute vec3 aPos;
+attribute vec3 aNor;
+uniform vec3 uMidden;      // waar het model omheen draait
+uniform vec2 uDraai;       // cos/sin van de horizontale hoek
+uniform vec2 uKantel;      // cos/sin van de verticale hoek
+uniform float uZoom;
+uniform vec2 uOorsprong;   // middelpunt op het scherm, in beeldpunten
+uniform vec2 uDoek;        // breedte en hoogte in beeldpunten
+uniform float uDiepte;     // halve diepte, om naar [-1,1] te brengen
+varying vec3 vNor;
+varying float vDiepte;
+
+// dezelfde projectie als de tekening op canvas, zodat beide wegen er gelijk
+// uitzien: z omhoog, y naar achter, recht vooruit gekeken
+vec3 draai(vec3 p){
+  vec3 d = p - uMidden;
+  float rx = d.x * uDraai.x - d.y * uDraai.y;
+  float ry = d.x * uDraai.y + d.y * uDraai.x;
+  float op = d.z * uKantel.x - ry * uKantel.y;
+  float di = ry * uKantel.x + d.z * uKantel.y;
+  return vec3(rx, op, di);
+}
+void main(){
+  vec3 v = draai(aPos);
+  float sx = uOorsprong.x + v.x * uZoom;
+  float sy = uOorsprong.y - v.y * uZoom;
+  vDiepte = v.z;
+  gl_Position = vec4(sx / uDoek.x * 2.0 - 1.0,
+                     1.0 - sy / uDoek.y * 2.0,
+                     clamp(v.z / uDiepte, -0.999, 0.999),
+                     1.0);
+  // de normaal draait mee, maar verschuift niet
+  vNor = draai(aPos + aNor) - draai(aPos);
+}`;
+
+const GL_FRAG = `
+precision highp float;
+uniform vec3 uKleur;
+uniform float uGlans;
+varying vec3 vNor;
+varying float vDiepte;
+void main(){
+  vec3 N = normalize(vNor);
+  // Dubbelzijdig belichten. Veel modellen hebben ergens een driehoek die
+  // verkeerd om staat; met eenzijdige belichting zie je daar een zwart gat en
+  // lijkt het model hol. Zo blijft het overal massief.
+  if (!gl_FrontFacing) N = -N;
+  // Diepte loopt het scherm ín, dus wie naar je toe kijkt heeft een negatieve
+  // z. Het licht staat links-boven vóór het model, net naast de kijker.
+  vec3 L = normalize(vec3(0.40, 0.55, -0.72));
+  vec3 O = vec3(0.0, 0.0, -1.0);                 // richting naar de kijker
+  float diffuus = max(dot(N, L), 0.0);
+  // een tweede, zwak licht van de andere kant haalt de schaduwzijde uit het
+  // zwart; zonder dat wordt een donkere kleur één zwarte vlek
+  float vul = max(dot(N, normalize(vec3(-0.55, -0.30, -0.45))), 0.0) * 0.26;
+  vec3 H = normalize(L + O);
+  float glans = pow(max(dot(N, H), 0.0), 30.0) * uGlans;
+  // randlicht: geeft de vorm een zichtbare omtrek tegen de achtergrond
+  float rand = pow(1.0 - abs(dot(N, O)), 3.0) * 0.14;
+  vec3 kleur = uKleur * (0.34 + 0.70 * diffuus + vul) + glans + rand;
+  gl_FragColor = vec4(min(kleur, vec3(1.0)), 1.0);
+}`;
+
+const GL_LIJN_FRAG = `
+precision highp float;
+uniform vec3 uKleur;
+uniform float uGlans;
+void main(){ gl_FragColor = vec4(uKleur, uGlans); }`;
+
+/* Eén opzet per canvas: een canvas onthoudt zijn soort context, dus dit kan
+   maar één keer. Lukt WebGL niet, dan onthouden we dat ook — dan wordt er niet
+   bij elke tekenbeurt opnieuw geprobeerd. */
+const glDoeken = new WeakMap();
+function glVoor(canvas){
+  if (glDoeken.has(canvas)) return glDoeken.get(canvas);
+  let uit = null;
+  try{
+    const gl = canvas.getContext('webgl', { antialias: true, alpha: true, depth: true, preserveDrawingBuffer: true })
+            || canvas.getContext('experimental-webgl', { antialias: true, alpha: true, depth: true, preserveDrawingBuffer: true });
+    if (gl){
+      const maak = (bron, soort) => {
+        const s = gl.createShader(soort);
+        gl.shaderSource(s, bron); gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+        return s;
+      };
+      const programma = (frag) => {
+        const p = gl.createProgram();
+        gl.attachShader(p, maak(GL_VERT, gl.VERTEX_SHADER));
+        gl.attachShader(p, maak(frag, gl.FRAGMENT_SHADER));
+        gl.linkProgram(p);
+        if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+        return p;
+      };
+      const vlak = programma(GL_FRAG);
+      const lijn = programma(GL_LIJN_FRAG);
+      uit = {
+        gl, vlak, lijn,
+        posBuf: gl.createBuffer(), norBuf: gl.createBuffer(),
+        lijnBuf: gl.createBuffer(),
+      };
+    }
+  }catch(e){ uit = null; }
+  glDoeken.set(canvas, uit);
+  return uit;
+}
+
+/* Zet de gedeelde instellingen klaar en levert de projectie die ook de
+   tekenweg op canvas gebruikt, zodat beide wegen hetzelfde beeld geven. */
+function glOpzet(ctx, programma, kader){
+  const { gl } = ctx;
+  const { w, h, midden, draai, kantel, zoom, oorsprong, diepte } = kader;
+  gl.useProgram(programma);
+  const u = (naam) => gl.getUniformLocation(programma, naam);
+  gl.uniform3f(u('uMidden'), midden[0], midden[1], midden[2]);
+  gl.uniform2f(u('uDraai'), draai[0], draai[1]);
+  gl.uniform2f(u('uKantel'), kantel[0], kantel[1]);
+  gl.uniform1f(u('uZoom'), zoom);
+  gl.uniform2f(u('uOorsprong'), oorsprong[0], oorsprong[1]);
+  gl.uniform2f(u('uDoek'), w, h);
+  gl.uniform1f(u('uDiepte'), diepte);
+  return u;
+}
+
+/* Tekent één of meer onderdelen, elk in zijn eigen kleur, met een echte
+   dieptebuffer. Geeft false terug als WebGL hier niet kan — dan neemt de
+   tekening op canvas het over. */
+function glTeken(canvas, delen, kader, plaat){
+  const ctx = glVoor(canvas);
+  if (!ctx) return false;
+  const { gl } = ctx;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = canvas.clientWidth || 320, h = canvas.clientHeight || 320;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)){
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+  // Bewust géén achterkanten wegknippen: bij een model met een omgekeerde
+  // driehoek zou daar een gat vallen waar je doorheen kijkt. De dieptebuffer
+  // regelt de volgorde toch al.
+  gl.disable(gl.CULL_FACE);
+
+  const k = { ...kader, w, h };
+
+  if (plaat && plaat.length){
+    // Het plaatraster is een achtergrond, geen voorwerp. Zonder deze twee
+    // regels zouden de lijnen die tussen jou en het model liggen er dwars
+    // overheen getekend worden — geometrisch juist, maar het model lijkt er
+    // dan van gaas. Dus: geen diepte schrijven, geen diepte toetsen.
+    gl.depthMask(false);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    const u = glOpzet(ctx, ctx.lijn, k);
+    const pos = gl.getAttribLocation(ctx.lijn, 'aPos');
+    const nor = gl.getAttribLocation(ctx.lijn, 'aNor');
+    gl.bindBuffer(gl.ARRAY_BUFFER, ctx.lijnBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, plaat, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(pos);
+    gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
+    if (nor >= 0){ gl.disableVertexAttribArray(nor); gl.vertexAttrib3f(nor, 0, 0, 1); }
+    gl.uniform3f(u('uKleur'), 1, 1, 1);
+    gl.uniform1f(u('uGlans'), 0.16);
+    gl.drawArrays(gl.LINES, 0, plaat.length / 3);
+    gl.disable(gl.BLEND);
+    gl.depthMask(true);
+    gl.enable(gl.DEPTH_TEST);
+  }
+
+  const u = glOpzet(ctx, ctx.vlak, k);
+  const pos = gl.getAttribLocation(ctx.vlak, 'aPos');
+  const nor = gl.getAttribLocation(ctx.vlak, 'aNor');
+  gl.enableVertexAttribArray(pos);
+  gl.enableVertexAttribArray(nor);
+  for (const d of delen){
+    if (!d.mesh || !d.mesh.length) continue;
+    const { r, g, b } = hexToRgb(d.hex || "#B8BCC2");
+    gl.bindBuffer(gl.ARRAY_BUFFER, ctx.posBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, d.mesh, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(pos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, ctx.norBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, d.normalen, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(nor, 3, gl.FLOAT, false, 0, 0);
+    gl.uniform3f(u('uKleur'), r/255, g/255, b/255);
+    gl.uniform1f(u('uGlans'), d.finish === "silk" ? 0.55 : d.finish === "basic" ? 0.22 : 0.05);
+    gl.drawArrays(gl.TRIANGLES, 0, d.mesh.length / 3);
+  }
+  return true;
+}
+
+/* De normalen horen bij een model, niet bij een tekenbeurt: ze uitrekenen bij
+   elke draaibeweging zou het slepen laten haperen. Daarom hangen we ze aan de
+   reeks punten zelf. */
+const normalenCache = new WeakMap();
+function normalenVan(mesh){
+  let n = normalenCache.get(mesh);
+  if (!n){ n = zachteNormalen(mesh); normalenCache.set(mesh, n); }
+  return n;
+}
+
+/* De projectie in getallen, zodat de grafische kaart precies hetzelfde beeld
+   maakt als de tekening op canvas. Eén plek waar hoek, schaal en middelpunt
+   bepaald worden. */
+function kijkKader(canvas, geo, opts){
+  const { yaw = 0.6, pitch = 0.5, scale = 1, vul = 0.36, zak = 0.10 } = opts || {};
+  const w = canvas.clientWidth || 320, h = canvas.clientHeight || 320;
+  const span = Math.max(geo.size[0], geo.size[1], geo.size[2]) * scale || 1;
+  const zoom = Math.min(w, h) * vul / span;
+  return {
+    w, h, zoom,
+    midden: [geo.center[0] * scale, geo.center[1] * scale, geo.minZ * scale],
+    draai:  [Math.cos(yaw), Math.sin(yaw)],
+    kantel: [Math.cos(pitch), Math.sin(pitch)],
+    oorsprong: [w / 2, h / 2 + Math.min(w, h) * zak],
+    // ruim genomen: het model mag ook bij het draaien nooit tegen de voor- of
+    // achterwand aanlopen, anders zou er een stuk uit wegvallen
+    diepte: Math.max(1e-3, span * 2.5),
+  };
+}
+
+/* Het plaatraster als losse lijnstukken, voor de weg via de grafische kaart. */
+function plaatLijnen(midden){
+  const half = PLATE.x / 2;
+  const uit = [];
+  const [cx, cy, z] = midden;
+  for (let v = -half; v <= half; v += 50){
+    uit.push(cx + v, cy - half, z,  cx + v, cy + half, z);
+    uit.push(cx - half, cy + v, z,  cx + half, cy + v, z);
+  }
+  return new Float32Array(uit);
+}
+
 /* Zet het canvas klaar en levert de projectie: één plek waar de hoek, de
    schaal en het plaatraster geregeld worden, voor beide weergaven. */
 function meshCanvas(canvas, geo, opts){
@@ -2713,16 +3087,24 @@ function drawSlices(canvas, geo, slice, opts){
 }
 
 function drawMesh(canvas, geo, opts){
-  const { hex = "#B8BCC2", finish = "basic", ruw = false } = opts || {};
-  const c = meshCanvas(canvas, geo, opts);
-  if (!c) return;
-  const { g, project, cy, sy } = c;
+  const { hex = "#B8BCC2", finish = "basic", ruw = false, plate = true } = opts || {};
 
   // Een steekproef van driehoeken laat gaten vallen — dan lijkt het model een
   // kluwen draden in plaats van een massief voorwerp. Daarom tekenen we het
   // hele model, en pakken we alleen tijdens het slepen de lichte versie.
   const m = (ruw || !geo.full) ? geo.mesh : geo.full;
   if (!m || !m.length) return;
+
+  // Eerst de grafische kaart proberen: die houdt zelf bij wat vooraan staat.
+  const kader = kijkKader(canvas, geo, opts);
+  if (glTeken(canvas,
+        [{ mesh: m, normalen: normalenVan(m), hex, finish }],
+        kader,
+        plate ? plaatLijnen(kader.midden) : null)) return;
+
+  const c = meshCanvas(canvas, geo, opts);
+  if (!c) return;
+  const { g, project, cy, sy } = c;
 
   const n = m.length / 9;
   const order = new Array(n);
@@ -2786,7 +3168,17 @@ function drawMesh(canvas, geo, opts){
 function drawModel(canvas, meshes, kleuren, opts){
   const o = opts || {};
   const geo = { center: o.center, size: o.size, minZ: o.minZ };
-  const c = meshCanvas(canvas, geo, { ...o, plate: false, vul: 0.58, zak: 0 });
+  const instel = { ...o, plate: false, vul: 0.58, zak: 0 };
+
+  // De gewone weg: de grafische kaart. Elk onderdeel wordt apart getekend maar
+  // ze delen één dieptebuffer, dus een arm die achter een lichaam zit blijft
+  // daar ook staan — en dat blijft kloppen terwijl je draait.
+  if (glTeken(canvas, meshes.map((m, deel) => {
+        const kl = kleuren[deel] || kleuren[kleuren.length - 1] || { hex: "#B8BCC2", finish: "basic" };
+        return { mesh: m, normalen: normalenVan(m), hex: kl.hex || "#B8BCC2", finish: kl.finish };
+      }), kijkKader(canvas, geo, instel), null)) return;
+
+  const c = meshCanvas(canvas, geo, instel);
   if (!c) return;
   const { g, project, cy, sy } = c;
   const light = [0.42, -0.55, 0.72];
@@ -4539,7 +4931,12 @@ function partCard(p){
         <div class="part-body">
           <div>
             <div class="viewer rel" style="aspect-ratio:1/1;">
-              <canvas class="mesh3d" data-mesh="${esc(p.id)}"></canvas>
+              ${/* Twee doeken. Een canvas onthoudt voorgoed of het met de
+                    grafische kaart of met de gewone tekenaar werkt, en de
+                    lagenweergave heeft die tweede nodig. Ze omwisselen is
+                    eenvoudiger — en betrouwbaarder — dan er één te dwingen. */""}
+              <canvas class="mesh3d" data-mesh="${esc(p.id)}"${p.viewMode === "lagen" ? " hidden" : ""}></canvas>
+              <canvas class="mesh2d" data-lagen="${esc(p.id)}"${p.viewMode === "lagen" ? "" : " hidden"}></canvas>
               <span class="viewer-tag">${p.viewMode === "lagen"
                 ? `LAGEN &middot; ${partSlice(p)?.layers || 0}`
                 : `3D &middot; ${esc(fil?.name || "")}`}</span>
@@ -4727,11 +5124,13 @@ function projectSummary(t, canAssemble){
 /* Hangt de 3D-weergaven aan hun canvas en maakt ze draaibaar met de muis of
    een vinger. De hoek wordt per onderdeel onthouden. */
 function attachMeshViewers(){
-  document.querySelectorAll('.mesh3d').forEach(cv=>{
+  document.querySelectorAll('.mesh3d[data-mesh]').forEach(cv=>{
     const part = (state.parts || []).find(p => p.id === cv.dataset.mesh);
     if (!part || !part.geo) return;
     const fil = partFilament(part);
     if (!part.view) part.view = { yaw: 0.7, pitch: 0.45 };
+    // het tweede doek, dat de lagen tekent
+    const lagenDoek = cv.parentElement?.querySelector(`.mesh2d[data-lagen="${CSS.escape(part.id)}"]`);
 
     const paint = (ruw) => {
       const opts = {
@@ -4740,8 +5139,8 @@ function attachMeshViewers(){
       };
       const sl = part.viewMode === "lagen" ? partSlice(part) : null;
       // de lagen zijn al op ware grootte gesneden, het model nog niet
-      if (sl) drawSlices(cv, part.geo, sl, { ...opts, scale: partFactor(part) });
-      else drawMesh(cv, part.geo, opts);
+      if (sl && lagenDoek) drawSlices(lagenDoek, part.geo, sl, { ...opts, scale: partFactor(part) });
+      else if (!sl) drawMesh(cv, part.geo, opts);
     };
     // Eerst de lichte versie: die staat er meteen. Het volledige model — dat
     // kunnen honderdduizenden driehoeken zijn — tekenen we een tel later, als
@@ -4750,20 +5149,24 @@ function attachMeshViewers(){
     const straks = window.requestIdleCallback || ((fn) => setTimeout(fn, 60));
     straks(() => { if (document.body.contains(cv)) paint(false); });
 
+    // draaien moet op allebei de doeken werken
     let dragging = false, lx = 0, ly = 0, netjes = null;
-    cv.onpointerdown = (e) => { dragging = true; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); };
-    cv.onpointermove = (e) => {
-      if (!dragging) return;
-      part.view.yaw += (e.clientX - lx) * 0.011;
-      part.view.pitch = Math.max(-1.3, Math.min(1.4, part.view.pitch + (e.clientY - ly) * 0.009));
-      lx = e.clientX; ly = e.clientY;
-      paint(true);                    // tijdens het slepen de lichte versie
-    };
-    cv.onpointerup = cv.onpointercancel = () => {
-      dragging = false;
-      clearTimeout(netjes);
-      netjes = setTimeout(() => paint(false), 60);   // en daarna weer het echte model
-    };
+    for (const doek of [cv, lagenDoek]){
+      if (!doek) continue;
+      doek.onpointerdown = (e) => { dragging = true; lx = e.clientX; ly = e.clientY; doek.setPointerCapture(e.pointerId); };
+      doek.onpointermove = (e) => {
+        if (!dragging) return;
+        part.view.yaw += (e.clientX - lx) * 0.011;
+        part.view.pitch = Math.max(-1.3, Math.min(1.4, part.view.pitch + (e.clientY - ly) * 0.009));
+        lx = e.clientX; ly = e.clientY;
+        paint(true);                    // tijdens het slepen de lichte versie
+      };
+      doek.onpointerup = doek.onpointercancel = () => {
+        dragging = false;
+        clearTimeout(netjes);
+        netjes = setTimeout(() => paint(false), 60);   // en daarna weer het echte model
+      };
+    }
   });
 }
 
