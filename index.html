@@ -376,6 +376,12 @@
   .hart.aan i, .hart-knop.aan i{animation:hartje .32s ease-out;}
   @keyframes hartje{ 0%{transform:scale(.6);} 60%{transform:scale(1.25);} 100%{transform:scale(1);} }
   .grid-klein{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+  .collectie-kop{
+    font-family:var(--display);font-size:15px;font-weight:700;
+    margin:26px 0 10px;display:flex;align-items:baseline;gap:9px;
+  }
+  .collectie-kop:first-of-type{margin-top:4px;}
+  .collectie-kop .muted{font-size:12px;font-weight:400;}
   @media(prefers-reduced-motion:reduce){ .hart.aan i, .hart-knop.aan i{animation:none;} }
   @media(max-width:640px){ .voet-klein{margin-left:0;flex-basis:100%;} }
 
@@ -1240,6 +1246,10 @@ const TEKST = {
   "shop.opMaat":     { en: "Made to size",        nl: "Op maat" },
   "shop.vanaf":      { en: "from {prijs}",        nl: "vanaf {prijs}" },
   "shop.kleuren":    { en: "{n} colours",         nl: "{n} kleuren" },
+  "shop.overig":     { en: "Everything else",     nl: "Verder nog" },
+  "shop.eerderBekeken":{ en: "You looked at these", nl: "Dit bekeek je eerder" },
+  "deel.knop":       { en: "Share this product",  nl: "Dit product doorsturen" },
+  "deel.gekopieerd": { en: "Link copied",         nl: "Link gekopieerd" },
 
   // --- de winkel op pauze ---
   "pauze.kop":       { en: "{winkel} is closed for a moment", nl: "{winkel} is even gesloten" },
@@ -1818,6 +1828,8 @@ const SITE_URL = location.origin + location.pathname;
 /* Links in een e-mail wijzen naar een plek in de shop, niet naar de voorpagina.
    Alles zit achter een # zodat GitHub Pages er niets voor hoeft te kunnen. */
 const orderLink   = (o) => `${SITE_URL}?bestelling=${encodeURIComponent(o.id)}`;
+/* De link naar één product, om door te sturen. */
+const productLink = (p) => `${SITE_URL}?product=${encodeURIComponent(p.id)}`;
 const confirmLink = (o) => `${SITE_URL}?ontvangen=${encodeURIComponent(o.id)}`;
 
 /* Leest zo'n link uit en onthoudt waar we naartoe moeten. Het adres wordt
@@ -1829,12 +1841,17 @@ function leesLink(){
   const q = new URLSearchParams(location.search);
   if (q.get("bestelling")) return { view: "account", orderId: q.get("bestelling") };
   if (q.get("ontvangen"))  return { view: "account", orderId: q.get("ontvangen"), actie: "ontvangen" };
+  // ?product=… is de link die je doorstuurt. Het product zelf is er nog niet —
+  // dat komt met de collectie binnen — dus we onthouden alleen waar we heen
+  // moeten en handelen het af zodra de producten er zijn.
+  if (q.get("product")) return { view: "product", productId: q.get("product") };
   const p = q.get("pagina");
   if (p && ["account","archief","custom","cart","shop","instellingen"].includes(p)) return { view: p };
 
   const h = decodeURIComponent(location.hash || "").replace(/^#/, "");
   if (!h) return null;
   const [wat, id] = h.split("/");
+  if (wat === "product" && id) return { view: "product", productId: id };
   if (wat === "bestelling" && id) return { view: "account", orderId: id };
   if (wat === "ontvangen" && id) return { view: "account", orderId: id, actie: "ontvangen" };
   if (["account","archief","custom","cart","shop","instellingen"].includes(wat)) return { view: wat };
@@ -2167,7 +2184,7 @@ function listenProducts(){
     const wil = state.selectedProduct?.id || state.selectedProductId;
     if (wil){
       const p = state.products.find(x => x.id === wil);
-      if (p) state.selectedProduct = p;
+      if (p){ state.selectedProduct = p; onthoudBekeken(p.id); }
       else if (state.view === "product"){ state.selectedProduct = null; state.view = "shop"; }
     }
     if (state.view === "shop" || state.view === "product" || state.view === "admin") render();
@@ -5254,10 +5271,60 @@ function viewShop(){
           </div>` : ``}
       </div>` : ``}
 
-    <div class="grid">${cards || `<div style="grid-column:1/-1;padding:20px;">${
-      filtert ? geenTreffers() : emptyCollectionNotice()
-    }</div>`}</div>
+    ${cards ? collectieBlokken(gevonden, filtert) : `
+      <div class="grid"><div style="grid-column:1/-1;padding:20px;">${
+        filtert ? geenTreffers() : emptyCollectionNotice()
+      }</div></div>`}
+    ${eerderBekeken()}
   `;
+}
+
+/* De collectie in stukken per categorie.
+   Eén lange rij werkt tot een stuk of tien; daarna is het een muur en scrol je
+   erlangs zonder te zien wat er staat. Koppen geven houvast. Alleen als het
+   iets oplevert: bij weinig producten, tijdens het zoeken of als je zelf al op
+   één categorie filtert blijft het één rij — dan zou een kop alleen ruis zijn. */
+const BLOKKEN_VANAF = 7;
+function collectieBlokken(lijst, filtert){
+  const grid = (items) => `<div class="grid">${items.map(productKaart).join("")}</div>`;
+  const cats = [...new Set(lijst.map(p => (p.category || "").trim()))].filter(Boolean);
+  if (filtert || lijst.length < BLOKKEN_VANAF || cats.length < 2) return grid(lijst);
+  const zonder = lijst.filter(p => !(p.category || "").trim());
+  return cats.map(c => `
+      <h3 class="collectie-kop">${esc(c)}
+        <span class="muted font-mono">${lijst.filter(p => (p.category || "").trim() === c).length}</span>
+      </h3>
+      ${grid(lijst.filter(p => (p.category || "").trim() === c))}`).join("")
+    + (zonder.length ? `<h3 class="collectie-kop">${t("shop.overig")}</h3>${grid(zonder)}` : ``);
+}
+
+/* =====================================================================
+   Wat je eerder bekeek
+   Je klikt op iets, gaat terug, klikt op iets anders — en dan weet je niet meer
+   welk van de twee het ook alweer was. Dit rijtje staat onderaan de collectie
+   en brengt je er in één klik terug. Het staat alleen in je eigen browser.
+   ===================================================================== */
+const BEKEKEN_SLEUTEL = "lc_bekeken";
+const BEKEKEN_MAX = 8;
+function bekeken(){
+  try{
+    const v = JSON.parse(localStorage.getItem(BEKEKEN_SLEUTEL) || "[]");
+    return Array.isArray(v) ? v : [];
+  }catch(e){ return []; }
+}
+function onthoudBekeken(id){
+  if (!id) return;
+  const uit = [id, ...bekeken().filter(x => x !== id)].slice(0, BEKEKEN_MAX);
+  try{ localStorage.setItem(BEKEKEN_SLEUTEL, JSON.stringify(uit)); }catch(e){}
+}
+function eerderBekeken(){
+  // Wat je bewaard hebt staat al bij Instellingen; dit gaat over wat je net zag.
+  const lijst = bekeken().map(id => (state.products || []).find(p => p.id === id))
+    .filter(p => p && !verborgen(p));
+  if (lijst.length < 2) return ``;
+  return `
+    <h3 class="collectie-kop" style="margin-top:34px;">${t("shop.eerderBekeken")}</h3>
+    <div class="grid grid-klein">${lijst.map(productKaart).join("")}</div>`;
 }
 
 /* Wel producten, maar niets dat past bij wat je zocht. */
@@ -5367,6 +5434,7 @@ function attachShopHandlers(){
   document.querySelectorAll('[data-open]').forEach(btn=>{
     btn.onclick = () => {
       state.selectedProduct = state.products.find(p=>p.id===btn.dataset.open);
+      onthoudBekeken(btn.dataset.open);
       state.__gallery = 0;
       state.__dims = null;   // begin bij de standaardmaten van dit product
       // Ook de keuze tussen 3D en foto's hoort bij één product. Bleef die
@@ -6283,12 +6351,18 @@ function viewProduct(){
           ${p.category ? `<span class="badge badge-accent">${esc(p.category)}</span>` : ``}
           <div class="between" style="gap:12px;align-items:flex-start;">
             <h1 class="font-display" style="font-size:24px;margin:0 0 10px;">${esc(p.name)}</h1>
-            <button class="hart-knop ${isBewaard(p.id) ? "aan" : ""}" data-bewaar="${esc(p.id)}"
-                    title="${esc(t(isBewaard(p.id) ? "bewaar.weghalen" : "bewaar.leggen"))}"
-                    aria-label="${esc(t(isBewaard(p.id) ? "bewaar.weghalen" : "bewaar.leggen"))}"
-                    aria-pressed="${isBewaard(p.id) ? "true" : "false"}">
-              <i class="fa-${isBewaard(p.id) ? "solid" : "regular"} fa-heart" aria-hidden="true"></i>
-            </button>
+            <span class="row" style="gap:6px;flex-shrink:0;">
+              <button class="hart-knop" id="deelBtn"
+                      title="${esc(t("deel.knop"))}" aria-label="${esc(t("deel.knop"))}">
+                ${ic("share-nodes")}
+              </button>
+              <button class="hart-knop ${isBewaard(p.id) ? "aan" : ""}" data-bewaar="${esc(p.id)}"
+                      title="${esc(t(isBewaard(p.id) ? "bewaar.weghalen" : "bewaar.leggen"))}"
+                      aria-label="${esc(t(isBewaard(p.id) ? "bewaar.weghalen" : "bewaar.leggen"))}"
+                      aria-pressed="${isBewaard(p.id) ? "true" : "false"}">
+                <i class="fa-${isBewaard(p.id) ? "solid" : "regular"} fa-heart" aria-hidden="true"></i>
+              </button>
+            </span>
           </div>
           <p class="price" style="font-size:26px;margin:0 0 4px;">
             ${toeslag
@@ -6432,6 +6506,24 @@ function attachProductHandlers(){
   document.querySelectorAll('[data-bewaar]').forEach(h => {
     h.onclick = () => zetBewaard(h.dataset.bewaar);
   });
+  /* Doorsturen. Op een telefoon opent het deelvenster van het toestel zelf;
+     op een computer bestaat dat meestal niet en zetten we de link op het
+     klembord. Kan dat ook niet — een oude browser, of geen toestemming — dan
+     tonen we hem gewoon, zodat je hem zelf kunt kopiëren. */
+  const deel = document.getElementById('deelBtn');
+  if (deel) deel.onclick = async () => {
+    const p = state.selectedProduct;
+    if (!p) return;
+    const url = productLink(p);
+    try{
+      if (navigator.share){ await navigator.share({ title: p.name, url }); return; }
+      await navigator.clipboard.writeText(url);
+      notify(t("deel.gekopieerd"));
+    }catch(err){
+      if (err?.name === "AbortError") return;      // zelf weggeklikt
+      prompt(t("deel.knop"), url);
+    }
+  };
   const tekst = document.getElementById('persTekst');
   if (tekst) tekst.oninput = () => {
     (state.__tekst ||= {})[state.selectedProduct.id] = tekst.value;
