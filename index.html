@@ -5448,7 +5448,6 @@ function viewShop(){
       <div class="grid"><div style="grid-column:1/-1;padding:20px;">${
         filtert ? geenTreffers() : emptyCollectionNotice()
       }</div></div>`}
-    ${eerderBekeken()}
   `;
 }
 
@@ -5474,8 +5473,14 @@ function collectieBlokken(lijst, filtert){
 /* =====================================================================
    Wat je eerder bekeek
    Je klikt op iets, gaat terug, klikt op iets anders — en dan weet je niet meer
-   welk van de twee het ook alweer was. Dit rijtje staat onderaan de collectie
-   en brengt je er in één klik terug. Het staat alleen in je eigen browser.
+   welk van de twee het ook alweer was. Dit rijtje staat onderaan de
+   productpagina en brengt je er in één klik terug.
+
+   Bewust niet onder de collectie: daar staat alles al, dus zou je dezelfde
+   kaarten twee keer op één scherm zetten. Op een productpagina staat de rest
+   juist níét in beeld, en daar helpt het dus wel.
+
+   Het staat alleen in je eigen browser.
    ===================================================================== */
 const BEKEKEN_SLEUTEL = "lc_bekeken";
 const BEKEKEN_MAX = 8;
@@ -5490,11 +5495,12 @@ function onthoudBekeken(id){
   const uit = [id, ...bekeken().filter(x => x !== id)].slice(0, BEKEKEN_MAX);
   try{ localStorage.setItem(BEKEKEN_SLEUTEL, JSON.stringify(uit)); }catch(e){}
 }
-function eerderBekeken(){
+function eerderBekeken(behalve){
   // Wat je bewaard hebt staat al bij Instellingen; dit gaat over wat je net zag.
-  const lijst = bekeken().map(id => (state.products || []).find(p => p.id === id))
+  const lijst = bekeken().filter(id => id !== behalve)
+    .map(id => (state.products || []).find(p => p.id === id))
     .filter(p => p && !verborgen(p));
-  if (lijst.length < 2) return ``;
+  if (!lijst.length) return ``;
   return `
     <h3 class="collectie-kop" style="margin-top:34px;">${t("shop.eerderBekeken")}</h3>
     <div class="grid grid-klein">${lijst.map(productKaart).join("")}</div>`;
@@ -6668,6 +6674,7 @@ function viewProduct(){
         </div>
       </div>
       ${beoordelingen(p)}
+      ${eerderBekeken(p.id)}
     </div>`;
 }
 /* Haalt het 3D-voorbeeld op als het er nog niet is, en tekent het in de kleuren
