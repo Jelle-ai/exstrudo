@@ -376,6 +376,42 @@
   .hart.aan i, .hart-knop.aan i{animation:hartje .32s ease-out;}
   @keyframes hartje{ 0%{transform:scale(.6);} 60%{transform:scale(1.25);} 100%{transform:scale(1);} }
   .grid-klein{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+
+  /* ---------- spaarkaart ---------- */
+  .spaarkaart.vol{border-color:var(--accent);}
+  .spaarbol{
+    width:19px;height:19px;border-radius:999px;border:1.5px solid var(--line-strong);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:9px;color:#fff;background:var(--surface2);
+  }
+  .spaarbol.aan{background:var(--accent);border-color:var(--accent);}
+  .spaarbol.nu{background:var(--accent);border-color:var(--accent);animation:hartje .4s ease-out;}
+
+  /* ---------- beoordelingen ---------- */
+  .sterren{color:var(--accent);font-size:13px;letter-spacing:1px;white-space:nowrap;}
+  .sterren.klein{font-size:10.5px;letter-spacing:.5px;}
+  .sterknop{
+    background:none;border:none;padding:3px;color:var(--accent);font-size:20px;
+    cursor:pointer;line-height:1;transition:transform .12s;
+  }
+  .sterknop:hover{transform:scale(1.15);}
+  .sterknop:not(.aan){color:var(--muted);}
+  .beoordelingen{
+    margin-top:34px;padding-top:22px;border-top:1px solid var(--line-strong);
+    max-width:640px;
+  }
+  .beoordeling{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;margin-bottom:10px;
+  }
+  .beoordeling-foto{
+    width:88px;height:88px;object-fit:cover;border-radius:10px;flex-shrink:0;
+    border:1px solid var(--line);
+  }
+  .beoordeling-mini{
+    width:34px;height:34px;object-fit:cover;border-radius:7px;
+    border:1px solid var(--line);
+  }
   .collectie-kop{
     font-family:var(--display);font-size:15px;font-weight:700;
     margin:26px 0 10px;display:flex;align-items:baseline;gap:9px;
@@ -1249,6 +1285,47 @@ const TEKST = {
   "shop.overig":     { en: "Everything else",     nl: "Verder nog" },
   "shop.eerderBekeken":{ en: "You looked at these", nl: "Dit bekeek je eerder" },
   "deel.knop":       { en: "Share this product",  nl: "Dit product doorsturen" },
+
+  // --- verrassingsdoos ---
+  "verr.kop":        { en: "Pick your box",        nl: "Kies je doos" },
+  "verr.vlag":       { en: "Surprise",             nl: "Verrassing" },
+  "verr.standaard":  { en: "What's inside is a surprise — we pick it ourselves.",
+                       nl: "Wat erin zit is een verrassing — dat kiezen wij zelf." },
+  "verr.uitleg":     { en: "You pick the size, we pick what goes in. Made to order, so it's never twice the same.",
+                       nl: "Jij kiest de maat, wij kiezen wat erin gaat. Op bestelling geprint, dus nooit twee keer hetzelfde." },
+
+  // --- spaarkaart ---
+  "spaar.kop":       { en: "Your card",            nl: "Je spaarkaart" },
+  "spaar.vol":       { en: "Shipping is on us",    nl: "De verzending is van ons" },
+  "spaar.nog":       { en: "{n} more and the shipping is free.", nl: "Nog {n} en de verzending is gratis." },
+  "spaar.nuGratis":  { en: "This is your fifth — no shipping cost on this one.",
+                       nl: "Dit is je vijfde — hier betaal je geen verzending voor." },
+
+  // --- beoordelingen ---
+  "beoord.kop":      { en: "What others thought",  nl: "Wat anderen ervan vonden" },
+  "beoord.ster":     { en: "star",                 nl: "ster" },
+  "beoord.sterren":  { en: "stars",                nl: "sterren" },
+  "beoord.aantal":   { en: "{n} review",           nl: "{n} beoordeling" },
+  "beoord.aantalMeer":{ en: "{n} reviews",         nl: "{n} beoordelingen" },
+  "beoord.nogGeen":  { en: "No reviews yet. Order it and you can be the first.",
+                       nl: "Nog geen beoordelingen. Bestel hem en jij mag de eerste zijn." },
+  "beoord.jouw":     { en: "How was it?",          nl: "Hoe was het?" },
+  "beoord.jouwAanpassen":{ en: "Your review",      nl: "Jouw beoordeling" },
+  "beoord.hint":     { en: "How did it turn out? Anything worth knowing for the next person?",
+                       nl: "Hoe is het geworden? Iets dat een volgende moet weten?" },
+  "beoord.foto":     { en: "Add a photo",          nl: "Zet er een foto bij" },
+  "beoord.andereFoto":{ en: "Another photo",       nl: "Andere foto" },
+  "beoord.fotoWeg":  { en: "remove photo",         nl: "foto weghalen" },
+  "beoord.fotoVan":  { en: "Photo from {naam}",    nl: "Foto van {naam}" },
+  "beoord.plaatsen": { en: "Post",                 nl: "Plaatsen" },
+  "beoord.bijwerken":{ en: "Update",               nl: "Bijwerken" },
+  "beoord.wissen":   { en: "delete",               nl: "wissen" },
+  "beoord.gewist":   { en: "Your review has been deleted", nl: "Je beoordeling is gewist" },
+  "beoord.bedankt":  { en: "Thanks for your review", nl: "Bedankt voor je beoordeling" },
+  "beoord.mislukt":  { en: "Could not be saved:",  nl: "Kon niet bewaard worden:" },
+  "beoord.iemand":   { en: "Someone",              nl: "Iemand" },
+  "beoord.uitleg":   { en: "Only people who actually ordered this can write a review — that way you only read what someone who held it thought. Your first name is shown.",
+                       nl: "Alleen wie dit ook echt besteld heeft kan een beoordeling schrijven — zo lees je alleen wat iemand vond die het in handen had. Je voornaam komt erbij te staan." },
   "deel.gekopieerd": { en: "Link copied",         nl: "Link gekopieerd" },
 
   // --- de winkel op pauze ---
@@ -2047,6 +2124,45 @@ function bekendLand(){
 }
 
 /* =====================================================================
+   Beoordelingen
+   Een geprint ding in iemands huis verkoopt beter dan de mooiste studiofoto.
+   Daarom mag er een foto bij — dezelfde weg als een productfoto: verkleind in
+   de browser en als data-URL in het document zelf, zodat er geen Storage
+   nodig is.
+
+   Wie mag er een schrijven: alleen wie het product ook echt besteld heeft.
+   Dat scheelt de hele wereld aan moderatie en het is eerlijker — je leest
+   alleen wat iemand vond die het in handen gehad heeft. Eén per persoon per
+   product; opnieuw schrijven overschrijft de vorige.
+   ===================================================================== */
+const REVIEW_MAX = 400;
+function listenReviews(){
+  onSnapshot(collection(db, "reviews"), (snap) => {
+    state.reviews = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (["product", "shop", "account"].includes(state.view)) render();
+  }, () => { state.reviews = state.reviews || []; });
+}
+const reviewsVan = (id) => (state.reviews || [])
+  .filter(r => r.productId === id)
+  .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+function reviewCijfer(id){
+  const l = reviewsVan(id);
+  if (!l.length) return null;
+  return { n: l.length, gem: Math.round(l.reduce((s, r) => s + (r.sterren || 0), 0) / l.length * 10) / 10 };
+}
+/* Heb je dit product ooit besteld? Alleen dan mag je erover schrijven. */
+function magBeoordelen(p){
+  if (!state.user || !p) return false;
+  return (state.orders || []).some(o => o.uid === state.user.uid
+    && (o.items || []).some(i => (i.productId || i.id) === p.id));
+}
+const mijnReview = (id) => (state.reviews || [])
+  .find(r => r.productId === id && r.uid === state.user?.uid) || null;
+/* Eén document per persoon per product, zodat opnieuw schrijven de vorige
+   vervangt in plaats van er een tweede bij te zetten. */
+const reviewId = (productId, uid) => `${productId}__${uid}`;
+
+/* =====================================================================
    Bewaarde producten
    Een hartje op een kaart. Wie nog twijfelt, legt iets opzij in plaats van het
    in zijn winkelwagen te duwen — en vindt het later terug bij Instellingen.
@@ -2511,9 +2627,59 @@ function pricing(){ return { ...DEFAULT_PRICING, ...(state.pricing || {}) }; }
    je hoort de grens te halen met wat je écht neerlegt. */
 function verzendKosten(land, bedrag, ophalen){
   if (ophalen) return 0;
+  if (spaarkaartVol()) return 0;                // je vijfde bestelling
   const tarief = (SHIPPING_RATES.find(r => r.country === land) || SHIPPING_RATES[0]).price;
   const grens = pricing().freeShipFrom || 0;
   return (grens > 0 && bedrag >= grens) ? 0 : tarief;
+}
+
+/* =====================================================================
+   De spaarkaart
+   Elke vijfde bestelling gaat de verzending eraf. Geen punten, geen code, geen
+   apart systeem: we tellen gewoon je bestellingen. Bij vier volle vakjes is de
+   volgende gratis, en daarna begint de kaart opnieuw.
+
+   Bewust berekend uit wat er al staat in plaats van een teller ergens bij te
+   houden — een teller kan uit de pas lopen met de werkelijkheid, dit niet.
+   ===================================================================== */
+const SPAARKAART_VAKJES = 5;
+/* Hoeveel verzonden bestellingen staan er al op je naam. Afhalen telt niet
+   mee — daar is de verzending sowieso gratis, dus een vakje ervoor zou een
+   beloning zijn die niets voorstelt. */
+function bestellingenGedaan(){
+  if (!state.user) return 0;
+  return (state.orders || []).filter(o => o.uid === state.user.uid && !o.pickupAt).length;
+}
+/* Is de bestelling die je nú aan het plaatsen bent de gratis? Je hebt er al n
+   staan, dus deze is nummer n+1. Die is gratis als n+1 op vijf uitkomt — met
+   vier volle vakjes dus. Rekenen met n alleen zou de kaart één bestelling te
+   laat laten afgaan. */
+function spaarkaartVol(){
+  return bestellingenGedaan() % SPAARKAART_VAKJES === SPAARKAART_VAKJES - 1;
+}
+/* Het kaartje zelf, met een bolletje per bestelling. */
+function spaarkaartVak(){
+  const n = bestellingenGedaan();
+  if (!n) return ``;
+  const vol = spaarkaartVol();
+  const gevuld = n % SPAARKAART_VAKJES;      // bij vol is dat er precies vier
+  return `
+    <div class="cart-item spaarkaart${vol ? " vol" : ""}" style="margin:14px 0;">
+      <div class="between" style="gap:10px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:600;">
+          ${ic(vol ? "gift" : "stamp")} ${t(vol ? "spaar.vol" : "spaar.kop")}
+        </span>
+        <span class="row" style="gap:5px;">
+          ${[...Array(SPAARKAART_VAKJES)].map((_, i) => `
+            <span class="spaarbol ${i < gevuld ? "aan" : ""} ${vol && i === SPAARKAART_VAKJES - 1 ? "nu" : ""}">
+              ${vol && i === SPAARKAART_VAKJES - 1 ? ic("gift") : ``}
+            </span>`).join("")}
+        </span>
+      </div>
+      <p class="muted" style="font-size:12px;line-height:1.6;margin:6px 0 0;">
+        ${vol ? t("spaar.nuGratis") : t("spaar.nog", { n: SPAARKAART_VAKJES - gevuld })}
+      </p>
+    </div>`;
 }
 /* Hoeveel er nog bij moet voor gratis verzending, of null als dat niet speelt. */
 function nogTotGratis(bedrag){
@@ -5206,9 +5372,16 @@ function productKaart(p){
       <div>
         <div class="card-title">${esc(p.name)}</div>
         <div class="label" style="margin-top:5px;">${esc(p.material||"")}${p.layerHeight ? " / " + esc(p.layerHeight) : ""}${colorSlots(p).length ? ` / ${t("shop.kleuren", { n: colorSlots(p).length })}` : ""}</div>
+        ${reviewCijfer(p.id) ? `<div class="row" style="gap:5px;margin-top:5px;">
+          ${sterren(reviewCijfer(p.id).gem, "klein")}
+          <span class="muted font-mono" style="font-size:10.5px;">${reviewCijfer(p.id).n}</span>
+        </div>` : ``}
         <div class="between" style="margin-top:8px;">
-          <span class="price">${sizingOf(p) ? t("shop.vanaf", { prijs: fmtEUR(basePriceOf(p)) }) : priceWithDiscount(p)}</span>
-          ${sizingOf(p) ? `<span class="label">${t("shop.opMaat")}</span>` : ``}
+          <span class="price">${sizingOf(p) ? t("shop.vanaf", { prijs: fmtEUR(basePriceOf(p)) })
+            : verrassing(p) ? t("shop.vanaf", { prijs: fmtEUR(Math.min(...verrassing(p).maten.map(m => m.prijs))) })
+            : priceWithDiscount(p)}</span>
+          ${sizingOf(p) ? `<span class="label">${t("shop.opMaat")}</span>`
+            : verrassing(p) ? `<span class="label">${t("verr.vlag")}</span>` : ``}
         </div>
       </div>
     </button>`;
@@ -5441,6 +5614,7 @@ function attachShopHandlers(){
       // staan, dan opende het volgende product op "foto's" — ook als daar geen
       // foto's bij zaten, en dan stond er een leeg kader met het model eronder.
       state.__toon3d = undefined;
+      state.__verrMaat = null;
       go("product");
     };
   });
@@ -5526,6 +5700,8 @@ function discountOf(p){
 }
 /* De prijs zonder korting. */
 function listPrice(p){
+  const verr = gekozenVerrassing(p);
+  if (verr) return verr.prijs;
   if (sizingOf(p)) return sizedEstimate(p).unit;
   const b = bundelPrijs(p);
   if (b) return b.prijs;
@@ -6136,6 +6312,89 @@ function maatBlokVak(p){
     </div>`;
 }
 
+/* De sterren, als tekst zodat ze overal hetzelfde staan. */
+function sterren(n, klas){
+  const heel = Math.round(n);
+  return `<span class="sterren ${klas || ""}" aria-label="${heel} ${t(heel === 1 ? "beoord.ster" : "beoord.sterren")}">${
+    [1,2,3,4,5].map(i => `<i class="fa-${i <= heel ? "solid" : "regular"} fa-star" aria-hidden="true"></i>`).join("")
+  }</span>`;
+}
+/* Het blok onderaan de productpagina: wat anderen ervan vonden, en je eigen
+   beoordeling als je het product besteld hebt. */
+function beoordelingen(p){
+  const lijst = reviewsVan(p.id);
+  const cijfer = reviewCijfer(p.id);
+  const mag = magBeoordelen(p);
+  const eigen = mijnReview(p.id);
+  if (!lijst.length && !mag) return ``;
+  return `
+    <div class="beoordelingen">
+      <div class="between" style="gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+        <h2 class="font-display" style="font-size:17px;margin:0;">${t("beoord.kop")}</h2>
+        ${cijfer ? `<span class="row" style="gap:8px;">
+          ${sterren(cijfer.gem)}
+          <span class="muted font-mono" style="font-size:12px;">${cijfer.gem} · ${
+            t(cijfer.n === 1 ? "beoord.aantal" : "beoord.aantalMeer", { n: cijfer.n })}</span>
+        </span>` : ``}
+      </div>
+
+      ${mag ? beoordeelVak(p, eigen) : ``}
+
+      ${lijst.length ? lijst.map(r => `
+        <div class="beoordeling">
+          <div class="between" style="gap:10px;align-items:flex-start;">
+            <div style="min-width:0;">
+              ${sterren(r.sterren)}
+              <p style="font-size:14px;line-height:1.65;margin:6px 0 0;">${esc(r.tekst || "")}</p>
+              <p class="muted font-mono" style="font-size:11px;margin:6px 0 0;">
+                ${esc(r.naam || t("beoord.iemand"))} · ${esc(new Date(r.createdAt || 0).toLocaleDateString(loc(), { day:'numeric', month:'long', year:'numeric' }))}
+                ${r.uid === state.user?.uid ? ` · <button class="detail-toggle" data-wisreview="${esc(r.id)}">${t("beoord.wissen")}</button>` : ``}
+              </p>
+            </div>
+            ${r.foto ? `<img class="beoordeling-foto" src="${esc(r.foto)}" alt="${esc(t("beoord.fotoVan", { naam: r.naam || t("beoord.iemand") }))}" />` : ``}
+          </div>
+        </div>`).join("")
+      : `<p class="muted" style="font-size:13px;line-height:1.65;margin:0;">${t("beoord.nogGeen")}</p>`}
+    </div>`;
+}
+/* Het formulier. Je eigen beoordeling staat er al in: opnieuw versturen
+   vervangt hem, in plaats van er een tweede bij te zetten. */
+function beoordeelVak(p, eigen){
+  const n = state.__revSter ?? eigen?.sterren ?? 0;
+  const foto = state.__revFoto !== undefined ? state.__revFoto : (eigen?.foto || null);
+  return `
+    <div class="cart-item" style="margin:0 0 14px;">
+      <p style="font-size:13px;font-weight:600;margin:0 0 8px;">
+        ${t(eigen ? "beoord.jouwAanpassen" : "beoord.jouw")}
+      </p>
+      <div class="row" style="gap:2px;margin-bottom:10px;">
+        ${[1,2,3,4,5].map(i => `
+          <button class="sterknop ${i <= n ? "aan" : ""}" data-ster="${i}"
+                  aria-label="${i} ${esc(t(i === 1 ? "beoord.ster" : "beoord.sterren"))}">
+            <i class="fa-${i <= n ? "solid" : "regular"} fa-star" aria-hidden="true"></i>
+          </button>`).join("")}
+      </div>
+      <textarea id="revTekst" rows="3" maxlength="${REVIEW_MAX}"
+                placeholder="${esc(t("beoord.hint"))}">${esc(state.__revTekst ?? eigen?.tekst ?? "")}</textarea>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;">
+        <input type="file" id="revFoto" accept="image/*" style="display:none;" />
+        <button class="btn btn-ghost btn-sm" id="revFotoBtn">
+          ${ic("camera")} ${t(foto ? "beoord.andereFoto" : "beoord.foto")}
+        </button>
+        ${foto ? `
+          <span class="row" style="gap:6px;">
+            <img class="beoordeling-mini" src="${esc(foto)}" alt="" />
+            <button class="detail-toggle" id="revFotoWeg">${t("beoord.fotoWeg")}</button>
+          </span>` : ``}
+        <button class="btn btn-accent btn-sm" id="revVerstuur" style="margin-left:auto;"
+                ${n ? "" : "disabled style=\"margin-left:auto;opacity:.5;\""}>
+          ${t(eigen ? "beoord.bijwerken" : "beoord.plaatsen")}
+        </button>
+      </div>
+      <p class="muted" style="font-size:11.5px;line-height:1.6;margin:8px 0 0;">${t("beoord.uitleg")}</p>
+    </div>`;
+}
+
 /* De knoppenrij onder de weergave: waar wil je het naast zien? */
 function maatKiezer(p, standaardAan){
   const maat = productMaat(p);
@@ -6387,6 +6646,7 @@ function viewProduct(){
             </p>` : ``}
           ${p.description ? `<p style="font-size:14px;line-height:1.6;color:var(--ink);opacity:.85;">${esc(p.description)}</p>` : ``}
           ${sizing ? sizingBlock(p) : ``}
+          ${verrassingVak(p)}
           ${bundelVak(p)}
           ${filamentPicker(p)}
           ${est ? priceBreakdown(est) : ``}
@@ -6407,6 +6667,7 @@ function viewProduct(){
           <p class="footer-note"><i class="fa-solid fa-print" aria-hidden="true"></i> ${t("prod.voetnoot", { tijd: esc(levertijdTekst()) })}</p>
         </div>
       </div>
+      ${beoordelingen(p)}
     </div>`;
 }
 /* Haalt het 3D-voorbeeld op als het er nog niet is, en tekent het in de kleuren
@@ -6483,6 +6744,70 @@ function tekenMaatBlok(){
     [blokMesh(x, y, z, x/2, y/2, 0)], [f], huidigeReferentie(maat, true));
 }
 
+/* Sterren aanklikken, een foto kiezen, en versturen. Wat je typt houden we in
+   state bij, want elke hertekening bouwt het formulier opnieuw op. */
+function attachBeoordeelHandlers(){
+  document.querySelectorAll('[data-ster]').forEach(b => {
+    b.onclick = () => {
+      const tekst = document.getElementById('revTekst');
+      if (tekst) state.__revTekst = tekst.value;
+      state.__revSter = +b.dataset.ster;
+      render();
+    };
+  });
+  const tekst = document.getElementById('revTekst');
+  if (tekst) tekst.oninput = () => { state.__revTekst = tekst.value; };
+
+  const kies = document.getElementById('revFotoBtn');
+  const veld = document.getElementById('revFoto');
+  if (kies && veld){
+    kies.onclick = () => veld.click();
+    veld.onchange = async () => {
+      const f = veld.files?.[0];
+      if (!f) return;
+      try{
+        state.__revFoto = await fileToCompressedDataUrl(f);
+        render();
+      }catch(err){ notify(err.message || String(err)); }
+    };
+  }
+  const weg = document.getElementById('revFotoWeg');
+  if (weg) weg.onclick = () => { state.__revFoto = null; render(); };
+
+  const stuur = document.getElementById('revVerstuur');
+  if (stuur) stuur.onclick = async () => {
+    const p = state.selectedProduct;
+    const eigen = mijnReview(p?.id);
+    const ster = state.__revSter ?? eigen?.sterren ?? 0;
+    if (!p || !state.user || !ster) return;
+    const foto = state.__revFoto !== undefined ? state.__revFoto : (eigen?.foto || null);
+    stuur.disabled = true;
+    try{
+      await setDoc(doc(db, "reviews", reviewId(p.id, state.user.uid)), {
+        productId: p.id, uid: state.user.uid,
+        naam: (state.profile?.name || (state.user.email || "").split("@")[0] || "").slice(0, 40),
+        sterren: ster,
+        tekst: (state.__revTekst ?? eigen?.tekst ?? "").trim().slice(0, REVIEW_MAX),
+        foto: foto || null,
+        createdAt: Date.now(),
+      });
+      state.__revSter = undefined; state.__revTekst = undefined; state.__revFoto = undefined;
+      notify(t("beoord.bedankt"));
+      render();
+    }catch(err){ notify(t("beoord.mislukt") + " " + firestoreHint(err)); stuur.disabled = false; }
+  };
+  document.querySelectorAll('[data-wisreview]').forEach(b => {
+    b.onclick = async () => {
+      try{
+        await deleteDoc(doc(db, "reviews", b.dataset.wisreview));
+        state.__revSter = undefined; state.__revTekst = undefined; state.__revFoto = undefined;
+        notify(t("beoord.gewist"));
+        render();
+      }catch(err){ notify(t("beoord.mislukt") + " " + firestoreHint(err)); }
+    };
+  });
+}
+
 function attachProductHandlers(){
   let qty = 1;
   const qv = document.getElementById('qVal');
@@ -6503,6 +6828,9 @@ function attachProductHandlers(){
   document.querySelectorAll('[data-maatref]').forEach(btn=>{
     btn.onclick = () => { state.__maatRef = btn.dataset.maatref; render(); };
   });
+  document.querySelectorAll('[data-verrmaat]').forEach(btn=>{
+    btn.onclick = () => { state.__verrMaat = btn.dataset.verrmaat; render(); };
+  });
   document.querySelectorAll('[data-bewaar]').forEach(h => {
     h.onclick = () => zetBewaard(h.dataset.bewaar);
   });
@@ -6510,6 +6838,7 @@ function attachProductHandlers(){
      op een computer bestaat dat meestal niet en zetten we de link op het
      klembord. Kan dat ook niet — een oude browser, of geen toestemming — dan
      tonen we hem gewoon, zodat je hem zelf kunt kopiëren. */
+  attachBeoordeelHandlers();
   const deel = document.getElementById('deelBtn');
   if (deel) deel.onclick = async () => {
     const p = state.selectedProduct;
@@ -6612,6 +6941,7 @@ function attachProductHandlers(){
     const pz = pauze();
     if (pz && !pz.bestellen){ notify(t("pauze.melding")); return; }
     const pers = personalisatie(p);
+    const verr = gekozenVerrassing(p);
     const eigenTekst = pers ? gekozenTekst(p).trim() : "";
     const f = slots.length ? slotFilament(p, 0) : currentFilament(p);
     const sizing = sizingOf(p);
@@ -6619,9 +6949,9 @@ function attachProductHandlers(){
     const est = sizing ? sizedEstimate(p) : null;
     addToCart({
       // kleur én maat maken de regel uniek, zodat twee varianten niet samensmelten
-      id: [p.id, keuzes.length ? keuzes.map(k=>k.id).join("+") : f?.id, dims?.join("x"), eigenTekst].filter(Boolean).join("::"),
+      id: [p.id, keuzes.length ? keuzes.map(k=>k.id).join("+") : f?.id, dims?.join("x"), eigenTekst, verr?.naam].filter(Boolean).join("::"),
       productId: p.id,
-      kind: "product", name: p.name, qty,
+      kind: "product", name: p.name + (verr ? ` — ${verr.naam}` : ""), qty,
       eigenTekst: eigenTekst || null,
       price: est ? est.unit : Math.round((productPrice(p) + gekozenToeslag(p) + (pers?.prijs || 0)) * 100) / 100,
       filamentSurcharge: est ? 0 : gekozenToeslag(p),
@@ -7642,10 +7972,11 @@ function viewCart(){
       <h1 class="font-display" style="font-size:22px;margin:0 0 6px;">${t("nav.wagen")}</h1>
       <p class="muted" style="font-size:13px;line-height:1.6;margin:0 0 16px;">${t("wagen.klik")}</p>
       ${items}
+      ${spaarkaartVak()}
       ${(() => {
         // Hier beslist iemand of hij er nog iets bij doet, dus hier hoort het
         // te staan: hoe dicht zit je bij gratis verzending?
-        const nog = nogTotGratis(cartTotal());
+        const nog = spaarkaartVol() ? null : nogTotGratis(cartTotal());
         if (nog !== null) return `
           <div class="cart-item" style="margin:14px 0;padding:11px 12px;">
             <p style="font-size:13px;margin:0 0 6px;">${ic("truck")} ${t("wagen.nogTotGratis", { bedrag: fmtEUR(nog) })}</p>
@@ -7829,7 +8160,8 @@ function viewCheckout(){
           ${state.__codeFout ? `<p style="font-size:12px;color:var(--accent);margin:8px 0 0;">${esc(state.__codeFout)}</p>` : ``}`}
       </div>
 
-      ${nog !== null ? `
+      ${spaarkaartVak()}
+      ${nog !== null && !spaarkaartVol() ? `
         <p class="muted" style="font-size:12px;margin:0 0 10px;">
           ${ic("truck")} ${t("wagen.nogTotGratis", { bedrag: fmtEUR(nog) })}
         </p>` : ``}
@@ -8585,6 +8917,79 @@ function viewAccount(){
 }
 
 /* Personaliseren aanzetten voor dit product. */
+/* De verrassingsdoos: de klant kiest een bedrag, jij kiest wat erin gaat.
+   Handig om restfilament aan kwijt te raken, en het is gewoon leuk om te
+   krijgen. Technisch is het een gewoon product met een vast prijskaartje per
+   maat; het enige bijzondere is dat er niet bij staat wát je krijgt. */
+function verrassingAdminBlock(ed){
+  const x = ed?.verrassing || {};
+  const maten = Array.isArray(x.maten) && x.maten.length ? x.maten : [{ naam: "", prijs: "" }, { naam: "", prijs: "" }];
+  return `
+    <details class="vak"${x.aan ? " open" : ""}>
+      <summary>${ic("gift")} Verrassingsdoos${x.aan ? ` <span class="badge">aan</span>` : ""}</summary>
+      <div class="vak-body">
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
+          De klant kiest een bedrag, jij kiest wat erin gaat. Er staat bij dat de inhoud een
+          verrassing is, dus je bent nergens aan gehouden behalve aan wat je hier belooft.
+          Ideaal om restjes filament aan kwijt te raken.
+        </p>
+        <label class="checkbox-row"><input type="checkbox" id="pVerrAan" style="width:auto;margin:0;" ${x.aan ? "checked" : ""} /> Dit product is een verrassingsdoos</label>
+        <label class="field-label">Wat beloof je erover</label>
+        <input id="pVerrBelofte" placeholder="Minstens drie stuks, altijd iets bruikbaars"
+               value="${esc(x.belofte || "")}" />
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
+          Dit leest de klant vóór hij bestelt. Beloof niets dat je niet elke keer waar kunt maken.
+        </p>
+        <label class="field-label">De maten en wat ze kosten</label>
+        ${maten.slice(0, 4).map((m, i) => `
+          <div class="row" style="gap:8px;margin-bottom:8px;">
+            <input class="verrnaam" data-i="${i}" placeholder="Klein" value="${esc(m.naam || "")}" style="margin:0;" />
+            <input class="verrprijs" data-i="${i}" type="number" min="0" step="0.5" placeholder="15"
+                   value="${esc(String(m.prijs ?? ""))}" style="margin:0;max-width:100px;" />
+          </div>`).join("")}
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:0;">
+          Laat een regel leeg om hem niet te gebruiken. De goedkoopste is de vanaf-prijs op de kaart.
+        </p>
+      </div>
+    </details>`;
+}
+/* De maten die de klant te kiezen krijgt, zonder de lege regels. */
+function verrassing(p){
+  const x = p?.verrassing;
+  if (!x || !x.aan) return null;
+  const maten = (Array.isArray(x.maten) ? x.maten : [])
+    .map(m => ({ naam: (m.naam || "").trim(), prijs: Number(m.prijs) || 0 }))
+    .filter(m => m.naam && m.prijs > 0);
+  if (!maten.length) return null;
+  return { belofte: (x.belofte || "").trim(), maten };
+}
+function gekozenVerrassing(p){
+  const v = verrassing(p);
+  if (!v) return null;
+  return v.maten.find(m => m.naam === state.__verrMaat) || v.maten[0];
+}
+/* Het vak op de productpagina waarin je je doos kiest. */
+function verrassingVak(p){
+  const v = verrassing(p);
+  if (!v) return ``;
+  const nu = gekozenVerrassing(p);
+  return `
+    <div class="cart-item" style="margin:16px 0 0;">
+      <p class="maatvak-kop">${ic("gift")} ${t("verr.kop")}</p>
+      <p class="muted" style="font-size:12.5px;line-height:1.65;margin:0 0 10px;">
+        ${v.belofte ? esc(v.belofte) : t("verr.standaard")}
+      </p>
+      <div class="fil-types" style="margin:0;">
+        ${v.maten.map(m => `
+          <button class="fil-type met-extra ${m.naam === nu.naam ? "active" : ""}" data-verrmaat="${esc(m.naam)}">
+            <span class="fil-type-naam">${esc(m.naam)}</span>
+            <span class="fil-type-extra">${fmtEUR(m.prijs)}</span>
+          </button>`).join("")}
+      </div>
+      <p class="muted" style="font-size:12px;line-height:1.65;margin:10px 0 0;">${t("verr.uitleg")}</p>
+    </div>`;
+}
+
 function persAdminBlock(ed){
   const x = ed?.personalisatie || {};
   return `
@@ -9151,6 +9556,7 @@ function viewAdmin(){
             ${printAdminBlock(ed)}
             ${persAdminBlock(ed)}
             ${bundelAdminBlock(ed)}
+            ${verrassingAdminBlock(ed)}
 
             <details class="vak"${(state.__draftSlots || []).length ? " open" : ""}>
               <summary>${ic("palette")} Kleuren per onderdeel${(state.__draftSlots || []).length ? ` <span class="badge">${(state.__draftSlots || []).length}</span>` : ""}</summary>
@@ -11356,6 +11762,14 @@ function attachAdminHandlers(){
       },
       bundelVan: [...document.querySelectorAll('.bundelvink:checked')].map(c => c.value),
       bundelKorting: Math.max(0, Math.min(90, parseInt(val('pBundelKorting'), 10) || 0)),
+      verrassing: {
+        aan: !!document.getElementById('pVerrAan')?.checked,
+        belofte: val('pVerrBelofte'),
+        maten: [...document.querySelectorAll('.verrnaam')].map(el => ({
+          naam: (el.value || "").trim(),
+          prijs: Math.max(0, parseFloat(document.querySelector(`.verrprijs[data-i="${el.dataset.i}"]`)?.value) || 0),
+        })).filter(m => m.naam && m.prijs > 0),
+      },
       images: (state.__draftImages || []).filter(isSafeImageSrc).slice(0, MAX_PRODUCT_IMAGES),
       icon: "cube",
     };
@@ -11459,6 +11873,7 @@ listenFilaments();
 listenPricing();
 listenPickup();
 listenWinkel();
+listenReviews();
 // De voet staat buiten #app en wordt dus nooit opnieuw getekend: één keer
 // aanhaken volstaat.
 document.querySelectorAll('[data-info-ga]').forEach(b => {

@@ -133,6 +133,31 @@ service cloud.firestore {
       allow delete: if beheerder();
     }
 
+    // --- beoordelingen ---------------------------------------------
+    // Iedereen leest ze — daar zijn ze voor. Schrijven mag je alleen over
+    // jezelf: de naam van het document is productId__jouwUid, en die moet
+    // kloppen met wie je bent. Zo kun je er nooit één op naam van een ander
+    // zetten, en heb je er per product maar één — opnieuw schrijven vervangt
+    // je vorige in plaats van er een tweede bij te zetten.
+    //
+    // Dat je het product ook echt besteld hebt, kijkt de shop zelf na voor hij
+    // het formulier toont. Hier afdwingen zou betekenen dat deze regel al je
+    // bestellingen moet doorzoeken, en dat kan Firestore niet: een regel mag
+    // één document opvragen, geen lijst. Wat er misgaat als iemand daaromheen
+    // werkt, is een beoordeling van iemand die niets kocht — vervelend, maar
+    // niets dat kapotgaat, en jij kunt hem wissen.
+    match /reviews/{id} {
+      allow read: if true;
+      allow create, update: if ingelogd()
+        && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.productId + '__' + request.auth.uid
+        && request.resource.data.sterren is int
+        && request.resource.data.sterren >= 1
+        && request.resource.data.sterren <= 5
+        && request.resource.data.tekst.size() <= 400;
+      allow delete: if beheerder() || (ingelogd() && resource.data.uid == request.auth.uid);
+    }
+
     // --- geüploade modellen ----------------------------------------
     // Het bestand van een klant is van hem; de beheerder moet erbij om te
     // kunnen printen. De stukken eronder volgen dezelfde regel.
