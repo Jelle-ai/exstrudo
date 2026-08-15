@@ -1240,7 +1240,6 @@ const TEKST = {
   "maat.kop":        { en: "How big is it?",        nl: "Hoe groot is het?" },
   "maat.ernaast":    { en: "next to:",              nl: "ernaast:" },
   "maat.niets":      { en: "Nothing",               nl: "Niets" },
-  "maat.echt":       { en: "Side by side at real size — this is the actual model.", nl: "Op ware grootte naast elkaar — dit is het echte model." },
   "maat.blok":       { en: "Side by side at real size. The block has this product's dimensions, not its shape: there is no 3D model for this product yet.",
                        nl: "Op ware grootte naast elkaar. Het blok heeft de afmetingen van dit product, niet zijn vorm: er hoort nog geen 3D-model bij dit product." },
   "ref.munt":        { en: "Coin",                  nl: "Muntstuk" },
@@ -5275,6 +5274,10 @@ function attachShopHandlers(){
       state.selectedProduct = state.products.find(p=>p.id===btn.dataset.open);
       state.__gallery = 0;
       state.__dims = null;   // begin bij de standaardmaten van dit product
+      // Ook de keuze tussen 3D en foto's hoort bij één product. Bleef die
+      // staan, dan opende het volgende product op "foto's" — ook als daar geen
+      // foto's bij zaten, en dan stond er een leeg kader met het model eronder.
+      state.__toon3d = undefined;
       go("product");
     };
   });
@@ -5946,13 +5949,18 @@ function bundelVak(p){
     </div>`;
 }
 
-/* Voor een product zonder 3D-model: een eigen vakje met een blok van de juiste
+/* Voor een product zónder 3D-model: een eigen vakje met een blok van de juiste
    afmetingen naast het bekende voorwerp. Ook hier in 3D en ook draaibaar — de
-   vorm klopt niet, de grootte wel. */
+   vorm klopt niet, de grootte wel.
+
+   Uitdrukkelijk alleen als er geen 3D-model bij het product hoort. Is dat er
+   wel, dan staat het al in het grote kader bovenaan mét zijn eigen keuze wat
+   ernaast komt; het hier nog eens tekenen zette hetzelfde model twee keer op
+   dezelfde pagina. */
 function maatBlokVak(p){
+  if (voorbeeldVan(p)) return ``;
   const maat = productMaat(p);
   if (!maat || !maat.every(v => isFinite(v) && v > 0)) return ``;
-  const echt = !!voorbeeldVan(p);
   return `
     <div class="cart-item maatvak">
       <p class="maatvak-kop">${ic("ruler-combined")} ${t("maat.kop")}</p>
@@ -5961,7 +5969,7 @@ function maatBlokVak(p){
         <span class="viewer-hint">${ic("arrows-up-down-left-right")} ${t("alg.sleep")}</span>
       </div>
       ${maatKiezer(p, true)}
-      <p class="muted" style="font-size:12px;line-height:1.65;margin:8px 0 0;">${t(echt ? "maat.echt" : "maat.blok")}</p>
+      <p class="muted" style="font-size:12px;line-height:1.65;margin:8px 0 0;">${t("maat.blok")}</p>
     </div>`;
 }
 
@@ -6116,7 +6124,10 @@ function viewProduct(){
   // Staat er een 3D-voorbeeld bij, dan is dat het eerste wat je ziet: het toont
   // het echte model in de kleur die je zelf kiest.
   const model3d = state.__voorbeeld?.id === p.id ? state.__voorbeeld.data : null;
-  const toon3d = !!model3d && state.__toon3d !== false;
+  // Zonder foto's valt er niets te kiezen: dan is het model wat je te zien
+  // krijgt. Anders bleef er een leeg kader over met de knop om terug te gaan
+  // nergens te bekennen — die rij verschijnt alleen als er ook foto's zijn.
+  const toon3d = !!model3d && (state.__toon3d !== false || !all.length);
   const main = toon3d
     ? `<canvas id="productMesh" class="mesh3d" style="width:100%;height:100%;display:block;touch-action:none;cursor:grab;"></canvas>`
     : all.length
@@ -6297,13 +6308,6 @@ function tekenMaatBlok(){
   if (!cv || !p) return;
   const maat = productMaat(p);
   if (!maat) return;
-  const v = voorbeeldVan(p);
-  if (v){
-    // het echte model hebben we al ingeladen; dan is een blok onnodig
-    const meshes = v.__meshes || (v.__meshes = voorbeeldNaarMeshes(v));
-    tekenMaatScene(cv, v.min, v.size, meshes, productKleuren(p), huidigeReferentie(maat, true));
-    return;
-  }
   const [x, y, z] = maat;
   const f = currentFilament(p) || { hex: "#B8BCC2", finish: "basic" };
   tekenMaatScene(cv, [0, 0, 0], [x, y, z],
