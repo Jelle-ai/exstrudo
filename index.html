@@ -9686,6 +9686,11 @@ function viewAdmin(){
                   ? ` — waarvan ${state.products.filter(verborgen).length} verborgen` : ``}
               · sleep aan ${ic("grip-vertical")} om de volgorde in de winkel te bepalen
             </p>
+            <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 10px;">
+              ${ic("eye-slash")} Met het oogje haal je een product uit de collectie zonder het te verwijderen:
+              foto's, kleuren en het 3D-model blijven staan, klanten zien het alleen niet meer.
+              Met ${ic("copy")} begin je een nieuw product als kopie van een bestaand.
+            </p>
             ${state.products.length > 3 ? `
               <div class="zoekvak" style="margin:0 0 10px;">
                 ${ic("magnifying-glass")}
