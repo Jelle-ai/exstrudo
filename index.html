@@ -318,6 +318,26 @@
     font-family:var(--mono);pointer-events:none;
   }
 
+  .voorraadvak{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+  .voorraadvak input{
+    width:64px;margin:0;padding:5px 7px;font-size:12px;text-align:right;
+    font-family:var(--mono);
+  }
+  .voorraadvak .muted{font-size:11px;}
+
+  .bestelvak.nubezig{border-color:var(--accent);}
+  .nu-vlag{
+    background:var(--accent);color:#fff;border-radius:5px;margin-left:6px;
+    font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 5px;
+    font-family:var(--mono);white-space:nowrap;
+  }
+
+  .notitievak{
+    background:var(--surface2);border:1px solid var(--line);border-radius:10px;
+    padding:9px 11px;margin:0 0 12px;
+  }
+  .notitievak textarea{margin:0;min-height:0;font-size:13px;line-height:1.55;}
+
   /* ---------- productlijst in het beheer ---------- */
   .sleepgreep{
     cursor:grab;color:var(--muted);font-size:13px;flex-shrink:0;
@@ -2176,6 +2196,48 @@ function listenFilaments(){
     if (["shop","product","admin","custom"].includes(state.view)) render();
   }, () => { /* fouten worden al bij de producten gemeld */ });
 }
+/* =====================================================================
+   Hoeveel zit er nog op de spoel
+   Er is geen productvoorraad — alles wordt op bestelling geprint. Filament is
+   wél eindig, en middenin een print zonder komen te zitten is het enige echte
+   voorraadprobleem dat je hebt. Je vult per kleur in hoeveel gram er nog op
+   staat; dat telt af zodra je een stuk afvinkt als geprint.
+
+   Laat je het leeg, dan houden we het niet bij en zwijgen we erover. Alleen
+   wat je zelf invult telt mee — een cijfer verzinnen is erger dan geen cijfer.
+   ===================================================================== */
+const BIJNA_OP_GRAM = 150;              // ongeveer één avond printen
+function bijnaOp(f){
+  return f?.enabled && Number.isFinite(f.voorraad) && f.voorraad <= BIJNA_OP_GRAM;
+}
+function bijnaOppe(){ return (state.filaments || []).filter(bijnaOp); }
+/* Trekt het verbruik van een geprint stuk van de juiste spoelen af. Bij een
+   model met kleurvakken verdelen we het gewicht over de onderdelen, net zoals
+   de prijs dat doet. Negatief mag: dan weet je dat je rol echt op is. */
+async function boekFilamentAf(item, richting){
+  const gram = itemGram(item) * (item.qty || 1);
+  if (!gram) return;
+  const kleuren = itemKleuren(item);
+  if (!kleuren.length) return;
+  const perStuk = gram / kleuren.length;
+  const items = (state.filaments || []).map(f => ({ ...f }));
+  let iets = false;
+  for (const k of kleuren){
+    const f = items.find(x => x.id === k.id);
+    if (!f || !Number.isFinite(f.voorraad)) continue;
+    f.voorraad = Math.round((f.voorraad - perStuk * richting) * 10) / 10;
+    iets = true;
+  }
+  if (!iets) return;
+  try{
+    await saveFilaments(items);
+    const op = items.filter(bijnaOp);
+    if (richting > 0 && op.length){
+      notify(`Let op: ${op.map(f => f.name).join(", ")} ${op.length === 1 ? "is" : "zijn"} bijna op`);
+    }
+  }catch(err){ /* het printen zelf is belangrijker dan het cijfertje */ }
+}
+
 async function saveFilaments(items){
   await setDoc(FILAMENT_DOC(), { items });
 }
@@ -2201,6 +2263,8 @@ const DEFAULT_WINKEL = {
   beheerders: [],
   // de winkel even op pauze, met een boodschap erbij
   pauze: false, pauzeBericht: "", pauzeTot: "", pauzeBestellen: true,
+  // welke kleurgroep er nu op de printer ligt; alleen jij ziet dit
+  opDePrinter: null,
 };
 function winkel(){ return { ...DEFAULT_WINKEL, ...(state.winkel || {}) }; }
 /* De levertijd typ jij in je eigen woorden ("3 tot 5 werkdagen"). Op een
@@ -8765,6 +8829,7 @@ function viewAdmin(){
           <span class="bestelvak-mail">${esc(o.userEmail)}</span>
           <span class="muted font-mono" style="font-size:11px;">
             ${esc(orderNumber(o))} · ${esc(hoeLang(o.createdAt))} · ${o.items.length} ${o.items.length === 1 ? "ding" : "dingen"}
+            ${(o.shopNote || "").trim() ? ` · <span title="${esc(o.shopNote)}">${ic("note-sticky")}</span>` : ``}
           </span>
         </span>
         <span class="bestelvak-stand">
@@ -8783,6 +8848,17 @@ function viewAdmin(){
           ${o.status === "Geleverd" ? `
             <button class="btn btn-ghost btn-sm" onclick="window.__hideOrder('${o.id}','shop')"
                     title="Opbergen: uit dit overzicht, blijft in het archief">${ic("box-archive")} Opbergen</button>` : ``}
+        </div>
+
+        <div class="notitievak">
+          <label class="field-label" style="margin:0 0 4px;" for="notitie_${esc(o.id)}">
+            ${ic("note-sticky")} Notitie voor jezelf
+          </label>
+          <textarea id="notitie_${esc(o.id)}" rows="2" data-notitie="${esc(o.id)}"
+                    placeholder="Wacht op zwart PETG · tweede poging · klant belt nog">${esc(o.shopNote || "")}</textarea>
+          <p class="muted" style="font-size:11px;line-height:1.6;margin:4px 0 0;">
+            Alleen jij ziet dit. Wordt bewaard zodra je uit het veld klikt.
+          </p>
         </div>
 
         ${o.pickupAt ? `<p style="font-size:13px;margin:0 0 8px;font-weight:600;">
@@ -9098,12 +9174,7 @@ function viewAdmin(){
             <button class="btn btn-accent" id="addProductBtn" style="width:100%;">${ed ? "Wijzigingen opslaan" : "Product toevoegen"}</button>
           </div>
           <div>
-            <div class="between" style="margin:0 0 6px;gap:10px;">
-              <h2 class="font-display" style="font-size:17px;margin:0;">In de collectie</h2>
-              <button class="btn btn-ghost btn-sm" id="exportBtn" title="Al je bestellingen als bestand, voor je boekhouding">
-                ${ic("file-arrow-down")} Bestellingen exporteren
-              </button>
-            </div>
+            <h2 class="font-display" style="font-size:17px;margin:0 0 6px;">In de collectie</h2>
             <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 10px;">
               ${state.products.length} product${state.products.length === 1 ? "" : "en"}${
                 state.products.filter(verborgen).length
@@ -9125,7 +9196,13 @@ function viewAdmin(){
       </div>
       <div id="adminOrders" class="${tab==='orders'?'':'hidden'}">
         <div class="paneel-kop">
-          <h2>Bestellingen</h2>
+          <div class="between" style="gap:10px;flex-wrap:wrap;">
+            <h2>Bestellingen</h2>
+            <button class="btn btn-ghost btn-sm" id="exportBtn"
+                    title="Alles als CSV-bestand, voor je boekhouding">
+              ${ic("file-arrow-down")} Exporteren
+            </button>
+          </div>
           <p>Wat nog werk vraagt staat bovenaan. Zet de status door zodra je verder bent —
              de klant krijgt er vanzelf bericht van.</p>
         </div>
@@ -9220,7 +9297,11 @@ window.__zetGeprint = async (orderId, idx, aan) => {
   if (alles && ORDER_STEPS.indexOf("Wordt geprint") > ORDER_STEPS.indexOf(o.status)){
     patch.status = "Wordt geprint";
   }
-  try{ await updateDoc(doc(db, "orders", orderId), patch); }
+  try{
+    await updateDoc(doc(db, "orders", orderId), patch);
+    // wat geprint is, is van de spoel; haal je het vinkje weg, dan komt het terug
+    await boekFilamentAf(o.items[idx], aan ? 1 : -1);
+  }
   catch(err){ notify("Bijwerken mislukt: " + err.message); }
 };
 
@@ -9598,6 +9679,20 @@ function viewBeheerOverzicht(openstaand){
         <p style="font-size:13px;margin:0;">${ic("circle-check")} Niets dat op je wacht.</p>
       </div>`}
 
+    ${bijnaOppe().length ? `
+      <div class="cart-item" style="border-color:var(--accent);margin-bottom:12px;">
+        <p style="font-size:13px;font-weight:600;margin:0 0 4px;color:var(--accent);">
+          ${ic("triangle-exclamation")} ${bijnaOppe().length === 1 ? "Een rol is" : bijnaOppe().length + " rollen zijn"} bijna op
+        </p>
+        <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 8px;">
+          Bestel bij voordat je middenin een print zonder komt te zitten.
+        </p>
+        ${bijnaOppe().map(f => `<p style="font-size:13px;line-height:1.7;margin:0 0 3px;">
+          <span class="fil-chip ${finishClass(f.finish)}" style="background-color:${esc(f.hex)};"></span>
+          ${esc(f.name)} <span class="muted font-mono" style="font-size:11px;">nog ${Math.round(f.voorraad)} g</span></p>`).join("")}
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="window.__setAdminTab('filaments')">Naar de filamenten</button>
+      </div>` : ``}
+
     ${verstopt.length ? `
       <div class="cart-item" style="margin-bottom:12px;">
         <p style="font-size:13px;font-weight:600;margin:0 0 4px;">${ic("eye-slash")} Niet in de collectie</p>
@@ -9662,9 +9757,16 @@ function viewFilamentAdmin(){
           <div class="fil-row">
             <span class="fil-dot ${finishClass(f.finish)}" style="background-color:${esc(f.hex)};"></span>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;${f.enabled?'':'opacity:.45;'}">${esc(f.name)}</div>
+              <div style="font-size:13px;${f.enabled?'':'opacity:.45;'}">${esc(f.name)}${
+                bijnaOp(f) ? ` <span class="sale-flag" title="Nog ${Math.round(f.voorraad)} g">BIJNA OP</span>` : ``}</div>
               <div class="muted font-mono" style="font-size:10px;">${esc(f.hex.toUpperCase())}</div>
             </div>
+            ${f.enabled ? `
+              <span class="voorraadvak" title="Hoeveel gram er nog op de spoel zit. Leeg = je houdt het niet bij.">
+                <input type="number" min="0" step="10" class="gramfield" data-fil="${esc(f.id)}"
+                       value="${f.voorraad ?? ""}" placeholder="—" />
+                <span class="muted font-mono">g</span>
+              </span>` : ``}
             <button class="toggle ${f.enabled?'on':''}" data-filtoggle="${esc(f.id)}" title="${f.enabled?'Uitzetten':'Aanzetten'}"></button>
             ${f.custom ? `<button class="btn btn-ghost btn-sm" data-fildelete="${esc(f.id)}" title="Verwijderen"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>` : ``}
           </div>`).join("")}
@@ -9674,6 +9776,9 @@ function viewFilamentAdmin(){
   return `
     <p class="muted" style="font-size:13px;margin-bottom:16px;">
       Uitsluitend Bambu Lab. Zet aan wat je op voorraad hebt — klanten zien alleen die kleuren.
+      Vul er het aantal gram bij dat er nog op de spoel zit; dat telt vanzelf af zodra je iets
+      afvinkt als geprint, en je krijgt een seintje voordat een rol op is. Laat het leeg als je
+      het niet wil bijhouden.
       Kleurcodes komen uit de officiële hex-tabellen; je kunt ze hier aanpassen als een kleur eruitziet als iets anders.
     </p>
     ${blocks}
@@ -9727,6 +9832,24 @@ function attachFilamentHandlers(){
       const items = (state.filaments || []).map(f =>
         f.type === el.dataset.type ? { ...f, pricePerKg: v } : f);
       try{ await saveFilaments(items); notify(`${el.dataset.type}: ${fmtEUR(v)} per kilo`); }
+      catch(err){ notify("Opslaan mislukt: " + err.message); }
+    };
+  });
+
+  document.querySelectorAll('.gramfield').forEach(el=>{
+    el.onchange = async () => {
+      const leeg = el.value.trim() === "";
+      const v = parseFloat(el.value);
+      if (!leeg && (!isFinite(v) || v < 0)){ notify("Vul een aantal gram in, of laat het leeg"); return; }
+      const items = (state.filaments || []).map(f => {
+        if (f.id !== el.dataset.fil) return f;
+        const kopie = { ...f };
+        // leeg betekent: ik houd dit niet bij. Dan hoort het veld ook echt weg
+        // te zijn, niet op nul te staan — nul is "op" en dat is iets anders.
+        if (leeg) delete kopie.voorraad; else kopie.voorraad = v;
+        return kopie;
+      });
+      try{ await saveFilaments(items); }
       catch(err){ notify("Opslaan mislukt: " + err.message); }
     };
   });
@@ -10014,6 +10137,23 @@ function plaatIndeling(stukken){
   return { platen, teGroot };
 }
 
+/* Welke kleurgroep er nú op de printer ligt. Eén kleur tegelijk, dus één
+   waarde volstaat. Het staat bij de winkelinstellingen zodat het je herlaad-
+   beurt en je telefoon overleeft — je zet hem aan in de keuken en kijkt later
+   op je gsm of hij al klaar was. */
+const opDePrinter = () => winkel().opDePrinter || null;
+window.__zetOpDePrinter = async (sleutel) => {
+  const nu = opDePrinter() === sleutel ? null : sleutel;
+  state.winkel = { ...(state.winkel || DEFAULT_WINKEL), opDePrinter: nu };
+  render();
+  try{ await updateDoc(WINKEL_DOC(), { opDePrinter: nu }); }
+  catch(err){
+    // het document bestaat misschien nog niet; dan schrijven we het in zijn geheel
+    try{ await saveWinkel({ ...winkel(), opDePrinter: nu }); }
+    catch(e){ notify("Niet bewaard: " + firestoreHint(e)); }
+  }
+};
+
 /* Alles wat nog geprint moet worden, gegroepeerd op de kleuren die het vraagt. */
 function printRij(){
   const groepen = new Map();
@@ -10084,8 +10224,9 @@ function printGroep(g, n){
   const indeling = metMaat.length ? plaatIndeling(metMaat) : null;
   const platen = indeling?.platen || [];
   const samen = platen.length && platen[0].rijen.reduce((n2, r) => n2 + r.stukken.length, 0);
+  const bezig = opDePrinter() === g.sleutel;
   return `
-    <details class="bestelvak"${n === 0 ? " open" : ""}>
+    <details class="bestelvak${bezig ? " nubezig" : ""}"${n === 0 || bezig ? " open" : ""}>
       <summary class="bestelvak-kop">
         <span class="row" style="gap:5px;flex-shrink:0;">
           ${g.kleuren.slice(0, 4).map(f => `
@@ -10093,7 +10234,8 @@ function printGroep(g, n){
             || `<span class="fil-chip" style="width:22px;height:22px;border-radius:7px;background:var(--surface2);"></span>`}
         </span>
         <span class="bestelvak-wie">
-          <span class="bestelvak-mail">${esc(kleurNaam(g.kleuren))}</span>
+          <span class="bestelvak-mail">${esc(kleurNaam(g.kleuren))}${
+            bezig ? ` <span class="nu-vlag">NU OP DE PRINTER</span>` : ``}</span>
           <span class="muted font-mono" style="font-size:11px;">
             ${g.qty} ${g.qty === 1 ? "stuk" : "stuks"} · ${esc(fmtDuration(g.tijd))} · ${Math.round(g.gram)} g
           </span>
@@ -10101,6 +10243,10 @@ function printGroep(g, n){
         <span class="bestelvak-pijl">⌄</span>
       </summary>
       <div class="bestelvak-body">
+        <button class="btn ${bezig ? "btn-accent" : "btn-ghost"} btn-sm" style="margin-bottom:10px;"
+                data-bezig="${esc(g.sleutel)}">
+          ${bezig ? ic("circle-check") + " Deze staat nu op de printer" : ic("print") + " Zet deze op de printer"}
+        </button>
         ${indeling ? plaatAdvies(indeling, samen) : ``}
         ${zonderMaat.length ? `
           <p class="muted" style="font-size:12px;line-height:1.65;margin:10px 0 0;">
@@ -10153,6 +10299,9 @@ function attachPrintQueueHandlers(){
       if (!o) return;
       window.__zetGeprint(orderId, +idx, !itemGeprint(o, +idx));
     };
+  });
+  document.querySelectorAll('[data-bezig]').forEach(b => {
+    b.onclick = () => window.__zetOpDePrinter(b.dataset.bezig);
   });
 }
 
@@ -10260,6 +10409,10 @@ function attachWinkelHandlers(){
       .filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))
       .filter(e => e !== HOOFD_BEHEERDER);
     uit.taal = document.getElementById('wk_taal')?.value || STANDAARDTAAL;
+    // Dit document wordt in zijn geheel weggeschreven, dus wat niet in dit
+    // formulier staat moet je hier meenemen — anders vergeet de shop bij het
+    // opslaan van je adres welke kleur er op de printer ligt.
+    uit.opDePrinter = winkel().opDePrinter || null;
     uit.pauze = !!document.getElementById('wk_pauze')?.checked;
     uit.pauzeBericht = val('pauzeBericht');
     uit.pauzeTot = val('pauzeTot');
@@ -10889,6 +11042,19 @@ function exporteerBestellingen(){
 
 function attachAdminHandlers(){
   attachProductLijstHandlers();
+  /* De notitie bij een bestelling. Bij elke toetsaanslag schrijven zou een
+     schrijfbeurt per letter zijn; als je uit het veld klikt is het klaar. */
+  document.querySelectorAll('[data-notitie]').forEach(el => {
+    el.onblur = async () => {
+      const o = state.orders.find(x => x.id === el.dataset.notitie);
+      const tekst = el.value.trim();
+      if (!o || (o.shopNote || "") === tekst) return;
+      try{
+        await updateDoc(doc(db, "orders", el.dataset.notitie), { shopNote: tekst });
+        notify(tekst ? "Notitie bewaard" : "Notitie weggehaald");
+      }catch(err){ notify("Notitie niet bewaard: " + firestoreHint(err)); }
+    };
+  });
   // zoeken en filteren in de bestellingen
   const oz = document.getElementById('ordZoek');
   if (oz) oz.oninput = () => {
