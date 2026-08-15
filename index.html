@@ -308,6 +308,33 @@
   }
   .voet-links button:hover{color:var(--ink);background:var(--surface2);}
   .voet-klein{color:var(--muted);font-size:12px;line-height:1.6;margin-left:auto;}
+  .img-slot[draggable="true"]{cursor:grab;}
+  .img-slot.sleept{opacity:.4;}
+  .img-slot.sleepdoel{outline:2px solid var(--accent);outline-offset:1px;}
+  .img-eerste{
+    position:absolute;left:4px;bottom:4px;z-index:2;
+    background:var(--accent);color:#fff;border-radius:5px;
+    font-size:8.5px;font-weight:700;letter-spacing:.06em;padding:2px 4px;
+    font-family:var(--mono);pointer-events:none;
+  }
+
+  /* ---------- productlijst in het beheer ---------- */
+  .sleepgreep{
+    cursor:grab;color:var(--muted);font-size:13px;flex-shrink:0;
+    padding:2px 1px;touch-action:none;
+  }
+  .sleepgreep:active{cursor:grabbing;}
+  .admin-row[draggable="true"]{transition:opacity .14s, box-shadow .14s, transform .14s;}
+  .admin-row.sleept{opacity:.4;}
+  .admin-row.sleepdoel{box-shadow:0 -3px 0 var(--accent);}
+  .admin-row.rij-gekozen{border-color:var(--accent);}
+  .bulkbalk{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    background:var(--surface2);border:1px solid var(--line-strong);border-radius:12px;
+    padding:9px 12px;margin:0 0 10px;position:sticky;top:78px;z-index:3;
+  }
+  .bulk-tel{font-size:12.5px;font-weight:600;}
+
   /* ---------- instellingen ---------- */
   .inst-rij{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
   .inst-label{font-size:13px;font-weight:600;color:var(--ink);}
@@ -1178,6 +1205,7 @@ const TEKST = {
   "shop.wisZoek":    { en: "Clear search",        nl: "Zoekterm wissen" },
   "shop.alles":      { en: "All",                 nl: "Alles" },
   "shop.sorteer":    { en: "Sort",                nl: "Sorteren" },
+  "sort.eigen":      { en: "Our order",           nl: "Onze volgorde" },
   "sort.populair":   { en: "Popular",             nl: "Populair" },
   "sort.nieuw":      { en: "Newest",              nl: "Nieuwste" },
   "sort.laag":       { en: "Price low to high",   nl: "Prijs oplopend" },
@@ -5041,11 +5069,14 @@ function categorieen(){
 }
 /* Sorteren. "Populair" komt uit de teller die bij elke bestelling omhoog gaat;
    staat alles nog op nul, dan komt het nieuwste bovenaan. */
-const SORTEER = [["populair"], ["nieuw"], ["laag"], ["hoog"]];
+const SORTEER = [["eigen"], ["populair"], ["nieuw"], ["laag"], ["hoog"]];
 function sorteerProducten(lijst){
-  const hoe = SORTEER.some(([k]) => k === state.__sort) ? state.__sort : "populair";
+  const hoe = SORTEER.some(([k]) => k === state.__sort) ? state.__sort : "eigen";
   const prijs = p => sizingOf(p) ? basePriceOf(p) : productPrice(p);
   const kopie = [...lijst];
+  // De volgorde die de shop zelf sleepte in Shopbeheer. Dat is de standaard:
+  // wie zijn collectie op een rij zet, wil dat een bezoeker die rij ziet.
+  if (hoe === "eigen") return eigenVolgorde(kopie);
   if (hoe === "nieuw") kopie.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   else if (hoe === "laag") kopie.sort((a, b) => prijs(a) - prijs(b));
   else if (hoe === "hoog") kopie.sort((a, b) => prijs(b) - prijs(a));
@@ -5150,7 +5181,7 @@ function viewShop(){
           ${(state.__zoek || "").trim() ? `<button id="shopZoekWis" aria-label="${esc(t("shop.wisZoek"))}">${ic("xmark")}</button>` : ``}
         </div>
         <select class="field zoeksorteer" id="shopSort" aria-label="${esc(t("shop.sorteer"))}">
-          ${SORTEER.map(([k]) => `<option value="${k}"${(state.__sort || "populair") === k ? " selected" : ""}>${esc(t("sort." + k))}</option>`).join("")}
+          ${SORTEER.map(([k]) => `<option value="${k}"${(state.__sort || "eigen") === k ? " selected" : ""}>${esc(t("sort." + k))}</option>`).join("")}
         </select>
         ${cats.length > 1 ? `
           <div class="zoekchips">
@@ -8684,9 +8715,14 @@ function attachArchiefHandlers(){
 function viewAdmin(){
   const tab = state.__adminTab || "products";
   const ed = state.__editing ? state.products.find(p => p.id === state.__editing) : null;
-  const productRows = state.products.map(p=>`
-    <div class="admin-row between${verborgen(p) ? " rij-verborgen" : ""}" style="margin-bottom:8px;${p.id===state.__editing?'border-color:var(--accent);':''}">
+  const productRows = beheerProducten().map(p=>`
+    <div class="admin-row between${verborgen(p) ? " rij-verborgen" : ""}${gekozenProduct(p.id) ? " rij-gekozen" : ""}"
+         data-rij="${esc(p.id)}" draggable="true"
+         style="margin-bottom:8px;${p.id===state.__editing?'border-color:var(--accent);':''}">
       <div class="row" style="flex:1;min-width:0;">
+        <span class="sleepgreep" title="Sleep om de volgorde te wijzigen" aria-hidden="true">${ic("grip-vertical")}</span>
+        <input type="checkbox" class="prodvink" data-vink="${esc(p.id)}" ${gekozenProduct(p.id) ? "checked" : ""}
+               style="width:17px;height:17px;margin:0;flex-shrink:0;" aria-label="${esc(p.name)} aanvinken" />
         <div class="admin-thumb">${productThumb(p, 18)}</div>
         <div style="min-width:0;">
           <div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
@@ -8706,6 +8742,8 @@ function viewAdmin(){
                 aria-label="${verborgen(p) ? "Weer tonen" : "Verbergen"}">
           <i class="fa-solid fa-${verborgen(p) ? "eye" : "eye-slash"}" aria-hidden="true"></i>
         </button>
+        <button class="btn btn-ghost btn-sm" onclick="window.__kopieerProduct('${p.id}')"
+                title="Een nieuw product beginnen als kopie van dit" aria-label="Dupliceren">${ic("copy")}</button>
         <button class="btn btn-ghost btn-sm" onclick="window.__editProduct('${p.id}')" title="Bewerken"><i class="fa-solid fa-pen" aria-hidden="true"></i></button>
         <button class="btn btn-ghost btn-sm" onclick="window.__deleteProduct('${p.id}')" title="Verwijderen"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
       </div>
@@ -9060,18 +9098,28 @@ function viewAdmin(){
             <button class="btn btn-accent" id="addProductBtn" style="width:100%;">${ed ? "Wijzigingen opslaan" : "Product toevoegen"}</button>
           </div>
           <div>
-            <h2 class="font-display" style="font-size:17px;margin:0 0 2px;">In de collectie</h2>
-            <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 6px;">
+            <div class="between" style="margin:0 0 6px;gap:10px;">
+              <h2 class="font-display" style="font-size:17px;margin:0;">In de collectie</h2>
+              <button class="btn btn-ghost btn-sm" id="exportBtn" title="Al je bestellingen als bestand, voor je boekhouding">
+                ${ic("file-arrow-down")} Bestellingen exporteren
+              </button>
+            </div>
+            <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 10px;">
               ${state.products.length} product${state.products.length === 1 ? "" : "en"}${
                 state.products.filter(verborgen).length
                   ? ` — waarvan ${state.products.filter(verborgen).length} verborgen` : ``}
+              · sleep aan ${ic("grip-vertical")} om de volgorde in de winkel te bepalen
             </p>
-            <p class="muted" style="font-size:12px;line-height:1.6;margin:0 0 12px;">
-              ${ic("eye-slash")} Met het oogje haal je een product uit de collectie zonder het te verwijderen:
-              foto's, kleuren en het 3D-model blijven staan, klanten zien het alleen niet meer.
-              Eén klik en het staat er weer.
-            </p>
-            ${productRows || `<p class="muted" style="font-size:13px;">Nog geen producten.</p>`}
+            ${state.products.length > 3 ? `
+              <div class="zoekvak" style="margin:0 0 10px;">
+                ${ic("magnifying-glass")}
+                <input id="pZoek" type="search" placeholder="Zoek in je producten…"
+                       value="${esc(state.__pZoek || "")}" aria-label="Zoek in je producten" />
+                ${(state.__pZoek || "").trim() ? `<button id="pZoekWis" aria-label="Zoekterm wissen">${ic("xmark")}</button>` : ``}
+              </div>` : ``}
+            ${bulkBalk()}
+            ${productRows || `<p class="muted" style="font-size:13px;">${
+              (state.__pZoek || "").trim() ? "Niets gevonden." : "Nog geen producten."}</p>`}
           </div>
         </div>
       </div>
@@ -9339,6 +9387,62 @@ function bestelRegel(o, i, idx){
             ${i.sliced === false ? `<div class="detail-regel"><span class="sleutel">Let op</span><span class="waarde" style="color:var(--accent);">Model was te zwaar om te snijden — prijs nakijken</span></div>` : ``}` : ``}
         </div>` : ``}
     </div>`;
+}
+
+/* =====================================================================
+   De productlijst in Shopbeheer
+   Met vier producten scrol je er zo langs, met dertig niet meer. Zoeken werkt
+   zoals bij de klant: elk los woord moet ergens voorkomen. Wat je aanvinkt
+   onthouden we los van de lijst, zodat een selectie een filter overleeft.
+   ===================================================================== */
+function beheerProducten(){
+  const zoek = (state.__pZoek || "").trim().toLowerCase();
+  const lijst = eigenVolgorde(state.products || []);
+  if (!zoek) return lijst;
+  return lijst.filter(p => {
+    const hooi = [p.name, p.description, p.category, p.material, p.color].filter(Boolean).join(" ").toLowerCase();
+    return zoek.split(/\s+/).every(w => hooi.includes(w));
+  });
+}
+/* De volgorde die jij zelf sleepte. Een product zonder volgnummer is nieuw en
+   hoort vooraan, want daar ben je net mee bezig. */
+function eigenVolgorde(lijst){
+  return [...lijst].sort((a, b) => {
+    const va = Number.isFinite(a.volgorde) ? a.volgorde : -1;
+    const vb = Number.isFinite(b.volgorde) ? b.volgorde : -1;
+    if (va !== vb) return va - vb;
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+}
+/* De balk die verschijnt zodra je iets aanvinkt. Alles wat je hier doet geldt
+   voor de hele selectie; wissen zit er bewust niet bij — dat is voorgoed en dat
+   doe je per stuk, met de vraag erbij. */
+function bulkBalk(){
+  const n = gekozenProducten().length;
+  if (!n) return ``;
+  const cats = categorieen();
+  return `
+    <div class="bulkbalk">
+      <span class="bulk-tel">${n} aangevinkt</span>
+      <div class="row" style="gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" data-bulk="verberg">${ic("eye-slash")} Verbergen</button>
+        <button class="btn btn-ghost btn-sm" data-bulk="toon">${ic("eye")} Tonen</button>
+        <button class="btn btn-ghost btn-sm" data-bulk="korting">${ic("percent")} Korting</button>
+        ${cats.length ? `
+          <select class="field" id="bulkCat" style="width:auto;margin:0;padding:6px 9px;font-size:12px;">
+            <option value="">Categorie…</option>
+            ${cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}
+          </select>` : ``}
+        <button class="btn btn-ghost btn-sm" data-bulk="niets">Selectie wissen</button>
+      </div>
+    </div>`;
+}
+const gekozenProducten = () => state.__pGekozen || [];
+const gekozenProduct = (id) => gekozenProducten().includes(id);
+function kiesProduct(id, aan){
+  const nu = gekozenProducten().filter(x => x !== id);
+  state.__pGekozen = aan ? [...nu, id] : nu;
+  render();
 }
 
 /* De onderdelen van het beheer, in de volgorde waarin je ze nodig hebt. */
@@ -10557,13 +10661,45 @@ function renderImageTray(){
   if (!tray) return;
   const imgs = state.__draftImages || [];
   tray.innerHTML = imgs.map((src,i)=>`
-    <div class="img-slot">
+    <div class="img-slot" draggable="true" data-img-i="${i}">
       <img src="${esc(src)}" alt="Afbeelding ${i+1}" />
+      ${i === 0 ? `<span class="img-eerste">EERSTE</span>` : ``}
       <button onclick="window.__removeDraftImage(${i})" title="Verwijderen"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>`).join("")
     + (imgs.length < MAX_PRODUCT_IMAGES ? `<button class="img-add" id="pickImgBtn" title="Afbeelding kiezen"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>` : ``);
   const pick = document.getElementById('pickImgBtn');
   if (pick) pick.onclick = () => document.getElementById('pImgFile').click();
+
+  /* Slepen om de volgorde te wijzigen. De eerste foto is wat een klant op de
+     kaart in de collectie ziet, dus welke vooraan staat maakt uit — en die
+     kiezen door te herhalen wat je uploadt is geen manier van werken. */
+  tray.querySelectorAll('[data-img-i]').forEach(slot => {
+    slot.ondragstart = (e) => {
+      state.__sleepImg = +slot.dataset.imgI;
+      slot.classList.add('sleept');
+      try{ e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", slot.dataset.imgI); }catch(err){}
+    };
+    slot.ondragend = () => {
+      slot.classList.remove('sleept');
+      tray.querySelectorAll('.sleepdoel').forEach(x => x.classList.remove('sleepdoel'));
+    };
+    slot.ondragover = (e) => {
+      if (state.__sleepImg === null || state.__sleepImg === undefined) return;
+      if (state.__sleepImg === +slot.dataset.imgI) return;
+      e.preventDefault();
+      slot.classList.add('sleepdoel');
+    };
+    slot.ondragleave = () => slot.classList.remove('sleepdoel');
+    slot.ondrop = (e) => {
+      e.preventDefault();
+      const van = state.__sleepImg, naar = +slot.dataset.imgI;
+      state.__sleepImg = null;
+      if (van === null || van === undefined || van === naar) return;
+      const lijst = state.__draftImages;
+      lijst.splice(naar, 0, ...lijst.splice(van, 1));
+      renderImageTray();
+    };
+  });
 }
 
 /* Leest de maatwerkinstellingen uit het beheerformulier. */
@@ -10601,7 +10737,158 @@ function herstelProductFormulier(){
   }
 }
 
+/* Zoeken, aanvinken, slepen en de knoppen die op een hele selectie werken. */
+function attachProductLijstHandlers(){
+  const z = document.getElementById('pZoek');
+  if (z) z.oninput = () => { state.__pZoek = z.value; render(); };
+  const wis = document.getElementById('pZoekWis');
+  if (wis) wis.onclick = () => { state.__pZoek = ""; render(); document.getElementById('pZoek')?.focus(); };
+
+  document.querySelectorAll('[data-vink]').forEach(v => {
+    v.onclick = (e) => e.stopPropagation();
+    v.onchange = () => kiesProduct(v.dataset.vink, v.checked);
+  });
+
+  const cat = document.getElementById('bulkCat');
+  if (cat) cat.onchange = () => { if (cat.value) bulkActie("categorie", cat.value); };
+  document.querySelectorAll('[data-bulk]').forEach(b => {
+    b.onclick = () => bulkActie(b.dataset.bulk);
+  });
+
+  const ex = document.getElementById('exportBtn');
+  if (ex) ex.onclick = () => exporteerBestellingen();
+
+  /* Slepen om de volgorde te bepalen. We houden alleen bij wat je oppakt en
+     waar je het loslaat; het opnieuw nummeren gebeurt in één keer bij het
+     loslaten, zodat er niet bij elke muisbeweging naar Firestore geschreven
+     wordt. */
+  document.querySelectorAll('[data-rij]').forEach(rij => {
+    rij.ondragstart = (e) => {
+      state.__sleep = rij.dataset.rij;
+      rij.classList.add('sleept');
+      try{ e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", rij.dataset.rij); }catch(err){}
+    };
+    rij.ondragend = () => {
+      rij.classList.remove('sleept');
+      document.querySelectorAll('.sleepdoel').forEach(x => x.classList.remove('sleepdoel'));
+    };
+    rij.ondragover = (e) => {
+      if (!state.__sleep || state.__sleep === rij.dataset.rij) return;
+      e.preventDefault();
+      rij.classList.add('sleepdoel');
+    };
+    rij.ondragleave = () => rij.classList.remove('sleepdoel');
+    rij.ondrop = (e) => {
+      e.preventDefault();
+      rij.classList.remove('sleepdoel');
+      const van = state.__sleep;
+      state.__sleep = null;
+      if (van && van !== rij.dataset.rij) verplaatsProduct(van, rij.dataset.rij);
+    };
+  });
+}
+
+/* Het gesleepte product komt op de plek van het product waar je het loslaat;
+   de rest schuift op. Daarna krijgt iedereen een vers volgnummer — met gaten
+   werken loont niet, een lijst van dertig herschrijf je zo. */
+async function verplaatsProduct(vanId, naarId){
+  const lijst = eigenVolgorde(state.products || []).map(p => p.id);
+  const van = lijst.indexOf(vanId);
+  if (van < 0 || vanId === naarId) return;
+  // Eerst weghalen, dán pas kijken waar het doel nu staat. Doe je dat in één
+  // beweging, dan is die index al opgeschoven zodra je iets van boven naar
+  // beneden sleept en belandt het één plek te laag.
+  lijst.splice(van, 1);
+  const naar = lijst.indexOf(naarId);
+  if (naar < 0) return;
+  lijst.splice(naar, 0, vanId);
+  // meteen op het scherm, zonder te wachten op de databank
+  for (const p of state.products) p.volgorde = lijst.indexOf(p.id);
+  render();
+  try{
+    await Promise.all(lijst.map((id, i) => updateDoc(doc(db, "products", id), { volgorde: i })));
+  }catch(err){ notify("Volgorde niet bewaard: " + firestoreHint(err)); }
+}
+
+window.__testVerplaats = verplaatsProduct;   // slepen valt niet na te bootsen in een test
+
+/* Eén handeling voor alles wat je aangevinkt hebt. */
+async function bulkActie(wat, waarde){
+  const ids = gekozenProducten();
+  if (wat === "niets"){ state.__pGekozen = []; render(); return; }
+  if (!ids.length) return;
+  let velden = null;
+  if (wat === "verberg") velden = { hidden: true };
+  else if (wat === "toon") velden = { hidden: false };
+  else if (wat === "categorie") velden = { category: waarde };
+  else if (wat === "korting"){
+    const pct = prompt(`Hoeveel procent korting op ${ids.length} product${ids.length === 1 ? "" : "en"}?\n\nVul 0 in om de korting weg te halen.`, "10");
+    if (pct === null) return;
+    const n = Math.max(0, Math.min(90, parseInt(pct, 10) || 0));
+    velden = { discountPct: n, discountUntil: null };
+  }
+  if (!velden) return;
+  try{
+    await Promise.all(ids.map(id => updateDoc(doc(db, "products", id), velden)));
+    notify(`${ids.length} product${ids.length === 1 ? "" : "en"} bijgewerkt`);
+    state.__pGekozen = [];
+    render();
+  }catch(err){ notify("Bijwerken mislukt: " + firestoreHint(err)); }
+}
+
+/* Een nieuw product beginnen als kopie. Alles gaat mee behalve wat uniek hoort
+   te zijn: het printbestand en het 3D-voorbeeld hangen aan het oude document
+   en de verkoopteller begint bij nul. Het staat meteen op verborgen, zodat een
+   half ingevulde kopie nooit per ongeluk in de winkel belandt. */
+window.__kopieerProduct = async (id) => {
+  const p = (state.products || []).find(x => x.id === id);
+  if (!p) return;
+  const { id: _weg, has3d, modelSize, verkocht, volgorde, createdAt, ...rest } = p;
+  try{
+    const ref = await addDoc(collection(db, "products"), {
+      ...rest,
+      name: (p.name || "") + " (kopie)",
+      hidden: true,
+      createdAt: Date.now(),
+    });
+    notify("Kopie gemaakt — hij staat op verborgen tot je klaar bent");
+    state.__editing = ref.id;
+    state.__adminTab = "products";
+    render();
+  }catch(err){ notify("Dupliceren mislukt: " + firestoreHint(err)); }
+};
+
+/* Je bestellingen als CSV, voor je boekhouding. Eén regel per bestelling met
+   wat erin zat; puntkomma's omdat Excel in het Nederlands daarop rekent. */
+function exporteerBestellingen(){
+  const rijen = [...state.orders].sort((a, b) => a.createdAt - b.createdAt);
+  if (!rijen.length){ notify("Er zijn nog geen bestellingen"); return; }
+  const veld = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const kop = ["Datum","Bestelnummer","Klant","Status","Land","Artikelen","Subtotaal","Korting","Code","Verzending","Totaal","Betaalwijze","Referentie"];
+  const regels = rijen.map(o => [
+    new Date(o.createdAt).toLocaleString('nl-BE'),
+    orderNumber(o), o.userEmail, o.status, o.pickupAt ? "afhalen" : (o.shippingCountry || ""),
+    (o.items || []).map(i => `${i.qty}x ${i.name}`).join(" | "),
+    (o.subtotal ?? 0).toFixed(2), (o.discountAmount ?? 0).toFixed(2), o.discountCode || "",
+    (o.shippingCost ?? 0).toFixed(2), (o.total ?? 0).toFixed(2),
+    o.paymentMethod || "", o.paymentRef || "",
+  ].map(veld).join(";"));
+  // ﻿ zodat Excel de accenten juist leest
+  const blob = new Blob(["﻿" + [kop.map(veld).join(";"), ...regels].join("\r\n")],
+    { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `bestellingen-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  notify(`${rijen.length} bestelling${rijen.length === 1 ? "" : "en"} geëxporteerd`);
+}
+
 function attachAdminHandlers(){
+  attachProductLijstHandlers();
   // zoeken en filteren in de bestellingen
   const oz = document.getElementById('ordZoek');
   if (oz) oz.oninput = () => {
