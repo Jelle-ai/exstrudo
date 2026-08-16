@@ -9057,6 +9057,38 @@ function bundelAdminBlock(ed){
 
 /* Het printbestand bij een product instellen. undefined = laten staan wat er
    staat, een lijst = vervangen, null = weghalen bij het opslaan. */
+/* Leest het 3D-voorbeeld uit het printbestand dat je net koos.
+   Alleen een STL of een 3mf laat zich uitlezen; een .gcode of een .zip is al
+   gesneden of ingepakt en daar valt geen vorm meer uit te halen. Zet je zo'n
+   bestand bij, dan zeggen we dat er geen voorbeeld van te maken is in plaats
+   van stil een oud voorbeeld te laten staan dat er niet meer bij hoort. */
+const VOORBEELD_UIT = /\.(stl|3mf)$/i;
+async function voorbeeldUitPrintbestand(bestanden){
+  const bron = (bestanden || []).find(f => VOORBEELD_UIT.test(f.name));
+  const stand = document.getElementById('printStand');
+  if (!bron){
+    state.__draftModel = null;
+    render();
+    notify("Van dit bestand kunnen we geen 3D-voorbeeld maken — zet er een STL of 3mf bij als je dat wil");
+    return;
+  }
+  if (stand) stand.textContent = "voorbeeld maken…";
+  try{
+    const delen = await analyzeFile(bron);
+    state.__draftModel = voorbeeldUitDelen(delen);
+    render();
+    notify(delen[0]?.__alsStl
+      ? `Het 3mf wilde niet, maar ${delen[0].__alsStl} — als STL ingelezen`
+      : `Voorbeeld gemaakt uit ${bron.name} — ${state.__draftModel.parts.length} ${state.__draftModel.parts.length > 1 ? "onderdelen" : "onderdeel"}`);
+  }catch(err){
+    // Het bestand blijft gewoon bewaard om te printen; alleen het voorbeeld
+    // lukt niet. Dat is precies wat we zeggen.
+    state.__draftModel = null;
+    render();
+    notify("Het bestand wordt bewaard, maar er kon geen 3D-voorbeeld van gemaakt worden: " + (err.message || err));
+  }
+}
+
 function printAdminBlock(ed){
   const bestaand = printBestanden(ed);
   const nieuw = state.__draftPrint;                  // undefined | File[] | null
@@ -9064,8 +9096,11 @@ function printAdminBlock(ed){
     : nieuw === null ? []
     : nieuw.map(f => ({ name: f.name, size: f.size }));
   const weg = nieuw === null && bestaand.length;
+  // Altijd open. Dit is niet langer een extraatje onderaan: hier komt zowel het
+  // bestand vandaan dat je print als het model dat de klant kan draaien. Stond
+  // het dichtgeklapt, dan zag je bij een nieuw product niet eens dat het kon.
   return `
-    <details class="vak"${toont.length || weg ? " open" : ""}>
+    <details class="vak" open>
       <summary>
         ${ic("file-arrow-down")} Printbestand${toont.length ? ` <span class="badge">${toont.length}</span>` : ""}
       </summary>
@@ -9073,11 +9108,19 @@ function printAdminBlock(ed){
         <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
           Het échte bestand om te printen — de STL of de 3mf zoals hij uit je ontwerpprogramma
           komt. Komt er een bestelling binnen, dan staat hij daar klaar om te downloaden.
-          Alleen jij kunt erbij; klanten kunnen hem niet ophalen.
+          Alleen jij kunt het bestand ophalen; klanten niet.
         </p>
         <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
-          Dit staat los van het 3D-voorbeeld hierboven: dat is uitgedund om snel te tonen,
-          dit is het bestand op ware grootte. Meerdere mag — bijvoorbeeld een stuk per kleur.
+          ${ic("cube")} <strong>Hier komt ook het 3D-voorbeeld vandaan.</strong> Zodra je een
+          bestand kiest maken we er een lichte versie van die de klant kan draaien, in de kleur
+          die hij zelf uitzoekt. Je hoeft dus maar één keer te uploaden, en wat de klant ziet
+          is per definitie wat jij print.
+        </p>
+        <p class="muted" style="font-size:12px;line-height:1.65;margin:0 0 10px;">
+          Meerdere bestanden mag — bijvoorbeeld een stuk per kleur; het voorbeeld komt dan van
+          het eerste. Bestaat je 3mf uit meerdere objecten, dan krijgt object 1 de kleur van
+          vak 1, object 2 die van vak 2. Van een .gcode of een .zip kunnen we geen voorbeeld
+          maken; die kun je wel bijzetten om te printen.
           Maximaal ${MAX_PRINTBESTANDEN} bestanden van ${MAX_FIRESTORE_BYTES/1024/1024}MB.
         </p>
         <input type="file" id="pPrintFiles" accept=".stl,.3mf,.obj,.gcode,.zip" multiple style="display:none;" />
@@ -9094,9 +9137,13 @@ function printAdminBlock(ed){
         <div class="row" style="gap:8px;flex-wrap:wrap;">
           <button class="btn btn-ghost btn-sm" id="pickPrintBtn">${ic("arrow-up-from-bracket")} Bestand kiezen</button>
           <span class="muted font-mono" style="font-size:11px;" id="printStand">${
-            nieuw !== undefined && nieuw !== null ? "klaar om te bewaren"
+            nieuw !== undefined && nieuw !== null
+              ? "klaar om te bewaren" + (state.__draftModel
+                  ? ` · voorbeeld uit ${state.__draftModel.parts.length} ${state.__draftModel.parts.length > 1 ? "onderdelen" : "onderdeel"}`
+                  : "")
             : weg ? "wordt verwijderd bij opslaan"
-            : bestaand.length ? "staat er al"
+            : bestaand.length ? "staat er al" + (ed?.has3d ? " · met 3D-voorbeeld" : "")
+            : ed?.has3d ? "geen bestand — wel een 3D-voorbeeld van vroeger"
             : "nog geen bestand"
           }</span>
           ${(toont.length || weg) ? `` : ``}
@@ -9535,27 +9582,6 @@ function viewAdmin(){
               <button class="btn btn-ghost btn-sm" id="addImgUrlBtn" style="flex-shrink:0;">Toevoegen</button>
             </div>
 
-            <label class="field-label">3D-voorbeeld</label>
-            <div class="cart-item" style="padding:12px;margin-bottom:12px;">
-              <p class="muted" style="font-size:11px;line-height:1.55;margin:0 0 10px;">
-                Zet hier het model zelf bij, dan kan de klant het draaien en ziet hij het
-                in de kleur die hij kiest. Bestaat je 3mf uit meerdere objecten, dan krijgt
-                object 1 de kleur van vak 1, object 2 die van vak 2.
-              </p>
-              <input type="file" id="pModelFile" accept=".stl,.3mf" style="display:none;" />
-              <div class="row" style="gap:8px;flex-wrap:wrap;">
-                <button class="btn btn-ghost btn-sm" id="pickModelBtn">${ic("cube")} Model kiezen</button>
-                ${state.__draftModel === null && ed?.has3d ? `` : ``}
-                <span class="muted font-mono" style="font-size:11px;" id="modelStand">${
-                  state.__draftModel
-                    ? `${state.__draftModel.parts.length} ${state.__draftModel.parts.length > 1 ? "onderdelen" : "onderdeel"} klaar`
-                    : state.__draftModel === null && ed?.has3d ? "verwijderd bij opslaan"
-                    : ed?.has3d ? "staat er al" : "nog geen model"
-                }</span>
-                ${(state.__draftModel || ed?.has3d) ? `
-                  <button class="btn btn-ghost btn-sm" id="wisModelBtn" style="margin-left:auto;">${ic("trash")}</button>` : ``}
-              </div>
-            </div>
 
               </div>
             </details>
@@ -11671,39 +11697,18 @@ function attachAdminHandlers(){
     }
   };
 
-  // 3D-voorbeeld: inlezen gebeurt hier, bewaren pas bij het opslaan van het
-  // product — anders staat er een model bij een product dat nooit ontstaat.
-  const modelKies = document.getElementById('pickModelBtn');
-  if (modelKies) modelKies.onclick = () => document.getElementById('pModelFile').click();
-  const modelInput = document.getElementById('pModelFile');
-  if (modelInput) modelInput.onchange = async (e) => {
-    const f = (e.target.files || [])[0];
-    e.target.value = "";
-    if (!f) return;
-    const stand = document.getElementById('modelStand');
-    if (stand) stand.textContent = "inlezen…";
-    try{
-      const delen = await analyzeFile(f);
-      state.__draftModel = voorbeeldUitDelen(delen);
-      render();
-      notify(delen[0]?.__alsStl
-        ? `Het 3mf wilde niet, maar ${delen[0].__alsStl} — als STL ingelezen`
-        : `Model ingelezen — ${state.__draftModel.parts.length} ${state.__draftModel.parts.length > 1 ? "onderdelen" : "onderdeel"}`);
-    }catch(err){
-      state.__draftModel = undefined;
-      render();
-      notify("Kon dit model niet inlezen: " + (err.message || err));
-    }
-  };
-  const modelWis = document.getElementById('wisModelBtn');
-  if (modelWis) modelWis.onclick = () => { state.__draftModel = null; render(); };
+  /* Het printbestand is ook de bron van het 3D-voorbeeld.
+     Vroeger uploadde je hetzelfde model twee keer: één keer om te tonen en één
+     keer om te printen. Dat is dubbel werk, en erger: die twee konden uit
+     elkaar lopen, zodat een klant iets anders draaide dan wat er van de
+     printer kwam. Nu lezen we het voorbeeld uit het bestand dat je bijzet.
 
-  // Printbestand: hier alleen onthouden welk bestand je koos. Wegschrijven
-  // gebeurt bij het opslaan, want pas dan bestaat het product zeker.
+     Inlezen gebeurt hier, wegschrijven pas bij het opslaan van het product —
+     anders staat er een model bij een product dat nooit ontstaat. */
   const printKies = document.getElementById('pickPrintBtn');
   if (printKies) printKies.onclick = () => document.getElementById('pPrintFiles').click();
   const printInput = document.getElementById('pPrintFiles');
-  if (printInput) printInput.onchange = (e) => {
+  if (printInput) printInput.onchange = async (e) => {
     const gekozen = Array.from(e.target.files || []);
     e.target.value = "";
     if (!gekozen.length) return;
@@ -11715,9 +11720,15 @@ function attachAdminHandlers(){
     state.__draftPrint = gekozen.slice(0, MAX_PRINTBESTANDEN);
     if (gekozen.length > MAX_PRINTBESTANDEN) notify(`Maximaal ${MAX_PRINTBESTANDEN} bestanden — de rest is weggelaten`);
     render();
+    await voorbeeldUitPrintbestand(state.__draftPrint);
   };
   const printWis = document.getElementById('wisPrintBtn');
-  if (printWis) printWis.onclick = () => { state.__draftPrint = null; render(); };
+  if (printWis) printWis.onclick = () => {
+    // Het bestand wegdoen haalt ook het voorbeeld weg: het is er nu één ding.
+    state.__draftPrint = null;
+    state.__draftModel = null;
+    render();
+  };
 
   const urlBtn = document.getElementById('addImgUrlBtn');
   if (urlBtn) urlBtn.onclick = () => {
