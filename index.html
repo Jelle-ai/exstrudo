@@ -373,7 +373,7 @@
   .hart:active, .hart-knop:active{transform:scale(.88);}
   .hart-knop{flex-shrink:0;background:var(--surface2);}
   /* Even opspringen als je iets opzij legt, zodat je ziet dat het aankwam. */
-  .hart.aan i, .hart-knop.aan i{animation:hartje .32s ease-out;}
+  .hart.net i, .hart-knop.net i{animation:hartje .32s ease-out;}
   @keyframes hartje{ 0%{transform:scale(.6);} 60%{transform:scale(1.25);} 100%{transform:scale(1);} }
   .grid-klein{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
 
@@ -385,7 +385,7 @@
     font-size:9px;color:#fff;background:var(--surface2);
   }
   .spaarbol.aan{background:var(--accent);border-color:var(--accent);}
-  .spaarbol.nu{background:var(--accent);border-color:var(--accent);animation:hartje .4s ease-out;}
+  .spaarbol.nu{background:var(--accent);border-color:var(--accent);}
 
   /* ---------- beoordelingen ---------- */
   .sterren{color:var(--accent);font-size:13px;letter-spacing:1px;white-space:nowrap;}
@@ -418,7 +418,7 @@
   }
   .collectie-kop:first-of-type{margin-top:4px;}
   .collectie-kop .muted{font-size:12px;font-weight:400;}
-  @media(prefers-reduced-motion:reduce){ .hart.aan i, .hart-knop.aan i{animation:none;} }
+  @media(prefers-reduced-motion:reduce){ .hart.net i, .hart-knop.net i{animation:none;} }
   @media(max-width:640px){ .voet-klein{margin-left:0;flex-basis:100%;} }
 
   /* ---------- materiaalgids ---------- */
@@ -918,17 +918,20 @@
   #app.wissel .part-card:nth-of-type(n+4), #app.wissel .bestelvak:nth-of-type(n+4),
   #app.wissel .order-card:nth-of-type(n+4), #app.wissel .wagen-kaart:nth-of-type(n+4){animation-delay:.18s;}
 
-  /* --- altijd: wat jíj opendoet, gaat zichtbaar open --- */
-  .kleurkiezer-lade, .stappen-body, .bestelregel-body, .vak-body, .slot-body,
-  .bestelvak-body, .deelvak-body, .wagenvak-body{
+  /* --- wat jíj opendoet, gaat zichtbaar open ---
+     Alleen met .net erbij: die zet de code op het ene vak dat er net bijkwam.
+     Zonder die voorwaarde speelde dit af bij élke hertekening, dus ook als je
+     alleen maar een vinkje zette ergens anders op het scherm. */
+  .kleurkiezer-lade.net, .stappen-body.net, .bestelregel-body.net, .vak-body.net,
+  .slot-body.net, .bestelvak-body.net, .deelvak-body.net, .wagenvak-body.net{
     animation:uitvouwen .34s cubic-bezier(.22,.7,.3,1) both;
   }
   .kleurkiezer{ transition:border-color .2s, background .2s, box-shadow .2s; }
-  .kleurkiezer.open{ animation:indraaien .28s cubic-bezier(.22,.7,.3,1) both; }
+  .kleurkiezer.open.net{ animation:indraaien .28s cubic-bezier(.22,.7,.3,1) both; }
   /* het vak dat nog wacht trekt even de aandacht */
-  .kleurkiezer.leeg.open{ animation:indraaien .28s cubic-bezier(.22,.7,.3,1) both, pols 1.6s ease-out .25s 2; }
+  .kleurkiezer.leeg.open.net{ animation:indraaien .28s cubic-bezier(.22,.7,.3,1) both, pols 1.6s ease-out .25s 2; }
   .kleurkiezer-nr{ transition:background .22s, color .22s, transform .22s; }
-  .kleurkiezer.gekozen .kleurkiezer-nr{ animation:tikje .34s cubic-bezier(.3,1.4,.5,1) both; }
+  .kleurkiezer.gekozen.net .kleurkiezer-nr{ animation:tikje .34s cubic-bezier(.3,1.4,.5,1) both; }
   .kleurkiezer-keuze .fil-chip{ transition:transform .2s; }
 
   /* knoppen geven mee onder je vinger */
@@ -939,7 +942,7 @@
   .beheer-nav button:active, .bestelregel-kop:active, .kleurkiezer-knop:active{ transform:scale(.97); }
   .swatch:hover{ transform:translateY(-2px); }
   .swatch:active{ transform:scale(.9); }
-  .swatch.active{ animation:tikje .3s cubic-bezier(.3,1.4,.5,1) both; }
+  .swatch.active.net{ animation:tikje .3s cubic-bezier(.3,1.4,.5,1) both; }
   .card{ transition:transform .22s cubic-bezier(.22,.7,.3,1), box-shadow .22s, background .16s; }
   .card:hover{ transform:translateY(-4px); box-shadow:0 10px 26px rgba(0,0,0,.14); }
   .cart-item, .wagenvak, .bestelvak, .deelvak{ transition:border-color .2s, box-shadow .2s, background .2s; }
@@ -2198,6 +2201,7 @@ async function voegBewaardeSamen(){
 }
 const isBewaard = (id) => bewaarde().includes(id);
 function zetBewaard(id){
+  netGebeurd("hart|" + id);
   const nu = bewaarde();
   const uit = nu.includes(id) ? nu.filter(x => x !== id) : [id, ...nu].slice(0, 60);
   state.__bewaard = uit;
@@ -5278,12 +5282,82 @@ function herstelFocus(bewaard){
   }
 }
 
+/* =====================================================================
+   Wat is er net gebeurd?
+   Dit scherm wordt bij élke kleinigheid in zijn geheel opnieuw opgebouwd: een
+   vinkje, een letter die je typt, een bestelling die binnenkomt. Alles is dan
+   technisch gloednieuw, en een CSS-animatie die aan het bestáán van een
+   element hangt speelt dus telkens opnieuw af. Dat is de schok die je zag: je
+   vinkte één stapje af en het hele vak wipte opnieuw open.
+
+   Daarom hangt geen enkele binnenkomst-animatie nog aan het bestaan van iets.
+   Ze hangen aan deze markering, en die zetten we precies één hertekening lang,
+   op het ene ding dat er echt net bij kwam. Al de rest staat gewoon stil.
+   ===================================================================== */
+function netGebeurd(sleutel){ state.__net = sleutel; }
+/* Levert " net" om achter een class te plakken, of niets. */
+const net = (sleutel) => state.__net === sleutel ? " net" : "";
+
+/* Een <details> klapt de browser zelf open; daar komt geen hertekening aan te
+   pas. Dan is de markering hierboven niet aan de beurt en zetten we hem
+   rechtstreeks, precies op het moment dat het vak opengaat. Achteraf haalt hij
+   zichzelf weer weg, zodat een latere hertekening hem niet aantreft.
+
+   toggle bubbelt niet, vandaar de capture-stand: zo vangen we hem voor élke
+   <details> op de pagina zonder er per stuk een luisteraar aan te hangen. */
+const OPEN_LICHAAM = ".bestelvak-body, .deelvak-body, .wagenvak-body, .vak-body, .slot-body, .stappen-body";
+document.addEventListener("toggle", (e) => {
+  const d = e.target;
+  if (!(d instanceof HTMLDetailsElement) || !d.open) return;
+  const lichaam = [...d.children].find(k => k.matches?.(OPEN_LICHAAM));
+  if (!lichaam) return;
+  lichaam.classList.add("net");
+  lichaam.addEventListener("animationend", () => lichaam.classList.remove("net"), { once: true });
+}, true);
+
 function render(){
   renderCartBadge();
   renderVoet();
   const app = document.getElementById('app');
   const focus = onthoudFocus();
-  try{ renderInhoud(app); } finally { herstelFocus(focus); }
+  meetBalken();                    // waar staan de balkjes nú op het scherm
+  try{ renderInhoud(app); } finally {
+    herstelFocus(focus);
+    schuifBalken();                // en daar laten we ze vandaan vertrekken
+    // De markering geldt voor deze tekenbeurt en niet langer. Zonder dit zou
+    // dezelfde animatie bij de volgende hertekening opnieuw beginnen.
+    state.__net = null;
+  }
+}
+
+/* Een voortgangsbalk die naar zijn nieuwe stand schuift in plaats van te
+   springen.
+
+   Ook dit gaat mis door het opnieuw opbouwen: het balkje is nieuw, dus er valt
+   niets te overgangen. Meten wat er op het scherm staat vóór we het weggooien
+   is de enige betrouwbare manier — de bedoelde eindwaarde onthouden werkt niet,
+   want als er twee hertekeningen kort na elkaar komen gooit de tweede de
+   lopende beweging weg en staat het balkje alsnog met een sprong op zijn plek.
+   Wat je ziet is wat we onthouden. */
+const balkStand = new Map();
+function meetBalken(){
+  for (const el of document.querySelectorAll('[data-balk]')){
+    const vak = el.parentElement?.getBoundingClientRect().width || 0;
+    if (!vak) continue;
+    balkStand.set(el.dataset.balk, el.getBoundingClientRect().width / vak * 100);
+  }
+}
+function schuifBalken(){
+  for (const el of document.querySelectorAll('[data-balk]')){
+    const naar = parseFloat(el.style.width);
+    const van = balkStand.get(el.dataset.balk);
+    if (van === undefined || !isFinite(naar) || Math.abs(van - naar) < 0.5) continue;
+    // Een CSS-overgang start niet op een element dat er zojuist bij gekomen is:
+    // de browser heeft geen vorige stand om vanaf te vertrekken. Daarom zetten
+    // we de beweging hier zelf klaar.
+    el.animate([{ width: van + "%" }, { width: naar + "%" }],
+      { duration: 380, easing: "cubic-bezier(.22,.7,.3,1)" });
+  }
 }
 
 function renderInhoud(app){
@@ -5362,7 +5436,7 @@ function productKaart(p){
         ${p.featured && !verborgen(p) ? `<span class="flag">${t("shop.uitgelicht")}</span>` : ``}
         ${verborgen(p) ? `<span class="flag">${ic("eye-slash")} ${t("shop.verborgen")}</span>` : ``}
         ${discountOf(p) ? `<span class="flag" style="left:auto;right:10px;background:var(--accent);color:#fff;">&minus;${discountOf(p).pct}%</span>` : ``}
-        <span class="hart ${bew ? "aan" : ""}" data-bewaar="${esc(p.id)}" role="button" tabindex="0"
+        <span class="hart ${bew ? "aan" : ""}${net("hart|" + p.id)}" data-bewaar="${esc(p.id)}" role="button" tabindex="0"
               title="${esc(t(bew ? "bewaar.weghalen" : "bewaar.leggen"))}"
               aria-label="${esc(t(bew ? "bewaar.weghalen" : "bewaar.leggen"))}"
               aria-pressed="${bew ? "true" : "false"}">
@@ -5958,7 +6032,7 @@ function slotPicker(p){
         </span>
       </div>
       <span class="stappen-balk" style="max-width:none;display:block;margin-bottom:12px;">
-        <span style="width:${Math.round(klaar / slots.length * 100)}%;"></span>
+        <span data-balk="slots|${esc(p.id)}" style="width:${Math.round(klaar / slots.length * 100)}%;"></span>
       </span>
       <div class="between" style="margin:0 0 12px;gap:10px;">
         <span class="muted" style="font-size:12px;line-height:1.6;">${t("slot.uitleg", { n: slots.length })}</span>
@@ -5973,7 +6047,7 @@ function slotPicker(p){
         const actief = uit && types.includes(state.__slotType) ? state.__slotType : (g || voorstel).type;
         const kleuren = list.filter(x => x.type === actief);
         return `
-          <div class="kleurkiezer ${uit ? "open" : ""} ${g ? "gekozen" : "leeg"}">
+          <div class="kleurkiezer ${uit ? "open" : ""} ${g ? "gekozen" : "leeg"}${net("kleur|" + p.id + "|" + i)}">
             <button class="kleurkiezer-knop" data-slot="${i}">
               <span class="kleurkiezer-nr">${g ? ic("check") : i + 1}</span>
               <span class="kleurkiezer-naam">${esc(s.name)}</span>
@@ -5986,14 +6060,14 @@ function slotPicker(p){
               ${ic(uit ? "chevron-up" : "chevron-down", "slot-caret")}
             </button>
             ${uit ? `
-              <div class="kleurkiezer-lade">
+              <div class="kleurkiezer-lade${net("slot|" + p.id + "|" + i)}">
                 <div class="fil-types">
                   ${types.map(soort => typeKnop(p, soort, soort === actief, "data-slottype", deelGram)).join("")}
                 </div>
                 ${toeslagUitleg(p, deelGram)}
                 <div class="swatches">
                   ${kleuren.map(x=>`
-                    <button class="swatch ${finishClass(x.finish)} ${x.id===g?.id?'active':''}"
+                    <button class="swatch ${finishClass(x.finish)} ${x.id===g?.id?'active':''}${x.id===g?.id ? net("kleur|" + p.id + "|" + i) : ""}"
                             data-slotfil="${i}" data-fil="${esc(x.id)}" title="${esc(x.name)} — ${esc(x.hex)}"
                             style="background-color:${esc(x.hex)};">
                       ${x.id===g?.id ? `<span class="tick" style="color:${esc(readableOn(x.hex))}"><i class="fa-solid fa-check" aria-hidden="true"></i></span>` : ``}
@@ -6515,7 +6589,7 @@ function filamentPicker(p){
       ${toeslagUitleg(p)}
       <div class="swatches">
         ${colors.map(f=>`
-          <button class="swatch ${finishClass(f.finish)} ${f.id===chosen.id?'active':''}"
+          <button class="swatch ${finishClass(f.finish)} ${f.id===chosen.id?'active':''}${f.id===chosen.id ? net("kleur|" + p.id) : ""}"
                   data-fil="${esc(f.id)}" title="${esc(f.name)} — ${esc(f.hex)}"
                   style="background-color:${esc(f.hex)};">
             ${f.id===chosen.id ? `<span class="tick" style="color:${esc(readableOn(f.hex))}"><i class="fa-solid fa-check" aria-hidden="true"></i></span>` : ``}
@@ -6621,7 +6695,7 @@ function viewProduct(){
                       title="${esc(t("deel.knop"))}" aria-label="${esc(t("deel.knop"))}">
                 ${ic("share-nodes")}
               </button>
-              <button class="hart-knop ${isBewaard(p.id) ? "aan" : ""}" data-bewaar="${esc(p.id)}"
+              <button class="hart-knop ${isBewaard(p.id) ? "aan" : ""}${net("hart|" + p.id)}" data-bewaar="${esc(p.id)}"
                       title="${esc(t(isBewaard(p.id) ? "bewaar.weghalen" : "bewaar.leggen"))}"
                       aria-label="${esc(t(isBewaard(p.id) ? "bewaar.weghalen" : "bewaar.leggen"))}"
                       aria-pressed="${isBewaard(p.id) ? "true" : "false"}">
@@ -6882,8 +6956,10 @@ function attachProductHandlers(){
   document.querySelectorAll('[data-slot]').forEach(btn=>{
     btn.onclick = () => {
       const i = parseInt(btn.dataset.slot, 10);
-      state.__openSlot = state.__openSlot === i ? -1 : i;
+      const dicht = state.__openSlot === i;
+      state.__openSlot = dicht ? -1 : i;
       state.__slotType = null;
+      if (!dicht) netGebeurd("slot|" + state.selectedProduct?.id + "|" + i);
       render();
     };
   });
@@ -6906,8 +6982,10 @@ function attachProductHandlers(){
         }
         state.__openSlot = volgende;
         state.__slotType = null;
+        netGebeurd("kleur|" + p.id + "|" + i);
       } else {
         state.__filament = btn.dataset.fil;
+        netGebeurd("kleur|" + state.selectedProduct?.id);
       }
       state.__gallery = 0; // toon meteen het kleurvoorbeeld
       render();
@@ -7359,7 +7437,7 @@ function partCard(p){
             </div>
             <div class="swatches">
               ${colors.map(f=>`
-                <button class="swatch ${finishClass(f.finish)} ${f.id===fil?.id?'active':''}"
+                <button class="swatch ${finishClass(f.finish)} ${f.id===fil?.id?'active':''}${f.id===fil?.id ? net("deelkleur|" + p.id) : ""}"
                         data-partfil="${esc(p.id)}" data-fil="${esc(f.id)}" title="${esc(f.name)} — ${esc(f.hex)}"
                         style="background-color:${esc(f.hex)};">
                   ${f.id===fil?.id ? `<span class="tick" style="color:${esc(readableOn(f.hex))}"><i class="fa-solid fa-check" aria-hidden="true"></i></span>` : ``}
@@ -7988,7 +8066,7 @@ function viewCart(){
           <div class="cart-item" style="margin:14px 0;padding:11px 12px;">
             <p style="font-size:13px;margin:0 0 6px;">${ic("truck")} ${t("wagen.nogTotGratis", { bedrag: fmtEUR(nog) })}</p>
             <span class="stappen-balk" style="max-width:none;display:block;">
-              <span style="width:${Math.round(cartTotal() / (pricing().freeShipFrom || 1) * 100)}%;"></span>
+              <span data-balk="gratis" style="width:${Math.round(cartTotal() / (pricing().freeShipFrom || 1) * 100)}%;"></span>
             </span>
           </div>`;
         if (pricing().freeShipFrom > 0) return `
@@ -9872,9 +9950,10 @@ function stappenBlok(o){
         <span style="font-size:13px;font-weight:600;">
           ${af ? "Alles gedaan" : `${t.klaar} van ${t.totaal} gedaan`}
         </span>
-        <span class="stappen-balk"><span style="width:${Math.round(t.klaar / t.totaal * 100)}%;"></span></span>
+        <span class="stappen-balk"><span data-balk="stap|${esc(o.id)}"
+              style="width:${Math.round(t.klaar / t.totaal * 100)}%;"></span></span>
       </summary>
-      <div class="stappen-body">
+      <div class="stappen-body${net("stapvak|" + o.id)}">
         ${lijst.map(st => {
           const ja = stapKlaar(o, st.id);
           return `
@@ -9971,7 +10050,7 @@ function bestelRegel(o, i, idx){
         <span class="bestelregel-pijl">${open ? "⌃" : "⌄"}</span>
       </button>
       ${open ? `
-        <div class="bestelregel-body">
+        <div class="bestelregel-body${net("regel|" + sleutel)}">
           ${vakken.length
             ? vakken.map(c => kleurRegel(c, c.slot || "Kleur")).join("")
             : i.filament ? kleurRegel(i.filament, "Filament") : ``}
@@ -11610,7 +11689,9 @@ function attachAdminHandlers(){
 
   document.querySelectorAll('[data-regel]').forEach(b => {
     b.onclick = () => {
-      state.__openRegel = state.__openRegel === b.dataset.regel ? null : b.dataset.regel;
+      const dicht = state.__openRegel === b.dataset.regel;
+      state.__openRegel = dicht ? null : b.dataset.regel;
+      if (!dicht) netGebeurd("regel|" + b.dataset.regel);
       render();
     };
   });
