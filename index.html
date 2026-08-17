@@ -5688,6 +5688,10 @@ function attachShopHandlers(){
     btn.onclick = () => {
       state.selectedProduct = state.products.find(p=>p.id===btn.dataset.open);
       onthoudBekeken(btn.dataset.open);
+      // Het eerste kleurvak staat meteen open. Dát mag zich één keer laten
+      // zien — daar moet je immers nog iets kiezen — maar daarna niet meer bij
+      // elke hertekening.
+      netGebeurd("slot|" + btn.dataset.open + "|0");
       state.__gallery = 0;
       state.__dims = null;   // begin bij de standaardmaten van dit product
       // Ook de keuze tussen 3D en foto's hoort bij één product. Bleef die
@@ -6047,7 +6051,7 @@ function slotPicker(p){
         const actief = uit && types.includes(state.__slotType) ? state.__slotType : (g || voorstel).type;
         const kleuren = list.filter(x => x.type === actief);
         return `
-          <div class="kleurkiezer ${uit ? "open" : ""} ${g ? "gekozen" : "leeg"}${net("kleur|" + p.id + "|" + i)}">
+          <div class="kleurkiezer ${uit ? "open" : ""} ${g ? "gekozen" : "leeg"}${net("slot|" + p.id + "|" + i)}${net("kleur|" + p.id + "|" + i)}">
             <button class="kleurkiezer-knop" data-slot="${i}">
               <span class="kleurkiezer-nr">${g ? ic("check") : i + 1}</span>
               <span class="kleurkiezer-naam">${esc(s.name)}</span>
